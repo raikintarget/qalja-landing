@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QALJA – Қалжаның дәмін сезін</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Montserrat', 'Arial Black', Arial, sans-serif;
+      background: #120600;
+      color: #fff;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative;
+      width: 100%;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 36px 20px 48px;
+      background:
+        linear-gradient(
+          180deg,
+          rgba(12, 4, 0, 0.88) 0%,
+          rgba(22, 8, 0, 0.80) 28%,
+          rgba(90, 38, 0, 0.72) 58%,
+          rgba(180, 100, 8, 0.88) 80%,
+          rgba(210, 130, 12, 0.96) 100%
+        ),
+        url('banner.jpg') center center / cover no-repeat;
+    }
+
+    /* ── LOGO ── */
+    .logo-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 22px;
+    }
+
+    .logo-circle {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      border: 2.5px solid rgba(255,255,255,0.35);
+      background: rgba(0,0,0,0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 900;
+      letter-spacing: -1px;
+      color: #fff;
+      margin-bottom: 6px;
+      backdrop-filter: blur(6px);
+    }
+
+    .logo-sub {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.6);
+    }
+
+    /* ── MAIN TITLE ── */
+    .main-title {
+      font-size: clamp(1.9rem, 7vw, 3rem);
+      font-weight: 900;
+      text-transform: uppercase;
+      text-align: center;
+      line-height: 1.08;
+      letter-spacing: -0.5px;
+      text-shadow: 0 3px 14px rgba(0,0,0,0.75);
+      margin-bottom: 14px;
+    }
+
+    /* ── PILL SUBTITLE ── */
+    .pill {
+      display: inline-block;
+      border: 2.5px solid #fff;
+      border-radius: 100px;
+      padding: 9px 28px;
+      font-size: clamp(0.95rem, 3.5vw, 1.25rem);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      background: rgba(10,4,0,0.55);
+      backdrop-filter: blur(4px);
+      margin-bottom: 28px;
+    }
+
+    /* ── SOUP DECORATION ── */
+    .soup-emoji {
+      font-size: 5rem;
+      filter: drop-shadow(0 6px 18px rgba(0,0,0,0.6));
+      margin-bottom: 12px;
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-8px); }
+    }
+
+    /* ── DATE ── */
+    .date-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .date-icon { font-size: 2.2rem; }
+    .date-num {
+      font-size: clamp(2.4rem, 9vw, 3.4rem);
+      font-weight: 900;
+      color: #F5A623;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.55);
+      line-height: 1;
+    }
+
+    /* ── DESCRIPTION ── */
+    .desc {
+      font-size: clamp(0.85rem, 3vw, 1rem);
+      font-weight: 500;
+      text-align: center;
+      max-width: 340px;
+      line-height: 1.6;
+      color: rgba(255,255,255,0.92);
+      margin-bottom: 28px;
+    }
+    .desc .free { font-weight: 800; color: #F5A623; }
+
+    /* ── FORM CARD ── */
+    .card {
+      width: 100%;
+      max-width: 400px;
+      background: rgba(8, 3, 0, 0.72);
+      border: 1.5px solid rgba(245,166,35,0.35);
+      border-radius: 20px;
+      padding: 28px 22px 24px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.55);
+    }
+
+    .card-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #F5A623;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .field { margin-bottom: 14px; }
+    .field label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.65);
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+    .field input {
+      width: 100%;
+      padding: 13px 16px;
+      border-radius: 12px;
+      border: 1.5px solid rgba(245,166,35,0.4);
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      font-size: 0.98rem;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 500;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .field input:focus {
+      border-color: #F5A623;
+      background: rgba(255,255,255,0.13);
+    }
+    .field input::placeholder { color: rgba(255,255,255,0.3); }
+
+    /* ── SUBMIT BUTTON ── */
+    .btn-submit {
+      width: 100%;
+      margin-top: 8px;
+      padding: 15px 10px;
+      border: none;
+      border-radius: 100px;
+      background: linear-gradient(135deg, #C87800 0%, #F5A623 50%, #FFB830 100%);
+      color: #1a0800;
+      font-family: 'Montserrat', sans-serif;
+      font-size: clamp(0.78rem, 2.8vw, 0.92rem);
+      font-weight: 900;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 4px 24px rgba(212,130,0,0.55);
+      transition: transform 0.12s, box-shadow 0.2s, opacity 0.2s;
+    }
+    .btn-submit:hover  { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(212,130,0,0.7); }
+    .btn-submit:active { transform: translateY(0); }
+    .btn-submit:disabled { opacity: 0.6; cursor: default; transform: none; }
+
+    /* ── STATES ── */
+    .loading-text {
+      display: none;
+      text-align: center;
+      margin-top: 12px;
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.5);
+      font-weight: 600;
+    }
+
+    .success-block {
+      display: none;
+      text-align: center;
+      padding: 10px 0 4px;
+    }
+    .success-block .check { font-size: 2.8rem; margin-bottom: 8px; }
+    .success-block p {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #F5A623;
+      margin-bottom: 4px;
+    }
+    .success-block small {
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.5);
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      margin-top: 28px;
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.3);
+      text-align: center;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+  <section class="hero">
+
+    <!-- Logo -->
+    <div class="logo-wrap">
+      <div class="logo-circle">QALJA</div>
+      <span class="logo-sub">ана мен бала орталығы</span>
+    </div>
+
+    <!-- Headline -->
+    <h1 class="main-title">QALJA-ҒА КЕЛМЕЙ ТҰРЫП</h1>
+    <div class="pill">ҚАЛЖАНЫҢ ДӘМІН СЕЗІН</div>
+
+    <!-- Floating soup -->
+    <div class="soup-emoji">🍲</div>
+
+    <!-- Date -->
+    <div class="date-row">
+      <span class="date-icon">📅</span>
+      <span class="date-num">9 мамыр</span>
+    </div>
+
+    <!-- Description -->
+    <p class="desc">
+      Бізге келгісі келіп жүрген аналарды қалжа сорпасын
+      ішуге шақырамыз.&nbsp;<span class="free">КІРУ ТЕГІН</span>
+    </p>
+
+    <!-- Registration form -->
+    <div class="card">
+      <p class="card-title">Тіркелу үшін толтырыңыз</p>
+
+      <form id="regForm">
+        <div class="field">
+          <label>Аты-жөніңіз</label>
+          <input type="text" name="name" placeholder="Айгүл Жаксыбекова" required />
+        </div>
+        <div class="field">
+          <label>Телефон нөміріңіз</label>
+          <input type="tel" name="phone" placeholder="+7 700 000 00 00" required />
+        </div>
+        <button type="submit" class="btn-submit" id="submitBtn">
+          ТІРКЕЛУ ҮШІН СІЛТЕМЕГЕ ӨТІҢІЗ
+        </button>
+        <p class="loading-text" id="loadingText">Жіберілуде…</p>
+      </form>
+
+      <div class="success-block" id="successBlock">
+        <div class="check">✅</div>
+        <p>Тіркеліңіз! WhatsApp чатқа бағытталуда…</p>
+        <small>Секунд сайын автоматты өтеді</small>
+      </div>
+    </div>
+
+    <p class="footer">© 2025 QALJA – ана мен бала орталығы</p>
+  </section>
+
+  <script>
+    // ─── CONFIG ────────────────────────────────────────────────────────────────
+    const SCRIPT_URL   = 'PASTE_YOUR_APPS_SCRIPT_URL_HERE';
+    const WHATSAPP_URL = 'https://chat.whatsapp.com/JfLdMGwIo75GMCU2IqF9nz?mode=gi_t';
+    // ───────────────────────────────────────────────────────────────────────────
+
+    document.getElementById('regForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      const form      = e.target;
+      const name      = form.name.value.trim();
+      const phone     = form.phone.value.trim();
+      const btn       = document.getElementById('submitBtn');
+      const loading   = document.getElementById('loadingText');
+      const success   = document.getElementById('successBlock');
+
+      btn.disabled          = true;
+      loading.style.display = 'block';
+
+      try {
+        await fetch(SCRIPT_URL, {
+          method:  'POST',
+          mode:    'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({
+            name,
+            phone,
+            date: new Date().toLocaleString('kk-KZ', { timeZone: 'Asia/Almaty' })
+          })
+        });
+      } catch (err) {
+        // Sheets-ке жазу сәтсіз болса да, чатқа өтеміз
+        console.warn('Sheets error:', err);
+      }
+
+      loading.style.display = 'none';
+      form.style.display    = 'none';
+      success.style.display = 'block';
+
+      setTimeout(() => { window.location.href = WHATSAPP_URL; }, 1800);
+    });
+  </script>
+</body>
+</html>
