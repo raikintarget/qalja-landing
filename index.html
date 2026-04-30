@@ -325,16 +325,12 @@
       loading.style.display = 'block';
 
       try {
-        await fetch(SCRIPT_URL, {
-          method:  'POST',
-          mode:    'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({
+        const params = new URLSearchParams({
             name,
             phone,
-            date: new Date().toLocaleString('kk-KZ', { timeZone: 'Asia/Almaty' })
-          })
-        });
+            date: new Date().toLocaleString('ru-RU', { timeZone: 'Asia/Almaty' })
+          });
+        await fetch(`${SCRIPT_URL}?${params.toString()}`, { mode: 'no-cors' });
       } catch (err) {
         // Sheets-ке жазу сәтсіз болса да, чатқа өтеміз
         console.warn('Sheets error:', err);
