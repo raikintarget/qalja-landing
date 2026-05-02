@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QALJA Алматы – Мамыр Арнайы Бағдарламасы</title>
+  <!-- Meta Pixel Code -->
+  <script>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '2261896784561449');
+  fbq('track', 'PageView');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=2261896784561449&ev=PageView&noscript=1"
+  /></noscript>
+  <!-- End Meta Pixel Code -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Montserrat', 'Arial Black', Arial, sans-serif;
+      background: #120600;
+      color: #fff;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .hero {
+      position: relative;
+      width: 100%;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 20px 52px;
+      background:
+        linear-gradient(
+          180deg,
+          rgba(12, 4, 0, 0.90) 0%,
+          rgba(22, 8, 0, 0.82) 25%,
+          rgba(90, 38, 0, 0.74) 55%,
+          rgba(180, 100, 8, 0.90) 80%,
+          rgba(210, 130, 12, 0.96) 100%
+        ),
+        url('banner.jpg') center center / cover no-repeat;
+    }
+
+    .urgency-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(220, 38, 38, 0.85);
+      border: 1.5px solid rgba(255, 100, 100, 0.6);
+      border-radius: 100px;
+      padding: 7px 18px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #fff;
+      margin-bottom: 20px;
+      backdrop-filter: blur(6px);
+      animation: pulse-badge 2s ease-in-out infinite;
+    }
+    .urgency-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #fff;
+      animation: blink 1.2s ease-in-out infinite;
+    }
+    @keyframes pulse-badge {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.5); }
+      50%       { box-shadow: 0 0 0 8px rgba(220,38,38,0); }
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.2; }
+    }
+
+    .logo-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .logo-circle {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      border: 2.5px solid rgba(255,255,255,0.35);
+      background: rgba(0,0,0,0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 900;
+      letter-spacing: -1px;
+      color: #fff;
+      margin-bottom: 6px;
+      backdrop-filter: blur(6px);
+    }
+    .logo-sub {
+      font-size: 0.62rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.6);
+    }
+
+    .city-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(245,166,35,0.18);
+      border: 1.5px solid rgba(245,166,35,0.5);
+      border-radius: 100px;
+      padding: 5px 14px;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #F5A623;
+      margin-bottom: 16px;
+    }
+
+    .main-title {
+      font-size: clamp(1.8rem, 6.5vw, 2.8rem);
+      font-weight: 900;
+      text-transform: uppercase;
+      text-align: center;
+      line-height: 1.1;
+      letter-spacing: -0.5px;
+      text-shadow: 0 3px 14px rgba(0,0,0,0.75);
+      margin-bottom: 10px;
+    }
+    .main-title .accent { color: #F5A623; }
+
+    .pill {
+      display: inline-block;
+      border: 2.5px solid #fff;
+      border-radius: 100px;
+      padding: 9px 26px;
+      font-size: clamp(0.88rem, 3.2vw, 1.15rem);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      background: rgba(10,4,0,0.55);
+      backdrop-filter: blur(4px);
+      margin-bottom: 24px;
+    }
+
+    .countdown-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 22px;
+    }
+    .countdown-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 10px;
+    }
+    .countdown { display: flex; gap: 10px; }
+    .cd-unit { display: flex; flex-direction: column; align-items: center; }
+    .cd-num {
+      background: rgba(245,166,35,0.15);
+      border: 1.5px solid rgba(245,166,35,0.4);
+      border-radius: 10px;
+      padding: 8px 14px;
+      font-size: clamp(1.4rem, 5vw, 1.9rem);
+      font-weight: 900;
+      color: #F5A623;
+      min-width: 56px;
+      text-align: center;
+      line-height: 1;
+    }
+    .cd-lbl {
+      font-size: 0.58rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.45);
+      margin-top: 5px;
+    }
+    .cd-sep {
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: rgba(245,166,35,0.6);
+      line-height: 1;
+      padding-top: 8px;
+    }
+
+    .benefits {
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+    .benefit-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(245,166,35,0.2);
+      border-radius: 14px;
+      padding: 12px 16px;
+    }
+    .benefit-icon { font-size: 1.5rem; flex-shrink: 0; }
+    .benefit-text { font-size: 0.85rem; font-weight: 700; line-height: 1.35; color: rgba(255,255,255,0.92); }
+    .benefit-text span { color: #F5A623; }
+
+    .spots-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .spots-fire { font-size: 1.3rem; }
+    .spots-text { font-size: 0.82rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; }
+    .spots-text .num { color: #FF4444; font-size: 1.1rem; }
+
+    .card {
+      width: 100%;
+      max-width: 400px;
+      background: rgba(8, 3, 0, 0.72);
+      border: 1.5px solid rgba(245,166,35,0.35);
+      border-radius: 20px;
+      padding: 26px 22px 22px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.55);
+    }
+    .card-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #F5A623;
+      text-align: center;
+      margin-bottom: 18px;
+    }
+
+    .btn-submit {
+      width: 100%;
+      margin-top: 10px;
+      padding: 16px 10px;
+      border: none;
+      border-radius: 100px;
+      background: linear-gradient(135deg, #C87800 0%, #F5A623 50%, #FFB830 100%);
+      color: #1a0800;
+      font-family: 'Montserrat', sans-serif;
+      font-size: clamp(0.76rem, 2.7vw, 0.9rem);
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 4px 24px rgba(212,130,0,0.55);
+      transition: transform 0.12s, box-shadow 0.2s, opacity 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-submit::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transform: translateX(-100%);
+      animation: shimmer 2.5s ease-in-out infinite;
+    }
+    @keyframes shimmer {
+      0%        { transform: translateX(-100%); }
+      60%, 100% { transform: translateX(100%); }
+    }
+    .btn-submit:hover  { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(212,130,0,0.7); }
+    .btn-submit:active { transform: translateY(0); }
+    .btn-submit:disabled { opacity: 0.6; cursor: default; transform: none; }
+    .btn-submit:disabled::after { display: none; }
+
+    .disclaimer {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 0.68rem;
+      color: rgba(255,255,255,0.35);
+      line-height: 1.5;
+    }
+
+    .footer {
+      margin-top: 28px;
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.28);
+      text-align: center;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+  <section class="hero">
+
+    <div class="urgency-badge">
+      <span class="dot"></span>
+      Тіркелу аяқталуда · Мамыр ғана
+    </div>
+
+    <div class="logo-wrap">
+      <div class="logo-circle">QALJA</div>
+      <span class="logo-sub">ана мен бала орталығы</span>
+    </div>
+
+    <div class="city-tag">📍 Алматы қаласы</div>
+
+    <h1 class="main-title">
+      МАМЫРДЫҢ<br>АРНАЙЫ<br><span class="accent">БАҒДАРЛАМАСЫ</span>
+    </h1>
+    <div class="pill">Тек осы айда · Тек Алматыда</div>
+
+    <div class="countdown-wrap">
+      <p class="countdown-label">Ұсыныс аяқталғанға дейін</p>
+      <div class="countdown">
+        <div class="cd-unit">
+          <div class="cd-num" id="cd-d">00</div>
+          <div class="cd-lbl">күн</div>
+        </div>
+        <div class="cd-sep">:</div>
+        <div class="cd-unit">
+          <div class="cd-num" id="cd-h">00</div>
+          <div class="cd-lbl">сағат</div>
+        </div>
+        <div class="cd-sep">:</div>
+        <div class="cd-unit">
+          <div class="cd-num" id="cd-m">00</div>
+          <div class="cd-lbl">минут</div>
+        </div>
+        <div class="cd-sep">:</div>
+        <div class="cd-unit">
+          <div class="cd-num" id="cd-s">00</div>
+          <div class="cd-lbl">секунд</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="benefits">
+      <div class="benefit-row">
+        <span class="benefit-icon">🔥</span>
+        <div class="benefit-text">
+          <span>Мамырдың арнайы бағдарламасы</span> — толық курс мазмұны + кестесі
+        </div>
+      </div>
+      <div class="benefit-row">
+        <span class="benefit-icon">👩‍⚕️</span>
+        <div class="benefit-text">
+          Тәжірибелі мамандармен <span>жеке консультация</span> — сіздің жағдайыңызға арнайы
+        </div>
+      </div>
+      <div class="benefit-row">
+        <span class="benefit-icon">💎</span>
+        <div class="benefit-text">
+          Мамыр айына арналған <span>ерекше шарттар</span> — тек алғашқы 15 ананың ғана құқығы
+        </div>
+      </div>
+    </div>
+
+    <div class="spots-row">
+      <span class="spots-fire">🔥</span>
+      <span class="spots-text"><span class="num">7</span> орын ғана қалды</span>
+      <span class="spots-fire">🔥</span>
+    </div>
+
+    <div class="card">
+      <p class="card-title">Бағдарламаны алу үшін</p>
+      <button class="btn-submit" id="submitBtn" onclick="goWhatsApp()">
+        ✦ Мамыр бағдарламасын алу ✦
+      </button>
+      <p class="disclaimer">WhatsApp арқылы жауап береміз</p>
+    </div>
+
+    <p class="footer">© 2025 QALJA – ана мен бала орталығы · Алматы</p>
+  </section>
+
+  <script>
+    function updateCountdown() {
+      const now  = new Date();
+      const end  = new Date(now.getFullYear(), now.getMonth(), 31, 23, 59, 59);
+      let   diff = Math.max(0, Math.floor((end - now) / 1000));
+
+      const d = Math.floor(diff / 86400); diff -= d * 86400;
+      const h = Math.floor(diff / 3600);  diff -= h * 3600;
+      const m = Math.floor(diff / 60);
+      const s = diff - m * 60;
+
+      document.getElementById('cd-d').textContent = String(d).padStart(2,'0');
+      document.getElementById('cd-h').textContent = String(h).padStart(2,'0');
+      document.getElementById('cd-m').textContent = String(m).padStart(2,'0');
+      document.getElementById('cd-s').textContent = String(s).padStart(2,'0');
+    }
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+
+    const WHATSAPP_PHONE = '77082689002';
+
+    function goWhatsApp() {
+      const btn = document.getElementById('submitBtn');
+      btn.disabled    = true;
+      btn.textContent = 'WhatsApp ашылуда…';
+
+      fbq('track', 'Lead');
+
+      const msg = encodeURIComponent(
+        `Сәлем! Алматыдан жазып тұрмын 📍\n` +
+        `Мамыр айының арнайы бағдарламасын алғым келеді! 🔥`
+      );
+
+      setTimeout(() => {
+        window.location.href = `https://wa.me/${WHATSAPP_PHONE}?text=${msg}`;
+      }, 400);
+    }
+  </script>
+</body>
+</html>
