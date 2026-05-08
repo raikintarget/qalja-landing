@@ -14,11 +14,11 @@
   t.src=v;s=b.getElementsByTagName(e)[0];
   s.parentNode.insertBefore(t,s)}(window, document,'script',
   'https://connect.facebook.net/en_US/fbevents.js');
-  fbq('init', '2261896784561449');
+  fbq('init', '1344867997528263');
   fbq('track', 'PageView');
   </script>
   <noscript><img height="1" width="1" style="display:none"
-  src="https://www.facebook.com/tr?id=2261896784561449&ev=PageView&noscript=1"
+  src="https://www.facebook.com/tr?id=1344867997528263&ev=PageView&noscript=1"
   /></noscript>
   <!-- End Meta Pixel Code -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -27,6 +27,8 @@
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
+
+      
       font-family: 'Montserrat', 'Arial Black', Arial, sans-serif;
       background: #120600;
       color: #fff;
@@ -46,13 +48,13 @@
       background:
         linear-gradient(
           180deg,
-          rgba(12, 4, 0, 0.90) 0%,
-          rgba(22, 8, 0, 0.82) 25%,
-          rgba(90, 38, 0, 0.74) 55%,
-          rgba(180, 100, 8, 0.90) 80%,
-          rgba(210, 130, 12, 0.96) 100%
+          rgba(0, 0, 0, 0.25) 0%,
+          rgba(0, 0, 0, 0.20) 35%,
+          rgba(18, 6, 0, 0.55) 60%,
+          rgba(180, 100, 8, 0.82) 82%,
+          rgba(210, 130, 12, 0.94) 100%
         ),
-        url('banner.jpg') center center / cover no-repeat;
+        url('team.png') center top / cover no-repeat;
     }
 
     /* ── URGENCY BADGE ── */
@@ -98,20 +100,12 @@
     }
 
     .logo-circle {
-      width: 68px;
-      height: 68px;
+      width: 90px;
+      height: 90px;
       border-radius: 50%;
-      border: 2.5px solid rgba(255,255,255,0.35);
-      background: rgba(0,0,0,0.45);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.5rem;
-      font-weight: 900;
-      letter-spacing: -1px;
-      color: #fff;
+      object-fit: cover;
       margin-bottom: 6px;
-      backdrop-filter: blur(6px);
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
     }
 
     .logo-sub {
@@ -366,6 +360,119 @@
       text-align: center;
       letter-spacing: 1px;
     }
+
+    /* ── Packages accordion ── */
+    .packages-section {
+      width: 100%;
+      max-width: 400px;
+      margin: 24px 0 0;
+    }
+    .packages-label {
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.45);
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    .pkg-item {
+      border: 1.5px solid rgba(245,166,35,0.3);
+      border-radius: 16px;
+      margin-bottom: 10px;
+      overflow: hidden;
+      background: rgba(8,3,0,0.6);
+      backdrop-filter: blur(8px);
+    }
+    .pkg-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      cursor: pointer;
+      user-select: none;
+      gap: 10px;
+    }
+    .pkg-header-left { display: flex; flex-direction: column; gap: 3px; }
+    .pkg-name {
+      font-size: 0.88rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #F5A623;
+    }
+    .pkg-meta {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.45);
+      letter-spacing: 0.5px;
+    }
+    .pkg-price-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; flex-shrink: 0; }
+    .pkg-price { font-size: 0.95rem; font-weight: 900; color: #fff; }
+    .pkg-old-price { font-size: 0.68rem; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: line-through; }
+    .pkg-arrow {
+      font-size: 0.8rem;
+      color: rgba(245,166,35,0.6);
+      transition: transform 0.3s ease;
+      flex-shrink: 0;
+      margin-left: 6px;
+    }
+    .pkg-item.open .pkg-arrow { transform: rotate(180deg); }
+    .pkg-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1);
+    }
+    .pkg-item.open .pkg-body { max-height: 1200px; }
+    .pkg-inner {
+      padding: 0 18px 18px;
+      border-top: 1px solid rgba(245,166,35,0.15);
+    }
+    .pkg-section-title {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #1a0800;
+      background: #F5A623;
+      border-radius: 100px;
+      padding: 3px 12px;
+      margin: 14px 0 8px;
+    }
+    .pkg-section-title.white {
+      background: rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.7);
+    }
+    .pkg-list { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+    .pkg-list li {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.8);
+      padding-left: 16px;
+      position: relative;
+      line-height: 1.4;
+    }
+    .pkg-list li::before {
+      content: '·';
+      position: absolute;
+      left: 4px;
+      color: #F5A623;
+      font-weight: 900;
+    }
+    .pkg-gift {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      background: rgba(245,166,35,0.1);
+      border: 1px dashed rgba(245,166,35,0.4);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #F5A623;
+    }
   </style>
 </head>
 <body>
@@ -379,8 +486,7 @@
 
     <!-- Logo -->
     <div class="logo-wrap">
-      <div class="logo-circle">QALJA</div>
-      <span class="logo-sub">ана мен бала орталығы</span>
+      <img src="logo.jpg" class="logo-circle" alt="QALJA" />
     </div>
 
     <!-- City tag -->
@@ -461,6 +567,179 @@
       </p>
     </div>
 
+    <!-- Packages accordion -->
+    <div class="packages-section">
+      <p class="packages-label">Біздің пакеттер</p>
+
+      <!-- Package 1 -->
+      <div class="pkg-item" onclick="togglePkg(this)">
+        <div class="pkg-header">
+          <div class="pkg-header-left">
+            <span class="pkg-name">Бой тіктеу пакеті</span>
+            <span class="pkg-meta">6-күндік · Астана</span>
+          </div>
+          <div class="pkg-price-wrap">
+            <span class="pkg-price">180 000 тг</span>
+            <span class="pkg-old-price">200 000 тг</span>
+          </div>
+          <span class="pkg-arrow">▼</span>
+        </div>
+        <div class="pkg-body">
+          <div class="pkg-inner">
+            <span class="pkg-section-title">SPA және релакс бағыттары</span>
+            <ul class="pkg-list">
+              <li>Шашқа арналған SPA күтімі</li>
+              <li>Тайлық SPA</li>
+              <li>Аяққа скрабпен SPA және массаж</li>
+              <li>Тибет тостағаны арқылы релакс</li>
+              <li>Стоун-терапия</li>
+              <li>Аяққа гидромассажбен жылы ванна</li>
+              <li>Бет күтімі</li>
+              <li>Бетке арналған арнайы LED-маска</li>
+            </ul>
+            <span class="pkg-section-title">Денені қалпына келтіру күтімдері</span>
+            <ul class="pkg-list">
+              <li>Күндақтау</li>
+              <li>Толық дене массажы</li>
+              <li>Арқа массажы</li>
+              <li>Арқаға вакуумды банка</li>
+              <li>Ішке арналған арнайы массаж</li>
+              <li>Бенкунг байлау</li>
+              <li>Диастазды анықтау және массаж арқылы жинауға көмектесу</li>
+              <li>Интим бұлшықеттеріне арналған жаттығулар</li>
+              <li>Термоаппаратта терлеу</li>
+              <li>Мини баняға терлеу</li>
+            </ul>
+            <div class="pkg-gift">🎁 Сыйлыққа бала күтуші қызметі</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Package 2 -->
+      <div class="pkg-item" onclick="togglePkg(this)">
+        <div class="pkg-header">
+          <div class="pkg-header-left">
+            <span class="pkg-name">Шілде пакеті</span>
+            <span class="pkg-meta">6-күндік · Астана</span>
+          </div>
+          <div class="pkg-price-wrap">
+            <span class="pkg-price">350 000 тг</span>
+            <span class="pkg-old-price">400 000 тг</span>
+          </div>
+          <span class="pkg-arrow">▼</span>
+        </div>
+        <div class="pkg-body">
+          <div class="pkg-inner">
+            <span class="pkg-section-title">SPA және релакс бағыттары</span>
+            <ul class="pkg-list">
+              <li>Шашқа арналған SPA күтімі</li>
+              <li>Тайлық SPA</li>
+              <li>Аяққа скрабпен SPA және массаж</li>
+              <li>Тибет тостағаны арқылы релакс</li>
+              <li>Стоун-терапия</li>
+              <li>Аяққа гидромассажбен жылы ванна</li>
+              <li>Бет күтімі</li>
+              <li>Бетке арналған арнайы LED-маска</li>
+            </ul>
+            <span class="pkg-section-title">Денені қалпына келтіру күтімдері</span>
+            <ul class="pkg-list">
+              <li>Күндақтау</li>
+              <li>Толық дене массажы</li>
+              <li>Арқа массажы</li>
+              <li>Арқаға вакуумды банка</li>
+              <li>Ішке арналған арнайы массаж</li>
+              <li>Бенкунг байлау</li>
+              <li>Диастазды анықтау және массаж арқылы жинауға көмектесу</li>
+              <li>Интим бұлшықеттеріне арналған жаттығулар</li>
+            </ul>
+            <span class="pkg-section-title white">Психологиялық және әйел ресурсы</span>
+            <ul class="pkg-list">
+              <li>Психологиялық кеңес</li>
+              <li>Лактация бойынша кеңес</li>
+            </ul>
+            <span class="pkg-section-title white">Күтім мен жайлылық</span>
+            <ul class="pkg-list">
+              <li>5 мезгіл тамақ</li>
+              <li>Қалжа сыйлығы</li>
+              <li>Жайлы жатын орын</li>
+            </ul>
+            <span class="pkg-section-title white">Сәбиге арналған қызметтер</span>
+            <ul class="pkg-list">
+              <li>Фотолампа</li>
+              <li>Билитест</li>
+              <li>Сәби гимнастикасы</li>
+              <li>Шомылдыру</li>
+              <li>Бала күтушісінің қызметі 9:00–18:00</li>
+              <li>Кіндіктің дұрыс бітуін бақылау</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Package 3 -->
+      <div class="pkg-item" onclick="togglePkg(this)">
+        <div class="pkg-header">
+          <div class="pkg-header-left">
+            <span class="pkg-name">QALJA пакеті</span>
+            <span class="pkg-meta">6-күндік · Астана</span>
+          </div>
+          <div class="pkg-price-wrap">
+            <span class="pkg-price">350 000 тг</span>
+            <span class="pkg-old-price">400 000 тг</span>
+          </div>
+          <span class="pkg-arrow">▼</span>
+        </div>
+        <div class="pkg-body">
+          <div class="pkg-inner">
+            <span class="pkg-section-title">SPA және релакс бағыттары</span>
+            <ul class="pkg-list">
+              <li>Шашқа арналған SPA күтімі</li>
+              <li>Тайлық SPA</li>
+              <li>Аяққа скрабпен SPA және массаж</li>
+              <li>Тибет тостағаны арқылы релакс</li>
+              <li>Стоун-терапия</li>
+              <li>Аяққа гидромассажбен жылы ванна</li>
+              <li>Бет күтімі</li>
+              <li>Бетке арналған арнайы LED-маска</li>
+            </ul>
+            <span class="pkg-section-title">Денені қалпына келтіру күтімдері</span>
+            <ul class="pkg-list">
+              <li>Күндақтау</li>
+              <li>Толық дене массажы</li>
+              <li>Арқа массажы</li>
+              <li>Арқаға вакуумды банка</li>
+              <li>Ішке арналған арнайы массаж</li>
+              <li>Бенкунг байлау</li>
+              <li>Диастазды анықтау және массаж арқылы жинауға көмектесу</li>
+              <li>Интим бұлшықеттеріне арналған жаттығулар</li>
+              <li>Термоаппаратта терлеу</li>
+              <li>Мини баняға терлеу</li>
+            </ul>
+            <span class="pkg-section-title white">Психологиялық және әйел ресурсы</span>
+            <ul class="pkg-list">
+              <li>Психологиялық кеңес</li>
+              <li>Лактация бойынша кеңес</li>
+            </ul>
+            <span class="pkg-section-title white">Күтім мен жайлылық</span>
+            <ul class="pkg-list">
+              <li>5 мезгіл тамақ</li>
+              <li>Қалжа сыйлығы</li>
+              <li>Жайлы жатын орын</li>
+            </ul>
+            <span class="pkg-section-title white">Сәбиге арналған қызметтер</span>
+            <ul class="pkg-list">
+              <li>Фотолампа</li>
+              <li>Билитест</li>
+              <li>Сәби гимнастикасы</li>
+              <li>Шомылдыру</li>
+              <li>Бала күтушісінің қызметі 9:00–18:00</li>
+              <li>Кіндіктің дұрыс бітуін бақылау</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <p class="footer">© 2025 QALJA – ана мен бала орталығы · Астана</p>
   </section>
 
@@ -504,6 +783,10 @@
       setTimeout(() => {
         window.location.href = `https://wa.me/${WHATSAPP_PHONE}?text=${msg}`;
       }, 400);
+    }
+
+    function togglePkg(el) {
+      el.classList.toggle('open');
     }
   </script>
 </body>
