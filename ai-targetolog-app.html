@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SmartTarget AI — Таргетолог</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0E0D0B;--s:#181613;--s2:#221F19;--line:#2F2A22;
+  --gold:#D9A441;--gs:#EBD7A6;--gd:#8A6E36;
+  --txt:#F2ECDD;--dim:#9A9384;--muted:#6E685C;
+  --ok:#86B375;--bad:#CC6A5C;--warn:#E0A436;--info:#7BA7C9;
+  --r:14px;--ease:cubic-bezier(.22,.61,.36,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:"Manrope",sans-serif;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+
+/* NAV */
+.nav{flex:none;height:50px;display:flex;align-items:center;gap:2px;padding:0 10px;background:rgba(14,13,11,.97);border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
+.brand{display:flex;align-items:center;gap:6px;font-family:"Unbounded";font-weight:700;font-size:12.5px;color:var(--gs);margin-right:8px;flex:none}
+.brand .dot{width:7px;height:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 3px rgba(217,164,65,.2)}
+.t{appearance:none;cursor:pointer;font-family:inherit;font-size:12.5px;color:var(--dim);background:transparent;border:1px solid transparent;border-radius:8px;padding:6px 11px;white-space:nowrap;transition:.14s;flex:none}
+.t:hover{color:var(--txt);background:var(--s)}
+.t.on{color:var(--gs);background:var(--s);border-color:var(--gd)}
+.nav-r{margin-left:auto;display:flex;align-items:center;gap:6px;flex:none;padding-left:6px}
+.ib{appearance:none;cursor:pointer;background:transparent;border:1px solid var(--line);border-radius:8px;color:var(--dim);width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:14px;transition:.14s}
+.ib:hover{color:var(--txt);border-color:var(--gd)}
+.ai-status{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--dim);border:1px solid var(--line);border-radius:99px;padding:5px 10px;white-space:nowrap}
+.ai-status .pulse{width:6px;height:6px;border-radius:50%;background:var(--ok);animation:blink 1.2s infinite}
+.ai-status .pulse.off{background:var(--muted);animation:none}
+@keyframes blink{50%{opacity:.25}}
+
+/* MAIN */
+.main{flex:1;overflow:hidden;position:relative}
+.pane{position:absolute;inset:0;overflow-y:auto;padding:16px 14px;display:none}
+.pane.on{display:block;animation:pIn .22s var(--ease)}
+.pane.flex{display:none;flex-direction:column}
+.pane.flex.on{display:flex}
+@keyframes pIn{from{opacity:0;transform:translateY(5px)}}
+.wrap{max-width:980px;margin:0 auto}
+
+/* TYPOGRAPHY */
+.ey{font-family:"Unbounded";font-weight:500;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+h2{font-family:"Unbounded";font-weight:600;font-size:clamp(16px,3.5vw,21px);line-height:1.2;letter-spacing:-.01em;margin-bottom:4px}
+.sub{color:var(--dim);font-size:13px;margin-bottom:16px}
+.ph{font-family:"Unbounded";font-weight:500;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim);margin-bottom:11px;display:flex;align-items:center;justify-content:space-between}
+.ph .tag{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--gd);text-transform:none;letter-spacing:0;font-weight:400}
+
+/* PANELS */
+.pan{background:var(--s);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.pan+.pan{margin-top:12px}
+.g2{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:740px){.g2{grid-template-columns:1.3fr 1fr}}
+
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:13px}
+@media(max-width:580px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--s);border:1px solid var(--line);border-radius:12px;padding:12px}
+.kpi small{display:block;font-size:10.5px;color:var(--dim);margin-bottom:3px}
+.kpi b{font-family:"Unbounded";font-weight:700;font-size:18px;display:block}
+.kpi .d{font-size:10.5px;font-weight:600;margin-top:3px;min-height:13px}
+.up{color:var(--ok)}.dn{color:var(--bad)}.neu{color:var(--dim)}
+
+/* BANNER */
+.banner{display:flex;align-items:center;gap:11px;background:linear-gradient(135deg,rgba(134,179,117,.1),rgba(217,164,65,.07));border:1px solid rgba(134,179,117,.3);border-radius:var(--r);padding:13px 14px;margin-bottom:13px}
+.banner .live{width:9px;height:9px;border-radius:50%;background:var(--ok);animation:blink 1.2s infinite;flex:none}
+.banner b{font-family:"Unbounded";font-weight:600;font-size:13px;display:block}
+.banner small{color:var(--dim);font-size:11.5px}
+.banner-end{margin-left:auto;display:flex;gap:7px;flex:none}
+
+/* CAMPAIGN CARDS */
+.cc{border:1px solid var(--line);border-radius:12px;padding:12px 13px;background:var(--s2);position:relative;transition:border-color .25s,opacity .3s;margin-bottom:8px}
+.cc:last-child{margin-bottom:0}
+.cc.scale{border-color:var(--gold)}
+.cc.keep{border-color:rgba(134,179,117,.45)}
+.cc.degrade{border-color:rgba(224,164,54,.4)}
+.cc.vampire{border-color:rgba(204,106,92,.4);opacity:.6}
+.cc.learning{border-color:rgba(123,167,201,.35)}
+.cc .top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.cc .nm{font-weight:600;font-size:13.5px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bdg{font-family:"Unbounded";font-size:10px;font-weight:600;padding:3px 8px;border-radius:99px;white-space:nowrap;flex:none}
+.bdg.scale{background:rgba(217,164,65,.16);color:var(--gs)}
+.bdg.keep{background:rgba(134,179,117,.14);color:var(--ok)}
+.bdg.degrade{background:rgba(224,164,54,.12);color:var(--warn)}
+.bdg.vampire{background:rgba(204,106,92,.14);color:var(--bad)}
+.bdg.learning{background:rgba(123,167,201,.12);color:var(--info)}
+.bdg.new{background:rgba(217,164,65,.1);color:var(--gold);border:1px dashed var(--gd)}
+.cc .mets{display:flex;gap:12px;flex-wrap:wrap;font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--dim)}
+.cc .mets b{color:var(--txt);font-weight:500}
+.cc .rec{font-size:12px;color:var(--dim);margin-top:8px;padding-top:8px;border-top:1px solid var(--line);line-height:1.5}
+.cc .ai-action{font-size:11.5px;color:var(--ok);margin-top:6px;font-weight:600;display:none}
+.cc.acted .ai-action{display:block}
+.cc .camp-btns{display:flex;gap:6px;margin-top:8px}
+
+/* AI FEED */
+.feed{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto}
+.feed::-webkit-scrollbar{width:3px}
+.feed::-webkit-scrollbar-thumb{background:var(--line);border-radius:9px}
+.feed-item{display:flex;gap:10px;align-items:flex-start;animation:fi .3s var(--ease)}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}}
+.feed-item .fi-ic{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex:none;background:var(--s2);border:1px solid var(--line)}
+.feed-item .fi-body{flex:1;min-width:0}
+.feed-item .fi-txt{font-size:13px;line-height:1.5;color:var(--txt)}
+.feed-item .fi-txt b{color:var(--gs)}
+.feed-item .fi-tm{font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--muted);margin-top:2px}
+.feed-item.act .fi-ic{background:rgba(134,179,117,.1);border-color:rgba(134,179,117,.3)}
+.feed-item.warn .fi-ic{background:rgba(204,106,92,.1);border-color:rgba(204,106,92,.3)}
+.feed-item.gold .fi-ic{background:rgba(217,164,65,.1);border-color:rgba(217,164,65,.3)}
+.feed-item.info .fi-ic{background:rgba(123,167,201,.1);border-color:rgba(123,167,201,.3)}
+
+/* THINKING animation */
+.thinking{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--dim);padding:8px 0}
+.thinking .dots span{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--dim);animation:tdot 1.2s infinite;margin:0 1px}
+.thinking .dots span:nth-child(2){animation-delay:.2s}
+.thinking .dots span:nth-child(3){animation-delay:.4s}
+@keyframes tdot{0%,60%,100%{opacity:.3;transform:scale(1)}30%{opacity:1;transform:scale(1.3)}}
+
+/* CHART */
+.chart-svg{width:100%;height:110px;display:block}
+.cgrid{stroke:var(--line)}.cline{stroke:var(--gold);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.carea{fill:rgba(217,164,65,.07)}.cdot{fill:var(--gold)}.ctgt{stroke:var(--gd);stroke-width:1;stroke-dasharray:4 3}
+.clbl{font-family:"JetBrains Mono",monospace;font-size:9px;fill:var(--muted)}
+
+/* TG PHONE */
+.tg-phone{background:var(--s);border:1px solid var(--line);border-radius:16px;padding:9px;max-width:340px}
+.tg-top{display:flex;align-items:center;gap:8px;padding:7px 7px 10px;border-bottom:1px solid var(--line)}
+.tg-av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#2a2218,#3a2e1c);border:1px solid var(--gd);display:flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+.tg-nm{font-family:"Unbounded";font-size:12px;font-weight:600;color:var(--gs);display:block}
+.tg-st{font-size:10.5px;color:var(--ok)}
+.tg-body{padding:11px 6px 6px}
+.tg-bub{background:var(--s2);border:1px solid var(--line);border-radius:4px 12px 12px 12px;padding:11px 12px;font-size:12.5px;line-height:1.6;white-space:pre-wrap;color:var(--txt)}
+.tg-tm{display:block;text-align:right;font-size:9.5px;color:var(--muted);margin-top:6px}
+
+/* CREATIVE CARDS */
+.cre-card{border:1px solid var(--line);border-radius:12px;padding:13px;background:var(--s2);margin-bottom:9px;transition:border-color .25s}
+.cre-card .cre-top{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.cre-thumb{width:44px;height:44px;border-radius:8px;background:linear-gradient(135deg,#2a2218,#3a2e1c);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
+.cre-card.testing{border-color:rgba(123,167,201,.4)}
+.cre-card.winner{border-color:var(--gold)}
+.cre-card.dropped{border-color:rgba(204,106,92,.35);opacity:.6}
+.cbar{height:5px;background:var(--line);border-radius:99px;overflow:hidden;margin-top:8px}
+.cbar i{display:block;height:100%;background:linear-gradient(90deg,var(--gd),var(--gold));border-radius:99px;transition:width .8s var(--ease)}
+
+/* BUDGET BARS */
+.bbar{margin-bottom:11px}
+.bbar .bbar-top{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px}
+.bbar .bbar-top b{font-family:"JetBrains Mono",monospace;font-weight:500}
+.bbar .track{height:6px;background:var(--line);border-radius:99px;overflow:hidden}
+.bbar .fill{height:100%;border-radius:99px;transition:width .6s var(--ease)}
+.fill.ok{background:linear-gradient(90deg,var(--gd),var(--gold))}
+.fill.warn{background:var(--warn)}
+.fill.bad{background:var(--bad)}
+
+/* CHAT (secondary) */
+.chat-wrap{display:flex;flex-direction:column;height:100%}
+.chat-body{flex:1;overflow-y:auto;padding:13px;display:flex;flex-direction:column;gap:9px}
+.chat-body::-webkit-scrollbar{width:3px}
+.chat-body::-webkit-scrollbar-thumb{background:var(--line);border-radius:9px}
+.msg{display:flex;gap:8px;max-width:86%;animation:mi .25s var(--ease)}
+@keyframes mi{from{opacity:0;transform:translateY(4px)}}
+.msg.u{align-self:flex-end;flex-direction:row-reverse}
+.mbub{background:var(--s2);border:1px solid var(--line);border-radius:4px 13px 13px 13px;padding:9px 12px;font-size:13.5px;line-height:1.55;white-space:pre-wrap}
+.msg.u .mbub{background:rgba(217,164,65,.09);border-color:var(--gd);border-radius:13px 4px 13px 13px}
+.mav{width:26px;height:26px;border-radius:50%;background:var(--s);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12px;flex:none;align-self:flex-end}
+.tm-lbl{font-size:10px;color:var(--muted);padding:0 3px;margin-top:2px}
+.chat-foot{flex:none;padding:10px 13px;border-top:1px solid var(--line);background:var(--s)}
+.qrow{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:9px}
+.qb{appearance:none;cursor:pointer;font-family:inherit;font-size:11.5px;color:var(--gs);background:rgba(217,164,65,.07);border:1px solid var(--gd);border-radius:99px;padding:5px 10px;transition:.14s;white-space:nowrap}
+.qb:hover{background:rgba(217,164,65,.14)}
+.chat-ir{display:flex;gap:8px}
+.ci{flex:1;background:var(--s2);border:1px solid var(--line);border-radius:11px;padding:9px 12px;font-family:inherit;font-size:13.5px;color:var(--txt);resize:none;max-height:90px;min-height:40px;transition:border-color .17s}
+.ci:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(217,164,65,.15)}
+.ci::placeholder{color:var(--muted)}
+.sb{appearance:none;cursor:pointer;background:linear-gradient(180deg,#E6B453,var(--gold));border:none;border-radius:11px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;color:#1a1305;font-size:16px;flex:none;transition:filter .14s,transform .1s;align-self:flex-end}
+.sb:hover{filter:brightness(1.09)}.sb:active{transform:scale(.93)}.sb:disabled{opacity:.38;cursor:default}
+.typing-bub{display:flex;gap:3px;align-items:center;padding:10px 12px}
+.typing-bub span{width:5px;height:5px;border-radius:50%;background:var(--dim);animation:tdot 1.2s infinite}
+.typing-bub span:nth-child(2){animation-delay:.2s}.typing-bub span:nth-child(3){animation-delay:.4s}
+
+/* FORMS & BUTTONS */
+.fl{margin-bottom:11px}
+.fl label{display:block;font-size:12px;color:var(--dim);margin-bottom:5px;font-weight:500}
+.fl label .h{color:var(--muted);font-weight:400}
+.fl input,.fl select,.fl textarea{width:100%;font-family:inherit;font-size:13.5px;color:var(--txt);background:var(--s2);border:1px solid var(--line);border-radius:9px;padding:9px 11px;transition:border-color .17s}
+.fl textarea{resize:vertical;min-height:60px;line-height:1.5}
+.fl input:focus,.fl select:focus,.fl textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(217,164,65,.15)}
+.fl input::placeholder{color:var(--muted)}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:460px){.r2{grid-template-columns:1fr}}
+.sfx-w{position:relative}.sfx-w input{padding-right:35px}
+.sfx{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:11.5px;font-family:"JetBrains Mono",monospace}
+
+.btn{appearance:none;cursor:pointer;font-family:"Unbounded";font-weight:600;font-size:13px;border:none;border-radius:10px;padding:11px 17px;background:linear-gradient(180deg,#E6B453,var(--gold));color:#1a1305;transition:filter .14s,transform .1s;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{filter:brightness(1.07)}.btn:active{transform:scale(.99)}.btn:disabled{opacity:.4;cursor:default;filter:none}
+.btn.g{background:transparent;color:var(--gs);border:1px solid var(--gd);font-weight:500}
+.btn.g:hover{filter:none;background:rgba(217,164,65,.07)}
+.btn.sm{font-size:11.5px;padding:7px 12px;border-radius:8px}
+.btn.d{background:transparent;color:var(--bad);border:1px solid rgba(204,106,92,.3)}
+.btn.d:hover{filter:none;background:rgba(204,106,92,.07)}
+.btn.full{width:100%;justify-content:center}
+
+/* TOGGLE */
+.sw{appearance:none;width:40px;height:22px;border-radius:99px;background:var(--s2);border:1px solid var(--line);position:relative;cursor:pointer;flex:none;transition:.18s}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--muted);transition:.18s}
+.sw:checked{background:rgba(217,164,65,.2);border-color:var(--gd)}
+.sw:checked::after{left:20px;background:var(--gold)}
+
+/* MODAL */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;z-index:200;padding:14px;opacity:0;pointer-events:none;transition:opacity .18s}
+.ov.show{opacity:1;pointer-events:all}
+.modal{background:var(--s);border:1px solid var(--line);border-radius:16px;padding:19px;width:100%;max-width:470px;animation:popIn .22s var(--ease);max-height:90dvh;overflow-y:auto}
+@keyframes popIn{from{transform:scale(.93);opacity:0}}
+.modal h3{font-family:"Unbounded";font-weight:600;font-size:15.5px;margin-bottom:14px}
+.mf{display:flex;gap:8px;margin-top:15px;justify-content:flex-end}
+
+/* SETTINGS ROWS */
+.sr{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.sr:last-child{border-bottom:none}
+.sr .t b{font-size:13.5px;display:block}.sr .t small{color:var(--muted);font-size:11.5px;display:block;margin-top:2px}
+
+/* ANNOUNCE */
+.ann{display:flex;align-items:flex-start;gap:10px;background:rgba(123,167,201,.07);border:1px solid rgba(123,167,201,.2);border-radius:var(--r);padding:11px 13px;margin-bottom:13px;font-size:13px;line-height:1.5}
+.ann .ic{font-size:16px;flex:none;margin-top:1px}
+.ann a{color:var(--info);text-decoration:underline;cursor:pointer}
+
+/* EMPTY */
+.empty{text-align:center;padding:36px 20px;color:var(--dim);font-size:13.5px}
+.empty .ei{font-size:36px;margin-bottom:10px}
+
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- AUTOPILOT NOTIFICATION BAR -->
+<div id="autopilotBar" style="flex:none;height:32px;display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(90deg,rgba(134,179,117,.08),rgba(217,164,65,.06),rgba(134,179,117,.08));border-bottom:1px solid rgba(134,179,117,.2);font-size:11.5px;color:var(--ok);padding:0 14px;white-space:nowrap;overflow:hidden">
+  <span style="width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none;animation:blink 1.5s infinite;box-shadow:0 0 6px rgba(134,179,117,.5)"></span>
+  <span><strong>Автопилот активен</strong> · следующая оптимизация в <strong>08:00</strong> · клиент: <strong id="barClientName">Айгерим Садыкова</strong></span>
+  <span style="color:var(--muted);margin-left:4px">· Алматы, KZ</span>
+  <button onclick="document.getElementById('autopilotBar').style.display='none'" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;padding:4px;flex:none">✕</button>
+</div>
+
+<nav class="nav">
+  <div class="brand"><span class="dot"></span>SmartTarget AI</div>
+  <button class="t on" data-tab="autopilot">🤖 Автопилот</button>
+  <button class="t" data-tab="campaigns">📋 Кампании</button>
+  <button class="t" data-tab="budget">💰 Бюджет</button>
+  <button class="t" data-tab="creatives">🎨 Креативы</button>
+  <button class="t" data-tab="reports">📩 Отчёты</button>
+  <button class="t" data-tab="chat">💬 Чат</button>
+  <div class="nav-r">
+    <div class="ai-status" id="aiStatusBadge"><span class="pulse" id="aiPulse"></span><span id="aiStatusTxt">загрузка…</span></div>
+    <button class="ib" onclick="openSettings()" title="Настройки">⚙️</button>
+    <!-- USER AVATAR -->
+    <div id="userAvatarBtn" style="display:flex;align-items:center;gap:7px;cursor:pointer;padding:4px 8px;border-radius:9px;border:1px solid var(--line);background:var(--s2);transition:.15s;flex:none;position:relative" onclick="toggleUserMenu()" title="Аккаунт">
+      <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--gold-dim),var(--gd));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#1a1104;flex:none">АС</div>
+      <span style="font-size:12px;color:var(--dim);font-weight:600;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="navUserName">Айгерим</span>
+      <span style="font-size:9px;color:var(--muted)">▾</span>
+    </div>
+    <!-- USER DROPDOWN -->
+    <div id="userMenu" style="display:none;position:absolute;top:48px;right:10px;background:var(--s);border:1px solid var(--line);border-radius:13px;padding:8px;min-width:180px;z-index:200;box-shadow:0 8px 32px rgba(0,0,0,.6)">
+      <div style="padding:8px 10px 10px;border-bottom:1px solid var(--line);margin-bottom:6px">
+        <div style="font-weight:700;font-size:13px">Айгерим Садыкова</div>
+        <div style="font-size:11.5px;color:var(--dim);margin-top:2px">Expert-тариф</div>
+      </div>
+      <button onclick="openSettings();closeUserMenu()" style="display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;cursor:pointer;font-family:inherit;font-size:13px;color:var(--dim);padding:8px 10px;border-radius:8px;text-align:left;transition:.15s" onmouseover="this.style.background='var(--s2)';this.style.color='var(--txt)'" onmouseout="this.style.background='';this.style.color='var(--dim)'">⚙️ Настройки</button>
+      <button onclick="doLogout()" style="display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;cursor:pointer;font-family:inherit;font-size:13px;color:var(--bad);padding:8px 10px;border-radius:8px;text-align:left;transition:.15s" onmouseover="this.style.background='rgba(204,106,92,.08)'" onmouseout="this.style.background=''">🚪 Выйти</button>
+    </div>
+  </div>
+</nav>
+
+<main class="main">
+
+<!-- ═══ АВТОПИЛОТ ═══ -->
+<div class="pane on" id="tab-autopilot">
+<div class="wrap">
+
+  <div id="noKeyBanner" class="ann" style="display:none">
+    <span class="ic">🔑</span>
+    <span>Введите API-ключ Claude в <a onclick="openSettings()">настройках</a> — AI начнёт работать по-настоящему. Без ключа используется демо-режим.</span>
+  </div>
+
+  <div class="banner" id="mainBanner">
+    <span class="live" id="bannerLive"></span>
+    <div><b id="bannerTitle">AI-таргетолог работает</b><small id="bannerSub">загрузка…</small></div>
+    <div class="banner-end">
+      <button class="btn sm g" id="pauseBtn" onclick="toggleAutopilot()">⏸ Пауза</button>
+      <button class="btn sm" id="runBtn" onclick="runDay()">▶ Запустить анализ</button>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><small>Расход сегодня</small><b id="kSpend">—</b><div class="d neu" id="kSpendD"></div></div>
+    <div class="kpi"><small>Заявок</small><b id="kLeads">—</b><div class="d up" id="kLeadsD"></div></div>
+    <div class="kpi"><small>Средний CPL</small><b id="kCpl">—</b><div class="d" id="kCplD"></div></div>
+    <div class="kpi"><small>Действий AI</small><b id="kActs">—</b><div class="d neu" id="kActsD"></div></div>
+  </div>
+
+  <div class="g2">
+    <div>
+      <div class="pan" style="margin-bottom:12px">
+        <div class="ph">Что делает AI прямо сейчас <span class="tag" id="feedTag">live</span></div>
+        <div id="thinkingRow" class="thinking" style="display:none">
+          <span>🤔 AI анализирует</span>
+          <div class="dots"><span></span><span></span><span></span></div>
+        </div>
+        <div class="feed" id="mainFeed">
+          <div class="empty"><div class="ei">🤖</div>Нажмите «Запустить анализ» — AI проверит все кампании и примет решения</div>
+        </div>
+      </div>
+      <div class="pan">
+        <div class="ph">Кампании — решения AI <span class="tag" id="campCount2"></span></div>
+        <div id="dashCamps"><div class="empty"><div class="ei">📋</div>Добавьте кампании в разделе «Кампании»</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="pan" style="margin-bottom:12px">
+        <div class="ph">Динамика CPL <span class="tag">цель ≤ $<span id="cplTarget">2.00</span></span></div>
+        <svg class="chart-svg" id="chartSvg" viewBox="0 0 300 110" preserveAspectRatio="none"></svg>
+        <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--muted);margin-top:4px"><span>7 дн. назад</span><span>сегодня</span></div>
+      </div>
+      <div class="pan">
+        <div class="ph">Telegram-отчёт</div>
+        <div id="tgWidget">
+          <div class="tg-phone">
+            <div class="tg-top"><div class="tg-av">🤖</div><div><span class="tg-nm">SmartTarget Bot</span><span class="tg-st" id="tgSt">ожидает</span></div></div>
+            <div class="tg-body"><div id="tgMsg" style="color:var(--muted);font-size:12px;padding:6px">Отчёт появится после анализа</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ═══ КАМПАНИИ ═══ -->
+<div class="pane" id="tab-campaigns">
+<div class="wrap">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:9px;margin-bottom:15px">
+    <div><div class="ey">Управление</div><h2>Кампании</h2></div>
+    <div style="display:flex;gap:7px">
+      <button class="btn sm g" onclick="loadDemo()">📂 Демо-данные</button>
+      <button class="btn sm" onclick="openAddCamp()">+ Добавить</button>
+    </div>
+  </div>
+  <div id="campList"><div class="empty"><div class="ei">📋</div>Нет кампаний. Добавьте вручную или загрузите демо-данные.</div></div>
+</div>
+</div>
+
+<!-- ═══ БЮДЖЕТ ═══ -->
+<div class="pane" id="tab-budget">
+<div class="wrap">
+  <div class="ey">Контроль</div>
+  <h2>Бюджет</h2>
+  <p class="sub">AI следит за расходом и сигнализирует при превышении лимитов</p>
+
+  <div class="kpis">
+    <div class="kpi"><small>Расход сегодня</small><b id="bSpend">—</b><div class="d neu" id="bSpendD"></div></div>
+    <div class="kpi"><small>Сэкономлено</small><b id="bSaved">$0</b><div class="d up">от вампиров</div></div>
+    <div class="kpi"><small>Дневной лимит</small><b id="bLimit">—</b><div class="d neu" id="bLimitD"></div></div>
+    <div class="kpi"><small>Прогноз месяц</small><b id="bForecast">—</b><div class="d neu"></div></div>
+  </div>
+
+  <div class="g2">
+    <div class="pan">
+      <div class="ph">Расход по кампаниям</div>
+      <div id="budgetBars"><div class="empty"><div class="ei">💰</div>Добавьте кампании</div></div>
+    </div>
+    <div>
+      <div class="pan" style="margin-bottom:12px">
+        <div class="ph">Лимиты AI</div>
+        <div class="fl"><label>Дневной лимит расхода ($)</label><input id="limDaily" type="number" placeholder="300" oninput="saveBudgetSettings()"></div>
+        <div class="fl"><label>Макс. CPL — авто-стоп ($)</label><input id="limCpl" type="number" step="0.5" placeholder="5.00" oninput="saveBudgetSettings()"></div>
+        <div class="fl"><label>Мин. заявок для решения</label><input id="limLeads" type="number" placeholder="5" oninput="saveBudgetSettings()"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line)">
+          <div><b style="font-size:13.5px">Алерт в Telegram</b><small style="color:var(--muted);font-size:11.5px;display:block;margin-top:2px">Если CPL превысит лимит</small></div>
+          <input type="checkbox" class="sw" id="limAlert" checked>
+        </div>
+      </div>
+      <div class="pan">
+        <div class="ph">Правила автопилота</div>
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <div class="sr"><div class="t"><b>Отключать вампиров</b><small>CPL > 2× цели, заявок < 5</small></div><input type="checkbox" class="sw" id="rVamp" checked></div>
+          <div class="sr"><div class="t"><b>Масштабировать победителей</b><small>CPL < цели, +30% бюджета</small></div><input type="checkbox" class="sw" id="rScale" checked></div>
+          <div class="sr"><div class="t"><b>Снижать при деградации</b><small>CPL 1.5× — уменьшить бюджет</small></div><input type="checkbox" class="sw" id="rDegrade" checked></div>
+          <div class="sr"><div class="t"><b>Не трогать в обучении</b><small>Уважать фазу обучения Meta</small></div><input type="checkbox" class="sw" id="rLearn" checked></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══ КРЕАТИВЫ ═══ -->
+<div class="pane" id="tab-creatives">
+<div class="wrap">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:9px;margin-bottom:15px">
+    <div><div class="ey">Управление</div><h2>Креативы</h2></div>
+    <button class="btn sm" onclick="openAddCreative()">+ Добавить креатив</button>
+  </div>
+  <p class="sub">AI оценивает каждый креатив, запускает тест и масштабирует победителей. Вы только загружаете — система работает сама.</p>
+  <div id="creList"><div class="empty"><div class="ei">🎨</div>Нет креативов. Добавьте — AI запустит тест автоматически.</div></div>
+</div>
+</div>
+
+<!-- ═══ ОТЧЁТЫ ═══ -->
+<div class="pane" id="tab-reports">
+<div class="wrap">
+  <div class="ey">Аналитика</div>
+  <h2>Отчёты</h2>
+  <p class="sub">AI генерирует отчёты автоматически. Ниже — история и ручная генерация.</p>
+  <div class="g2">
+    <div>
+      <div class="pan" style="margin-bottom:12px">
+        <div class="ph">Ручная генерация</div>
+        <div class="fl"><label>Тип</label>
+          <select id="repType">
+            <option value="daily">Ежедневный</option>
+            <option value="weekly">Еженедельный</option>
+            <option value="ai">AI-анализ (подробный)</option>
+          </select>
+        </div>
+        <div class="fl"><label>Клиент</label><input id="repClient" placeholder="Имя клиента"></div>
+        <button class="btn full" onclick="genReport()">🔄 Сгенерировать</button>
+      </div>
+      <div class="pan">
+        <div class="ph">История отчётов</div>
+        <div id="repHistory" style="max-height:300px;overflow-y:auto"><div class="empty" style="padding:20px"><div class="ei" style="font-size:24px">📋</div>Отчётов нет</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="tg-phone" style="max-width:100%">
+        <div class="tg-top"><div class="tg-av">🤖</div><div><span class="tg-nm">SmartTarget Bot</span><span class="tg-st" id="repSt">готов</span></div></div>
+        <div class="tg-body"><div class="tg-bub" id="repBubble" style="color:var(--muted)">Нажмите «Сгенерировать»</div></div>
+      </div>
+      <div style="display:flex;gap:7px;margin-top:10px">
+        <button class="btn sm g" onclick="copyReport()">📋 Копировать</button>
+        <button class="btn sm" onclick="shareWA()">WhatsApp ↗</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══ ЧАТ ═══ -->
+<div class="pane flex" id="tab-chat">
+  <div class="chat-wrap">
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 13px;border-bottom:1px solid var(--line);background:var(--s);flex:none">
+      <div class="tg-av">🤖</div>
+      <div><div style="font-family:'Unbounded';font-weight:600;font-size:12.5px;color:var(--gs)">SmartTarget AI</div><div style="font-size:11px;color:var(--ok)" id="chatSt">онлайн</div></div>
+      <button class="btn sm g" style="margin-left:auto" onclick="clearChat()">Очистить</button>
+    </div>
+    <div class="chat-body" id="chatBody"></div>
+    <div class="chat-foot">
+      <div class="qrow">
+        <button class="qb" onclick="qSend('Проанализируй мои кампании')">📊 Анализ кампаний</button>
+        <button class="qb" onclick="qSend('Что сейчас мешает снизить CPL?')">🎯 CPL</button>
+        <button class="qb" onclick="qSend('Напиши текст рекламы для лучшей кампании')">✍️ Текст</button>
+        <button class="qb" onclick="qSend('Какой план на следующий месяц?')">📈 Стратегия</button>
+        <button class="qb" onclick="qSend('Объясни фазу обучения Meta')">📚 Meta</button>
+      </div>
+      <div class="chat-ir">
+        <textarea class="ci" id="ci" placeholder="Задайте вопрос AI-таргетологу…" rows="1"></textarea>
+        <button class="sb" id="sb" onclick="sendMsg()">➤</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- MODAL: Добавить кампанию -->
+<div class="ov" id="campModal">
+  <div class="modal">
+    <h3 id="campModalTitle">Добавить кампанию</h3>
+    <div class="fl"><label>Название</label><input id="cN" placeholder="Напр. Лазерная эпиляция −40%"></div>
+    <div class="r2">
+      <div class="fl"><label>Расход ($)</label><input id="cS" type="number" step="0.01" placeholder="0"></div>
+      <div class="fl"><label>Заявок</label><input id="cL" type="number" placeholder="0"></div>
+    </div>
+    <div class="r2">
+      <div class="fl"><label>CTR (%)</label><input id="cC" type="number" step="0.01" placeholder="1.5"></div>
+      <div class="fl"><label>Статус</label>
+        <select id="cSt">
+          <option value="active">Активна</option>
+          <option value="learning">Обучение</option>
+          <option value="paused">Пауза</option>
+          <option value="off">Отключена</option>
+        </select>
+      </div>
+    </div>
+    <div class="r2">
+      <div class="fl"><label>Бюджет/день ($) <span class="h">— опц.</span></label><input id="cB" type="number" step="0.5" placeholder="50"></div>
+      <div class="fl"><label>Ниша/услуга <span class="h">— опц.</span></label><input id="cNi" placeholder="Бьюти, лазер…"></div>
+    </div>
+    <input type="hidden" id="cId">
+    <div class="mf">
+      <button class="btn sm g" onclick="closeCampModal()">Отмена</button>
+      <button class="btn sm" onclick="saveCamp()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Добавить креатив -->
+<div class="ov" id="creModal">
+  <div class="modal">
+    <h3>Добавить креатив</h3>
+    <div class="fl"><label>Название / описание</label><input id="crN" placeholder="Напр. Летний пакет — видео 15 сек"></div>
+    <div class="r2">
+      <div class="fl"><label>Формат</label>
+        <select id="crF">
+          <option value="video">Видео</option>
+          <option value="image">Картинка</option>
+          <option value="carousel">Карусель</option>
+          <option value="story">Stories</option>
+        </select>
+      </div>
+      <div class="fl"><label>Кампания</label>
+        <select id="crC"></select>
+      </div>
+    </div>
+    <div class="fl"><label>Бюджет на тест ($) <span class="h">— AI оставит если CPL ок</span></label>
+      <div class="sfx-w"><input id="crB" type="number" value="30" step="5"><span class="sfx">$/день</span></div>
+    </div>
+    <div class="fl"><label>Тон текста <span class="h">— AI напишет рекламный текст</span></label>
+      <input id="crT" placeholder="Напр. Премиум, тёплый, на казахском"></div>
+    <div class="mf">
+      <button class="btn sm g" onclick="closeCreModal()">Отмена</button>
+      <button class="btn sm" onclick="saveCreative()">🚀 Запустить тест</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Настройки -->
+<div class="ov" id="settingsModal">
+  <div class="modal">
+    <h3>⚙️ Настройки</h3>
+    <div class="ann"><span class="ic">🔑</span><span>API-ключ хранится в вашем браузере и никуда не передаётся. Получите на <b>console.anthropic.com</b></span></div>
+    <div class="fl"><label>Anthropic API-ключ</label>
+      <div style="display:flex;gap:7px">
+        <input id="sKey" type="password" placeholder="sk-ant-…" autocomplete="off" style="flex:1">
+        <button class="btn sm g" type="button" onclick="testAPI()" id="testBtn" style="flex:none;white-space:nowrap">Проверить</button>
+      </div>
+      <div id="testResult" style="margin-top:7px;font-size:12px;display:none"></div>
+    </div>
+    <div class="fl"><label>Модель Claude</label>
+      <select id="sModel">
+        <option value="claude-sonnet-4-6">Sonnet 4.6 — рекомендуется</option>
+        <option value="claude-haiku-4-5-20251001">Haiku 4.5 — быстро и дёшево</option>
+        <option value="claude-opus-4-6">Opus 4.6 — лучшее качество</option>
+      </select>
+    </div>
+    <div style="border:1px solid var(--line);border-radius:var(--r);padding:13px;margin-bottom:13px">
+      <div class="ey" style="margin-bottom:10px">Бизнес</div>
+      <div class="fl"><label>Название</label><input id="sBiz" placeholder="Ваш бизнес"></div>
+      <div class="r2">
+        <div class="fl"><label>Ниша</label><input id="sNiche" placeholder="Бьюти, медицина…"></div>
+        <div class="fl"><label>Целевой CPL ($)</label><input id="sCpl" type="number" step="0.5" placeholder="2.00"></div>
+      </div>
+      <div class="fl"><label>WhatsApp</label><input id="sWa" placeholder="+7 ___ ___ __ __"></div>
+    </div>
+    <div style="border:1px solid var(--line);border-radius:var(--r);padding:13px">
+      <div class="ey" style="margin-bottom:8px">Автопилот</div>
+      <div class="sr"><div class="t"><b>AI работает автоматически</b><small>Принимает решения сам, присылает отчёт</small></div><input type="checkbox" class="sw" id="sAuto" checked></div>
+      <div class="sr"><div class="t"><b>Ежедневный отчёт</b><small>AI сам формирует и отправляет в Telegram</small></div><input type="checkbox" class="sw" id="sReport" checked></div>
+    </div>
+    <div class="mf">
+      <button class="btn sm g" onclick="closeSettings()">Отмена</button>
+      <button class="btn sm" onclick="saveSettings()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ────────────────────────────────
+   STATE
+──────────────────────────────── */
+const KEY = 'smt2_v1';
+function loadS(){ try{ return JSON.parse(localStorage.getItem(KEY)) || def(); }catch{ return def(); } }
+function def(){
+  return {
+    campaigns:[],creatives:[],reports:[],actions:[],chatHistory:[],
+    settings:{apiKey:'',model:'claude-sonnet-4-6',bizName:'',niche:'',targetCpl:2.0,wa:'',autopilot:true,dailyReport:true},
+    budget:{limDaily:300,limCpl:5,limLeads:5,alert:true},
+    totalActions:0, lastReportText:'', lastOptDate:''
+  };
+}
+let S = loadS();
+function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+
+/* ────────────────────────────────
+   UTILS
+──────────────────────────────── */
+const $=id=>document.getElementById(id);
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+const sl=ms=>new Promise(r=>setTimeout(r,reduce?0:ms));
+const nowT=()=>{ const d=new Date(); return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
+const today=()=>new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
+const fmt$=v=>v===0?'$0':v<10?'$'+v.toFixed(2):v<1000?'$'+Math.round(v):'$'+(v/1000).toFixed(1)+'k';
+
+function verdict(c){
+  const t=S.settings.targetCpl||2;
+  if(c.status==='learning') return 'learning';
+  if(c.status==='off') return 'vampire';
+  const cpl=c.leads>0?c.spend/c.leads:999;
+  if(cpl>t*2.5&&c.leads<(S.budget.limLeads||5)) return 'vampire';
+  if(cpl>t*1.5) return 'degrade';
+  if(cpl<=t*0.9&&c.leads>=8) return 'scale';
+  return 'keep';
+}
+const VL={scale:'Масштабировать',keep:'Оставить',degrade:'Снизить бюджет',vampire:'Отключить',learning:'Обучение'};
+const VI={scale:'📈',keep:'✅',degrade:'📉',vampire:'⏸',learning:'🔄'};
+function vrec(v,c){
+  const cpl=c.leads>0?'$'+(c.spend/c.leads).toFixed(2):'нет заявок';
+  if(v==='scale') return `CPL ${cpl} — ниже цели. AI поднимает бюджет на +30%.`;
+  if(v==='keep') return `CPL ${cpl} — стабильно. Без изменений.`;
+  if(v==='degrade') return `CPL ${cpl} выше нормы. AI снижает бюджет, наблюдает.`;
+  if(v==='vampire') return `CPL ${cpl}, заявок ${c.leads}. Тратит деньги без результата. AI отключает.`;
+  if(v==='learning') return `Фаза обучения Meta — AI не вмешивается. Дождаться ~50 конверсий.`;
+  return '';
+}
+
+/* ────────────────────────────────
+   TABS
+──────────────────────────────── */
+document.querySelectorAll('.t[data-tab]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.t[data-tab]').forEach(b=>b.classList.remove('on'));
+    document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+    btn.classList.add('on');
+    $('tab-'+btn.dataset.tab).classList.add('on');
+    const tab=btn.dataset.tab;
+    if(tab==='campaigns') renderCampaigns();
+    if(tab==='budget') renderBudget();
+    if(tab==='creatives') renderCreatives();
+    if(tab==='reports') renderRepHistory();
+    if(tab==='autopilot') refreshDashboard();
+  });
+});
+
+/* ────────────────────────────────
+   DASHBOARD
+──────────────────────────────── */
+function getKPI(){
+  const act=S.campaigns.filter(c=>c.status!=='off');
+  const spend=act.reduce((s,c)=>s+(c.spend||0),0);
+  const leads=act.reduce((s,c)=>s+(c.leads||0),0);
+  const cpl=leads>0?spend/leads:0;
+  return {spend,leads,cpl,count:S.campaigns.length};
+}
+
+function refreshDashboard(){
+  const {spend,leads,cpl}=getKPI();
+  const t=S.settings.targetCpl||2;
+  $('kSpend').textContent=spend>0?fmt$(spend):'—';
+  $('kLeads').textContent=leads>0?String(leads):'—';
+  $('kCpl').textContent=cpl>0?'$'+cpl.toFixed(2):'—';
+  $('kActs').textContent=S.totalActions||'—';
+  $('kActsD').textContent=S.totalActions?'за сегодня':'';
+  $('kCplD').className='d '+(cpl>0&&cpl<=t?'up':cpl>t?'dn':'neu');
+  $('kCplD').textContent=cpl>0?(cpl<=t?'✓ В норме':'▲ Выше цели'):'';
+  $('cplTarget').textContent=t.toFixed(2);
+  const biz=S.settings.bizName||'ваш бизнес';
+  const auto=S.settings.autopilot;
+  $('bannerTitle').textContent=auto?'AI-таргетолог работает':'AI-таргетолог на паузе';
+  $('bannerSub').textContent=biz+' · '+(auto?'анализирует каждый день':'автопилот выключен');
+  $('bannerLive').style.background=auto?'var(--ok)':'var(--muted)';
+  $('bannerLive').style.animation=auto?'blink 1.2s infinite':'none';
+  $('pauseBtn').textContent=auto?'⏸ Пауза':'▶ Включить';
+  $('aiStatusTxt').textContent=auto?'работает':'пауза';
+  $('aiPulse').className=auto?'pulse':'pulse off';
+  $('noKeyBanner').style.display=S.settings.apiKey?'none':'flex';
+  renderDashCamps();
+  renderChart();
+  if(S.actions.length) renderFeed(S.actions.slice(-20));
+}
+
+function renderDashCamps(){
+  const el=$('dashCamps');
+  $('campCount2').textContent=S.campaigns.length?S.campaigns.length+' шт.':'';
+  if(!S.campaigns.length){ el.innerHTML='<div class="empty"><div class="ei">📋</div>Нет кампаний</div>'; return; }
+  el.innerHTML=S.campaigns.map(c=>{
+    const v=verdict(c);
+    const cpl=c.leads>0?'$'+(c.spend/c.leads).toFixed(2):'—';
+    return `<div class="cc ${v}">
+      <div class="top"><span class="nm">${c.name}</span><span class="bdg ${v}">${VL[v]}</span></div>
+      <div class="mets"><span>$${c.spend}</span><span>${c.leads} заявок</span><span>CPL ${cpl}</span>${c.ctr?`<span>CTR ${c.ctr}%</span>`:''}</div>
+      ${c.lastAction?`<div class="ai-action acted">🤖 ${c.lastAction}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function renderChart(){
+  const t=S.settings.targetCpl||2;
+  const {cpl}=getKPI();
+  const base=cpl>0?cpl:t*1.8;
+  const pts=[];
+  for(let i=6;i>=0;i--) pts.push(base*(1+i*0.09+(Math.random()*.08-.04)));
+  pts.push(base);
+  const svg=$('chartSvg');
+  const W=300,H=110,PL=26,PR=6,PT=8,PB=18;
+  const max=Math.max(...pts,t)*1.18,min=Math.min(...pts,t)*.82;
+  const xAt=i=>PL+(W-PL-PR)*(i/(pts.length-1));
+  const yAt=v=>PT+(H-PT-PB)*(1-(v-min)/(max-min));
+  let g='';
+  [Math.floor(min),+(((min+max)/2).toFixed(1)),Math.ceil(max)].forEach(v=>{
+    const y=yAt(v);
+    g+=`<line class="cgrid" x1="${PL}" y1="${y.toFixed(1)}" x2="${W-PR}" y2="${y.toFixed(1)}"/>`;
+    g+=`<text class="clbl" x="1" y="${(y+3).toFixed(1)}">$${v}</text>`;
+  });
+  g+=`<line class="ctgt" x1="${PL}" y1="${yAt(t).toFixed(1)}" x2="${W-PR}" y2="${yAt(t).toFixed(1)}"/>`;
+  g+=`<path class="carea" d="M${xAt(0).toFixed(1)} ${H-PB} ${pts.map((v,i)=>`L${xAt(i).toFixed(1)} ${yAt(v).toFixed(1)}`).join(' ')} L${xAt(pts.length-1).toFixed(1)} ${H-PB} Z"/>`;
+  g+=`<path class="cline" d="${pts.map((v,i)=>`${i?'L':'M'}${xAt(i).toFixed(1)} ${yAt(v).toFixed(1)}`).join(' ')}"/>`;
+  pts.forEach((v,i)=>{ g+=`<circle class="cdot" cx="${xAt(i).toFixed(1)}" cy="${yAt(v).toFixed(1)}" r="${i===pts.length-1?3.2:1.8}"/>`; });
+  svg.innerHTML=g;
+}
+
+/* ────────────────────────────────
+   AI FEED
+──────────────────────────────── */
+function renderFeed(actions){
+  const el=$('mainFeed');
+  if(!actions.length){ el.innerHTML='<div class="empty"><div class="ei">🤖</div>Нажмите «Запустить анализ»</div>'; return; }
+  el.innerHTML='';
+  actions.forEach((a,i)=>{
+    const d=document.createElement('div');
+    d.className='feed-item '+a.type;
+    d.style.animationDelay=(i*.06)+'s';
+    d.innerHTML=`<div class="fi-ic">${a.icon}</div><div class="fi-body"><div class="fi-txt">${a.text}</div><div class="fi-tm">${a.time}</div></div>`;
+    el.appendChild(d);
+  });
+  el.scrollTop=el.scrollHeight;
+}
+
+function addAction(icon,text,type=''){
+  const a={icon,text,time:nowT(),type};
+  S.actions.push(a);
+  if(S.actions.length>100) S.actions=S.actions.slice(-100);
+  renderFeed(S.actions.slice(-20));
+  return a;
+}
+
+/* ────────────────────────────────
+   OPTIMIZATION (AI WORK)
+──────────────────────────────── */
+let running=false;
+
+async function runDay(){
+  if(running) return;
+  running=true;
+  const runBtn=$('runBtn');
+  runBtn.disabled=true; runBtn.textContent='⏳ Работаю…';
+  $('thinkingRow').style.display='flex';
+
+  S.actions=[];
+  S.totalActions=0;
+  addAction('🤖','AI-таргетолог начинает ежедневный анализ','gold');
+  await sl(700);
+
+  const camps=S.campaigns;
+  const t=S.settings.targetCpl||2;
+
+  if(!camps.length){
+    addAction('📋','Кампаний нет. Добавьте в разделе «Кампании»','');
+    endRun(runBtn,'▶ Запустить анализ');
+    return;
+  }
+
+  addAction('📊',`Получено <b>${camps.length} кампаний</b> из Meta Ads`,'info');
+  await sl(600);
+  addAction('🧠','Анализирую каждую связку по 4 сценариям…','gold');
+  await sl(500);
+
+  let acts=0;
+  const reportLines=[];
+  const vampSave=[];
+
+  for(const c of camps){
+    await sl(450);
+    const v=verdict(c);
+    const cpl=c.leads>0?(c.spend/c.leads).toFixed(2):'—';
+
+    let actionText='';
+    if(v==='scale'){
+      actionText=`Масштабирую +30%`;
+      c.lastAction=`Масштабирован · CPL $${cpl}`;
+      acts++;
+    } else if(v==='degrade'){
+      actionText=`Снижаю бюджет — CPL $${cpl}`;
+      c.lastAction=`Снижен бюджет · CPL $${cpl}`;
+      acts++;
+    } else if(v==='vampire'){
+      actionText=`Отключаю — вампир (CPL $${cpl}, заявок ${c.leads})`;
+      c.lastAction=`Отключён · CPL $${cpl}`;
+      if(c.spend>0) vampSave.push(c.spend);
+      acts++;
+    } else if(v==='learning'){
+      actionText=`Не трогаю — фаза обучения`;
+      c.lastAction=`В обучении — не вмешиваюсь`;
+    } else {
+      actionText=`Оставляю — CPL $${cpl} в норме`;
+      c.lastAction=`Стабильно · CPL $${cpl}`;
+    }
+
+    const type={scale:'act',keep:'',degrade:'warn',vampire:'warn',learning:'info'}[v];
+    addAction(VI[v],`<b>${c.name}</b> — ${actionText}`,type);
+    reportLines.push(`${VI[v]} ${c.name} (CPL $${cpl})`);
+  }
+
+  // New creative suggestion
+  await sl(500);
+  const best=camps.filter(c=>verdict(c)==='scale')[0]||camps[0];
+  if(best){
+    addAction('🔄',`Генерирую новый креатив на основе <b>«${best.name}»</b>`,'gold');
+    await sl(600);
+    addAction('🚀',`Новый креатив запущен на тест · бюджет $30/день`,'act');
+    acts++;
+    reportLines.push(`🔄 Запущен новый тест-креатив`);
+  }
+
+  // AI comment via Claude
+  await sl(400);
+  let aiComment='';
+  if(S.settings.apiKey){
+    addAction('🤖','Формирую AI-комментарий…','gold');
+    const campSum=camps.map(c=>{const cpl=c.leads>0?'$'+(c.spend/c.leads).toFixed(2):'нет заявок';return `"${c.name}": $${c.spend}, ${c.leads} заявок, CPL ${cpl}`;}).join('; ');
+    try{
+      aiComment=await callClaude([{role:'user',content:`Кампании за день: ${campSum}. Цель CPL: $${t}. Дай итог в 1-2 предложениях.`}],200);
+      addAction('💡',`<b>AI:</b> ${aiComment}`,'gold');
+    }catch(e){
+      addAction('⚠️',`Claude недоступен: ${e.message}`,'warn');
+    }
+  }
+
+  // Build report
+  await sl(400);
+  const {spend,leads,cpl}=getKPI();
+  const saved=vampSave.reduce((s,v)=>s+v,0);
+  let rep=`📊 Отчёт за ${today()} · ${S.settings.bizName||'ваш бизнес'}\n\n`;
+  rep+=`💰 Расход: ${fmt$(spend)} · Заявок: ${leads}\n`;
+  rep+=`📉 Средний CPL: $${cpl>0?cpl.toFixed(2):'—'} · Цель: ≤$${t}\n`;
+  if(saved>0) rep+=`💾 Сэкономлено на вампирах: ≈${fmt$(saved*7)}/нед\n`;
+  rep+=`\n${reportLines.join('\n')}\n`;
+  if(aiComment) rep+=`\n💡 ${aiComment}\n`;
+  rep+=`\n🤖 SmartTarget AI · автоотчёт`;
+
+  S.lastReportText=rep;
+  S.totalActions=acts;
+  S.lastOptDate=today();
+  // Add to history
+  S.reports.unshift({date:today(),time:nowT(),text:rep,type:'daily'});
+  if(S.reports.length>20) S.reports=S.reports.slice(0,20);
+  save();
+
+  // Show TG report
+  addAction('✈️','Отчёт отправлен в Telegram','act');
+  $('tgSt').textContent='отправлен';
+  $('tgMsg').outerHTML=`<div class="tg-bub" id="tgMsg">${esc(rep)}<span class="tg-tm">${nowT()} ✓✓</span></div>`;
+
+  $('thinkingRow').style.display='none';
+  refreshDashboard();
+  endRun(runBtn,'▶ Запустить заново');
+}
+
+function endRun(btn,txt){ running=false; btn.disabled=false; btn.textContent=txt; }
+function esc(t){ return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+
+function toggleAutopilot(){
+  S.settings.autopilot=!S.settings.autopilot;
+  save(); refreshDashboard();
+}
+
+/* ────────────────────────────────
+   CAMPAIGNS CRUD
+──────────────────────────────── */
+function renderCampaigns(){
+  const el=$('campList');
+  if(!S.campaigns.length){ el.innerHTML='<div class="empty"><div class="ei">📋</div>Нет кампаний. Добавьте вручную или загрузите демо-данные.</div>'; return; }
+  const t=S.settings.targetCpl||2;
+  el.innerHTML=S.campaigns.map((c,i)=>{
+    const v=verdict(c);
+    const cpl=c.leads>0?'$'+(c.spend/c.leads).toFixed(2):'—';
+    const stC={active:'var(--ok)',learning:'var(--warn)',paused:'var(--muted)',off:'var(--bad)'};
+    const stL={active:'Активна',learning:'Обучение',paused:'Пауза',off:'Отключена'};
+    return `<div class="cc ${v}">
+      <div class="top">
+        <span class="nm">${c.name}</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:${stC[c.status]||'var(--dim)'}">${stL[c.status]||''}</span>
+        <span class="bdg ${v}">${VL[v]}</span>
+      </div>
+      <div class="mets">
+        <span>Расход <b>$${c.spend}</b></span>
+        <span>Заявок <b>${c.leads}</b></span>
+        <span>CPL <b>${cpl}</b></span>
+        ${c.ctr?`<span>CTR <b>${c.ctr}%</b></span>`:''}
+        ${c.budget?`<span>Бюджет <b>$${c.budget}/д</b></span>`:''}
+        ${c.niche?`<span style="color:var(--muted)">${c.niche}</span>`:''}
+      </div>
+      <div class="rec">${vrec(v,c)}</div>
+      ${c.lastAction?`<div class="ai-action acted">🤖 ${c.lastAction}</div>`:''}
+      <div class="camp-btns">
+        <button class="btn sm g" onclick="openEditCamp(${i})">✏️</button>
+        <button class="btn sm d" onclick="delCamp(${i})">× Удалить</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openAddCamp(){
+  $('campModalTitle').textContent='Добавить кампанию';
+  $('cN').value='';$('cS').value='';$('cL').value='';$('cC').value='';
+  $('cSt').value='active';$('cB').value='';$('cNi').value='';$('cId').value='';
+  $('campModal').classList.add('show');
+  setTimeout(()=>$('cN').focus(),50);
+}
+function openEditCamp(i){
+  const c=S.campaigns[i];
+  $('campModalTitle').textContent='Редактировать';
+  $('cN').value=c.name;$('cS').value=c.spend;$('cL').value=c.leads;
+  $('cC').value=c.ctr||'';$('cSt').value=c.status;$('cB').value=c.budget||'';$('cNi').value=c.niche||'';
+  $('cId').value=i;
+  $('campModal').classList.add('show');
+}
+function closeCampModal(){ $('campModal').classList.remove('show'); }
+function saveCamp(){
+  const name=$('cN').value.trim();
+  if(!name){ $('cN').focus(); return; }
+  const c={name,spend:+$('cS').value||0,leads:+$('cL').value||0,ctr:+$('cC').value||0,status:$('cSt').value,budget:+$('cB').value||0,niche:$('cNi').value.trim(),lastAction:''};
+  const id=$('cId').value;
+  if(id!=='') S.campaigns[+id]=c; else S.campaigns.push(c);
+  save(); closeCampModal(); renderCampaigns(); refreshDashboard();
+}
+function delCamp(i){
+  if(!confirm('Удалить кампанию?')) return;
+  S.campaigns.splice(i,1); save(); renderCampaigns(); refreshDashboard();
+}
+function loadDemo(){
+  S.campaigns=[
+    {name:'Лазерная эпиляция −40%',spend:48,leads:32,ctr:2.1,status:'active',budget:80,niche:'Бьюти-клиника',lastAction:''},
+    {name:'Уход за лицом «Коллаген»',spend:30,leads:18,ctr:1.9,status:'active',budget:50,niche:'Бьюти-клиника',lastAction:''},
+    {name:'Ботокс · акция',spend:35,leads:8,ctr:1.1,status:'learning',budget:60,niche:'Бьюти-клиника',lastAction:''},
+    {name:'Чистка лица',spend:40,leads:4,ctr:0.6,status:'active',budget:40,niche:'Бьюти-клиника',lastAction:''},
+    {name:'Карбоновый пилинг',spend:22,leads:3,ctr:0.7,status:'active',budget:30,niche:'Бьюти-клиника',lastAction:''},
+  ];
+  if(!S.settings.bizName) S.settings.bizName='Жан Сұлу · Бьюти-клиника';
+  if(!S.settings.targetCpl) S.settings.targetCpl=2.0;
+  save(); renderCampaigns(); refreshDashboard();
+}
+
+/* ────────────────────────────────
+   BUDGET
+──────────────────────────────── */
+function renderBudget(){
+  const {spend,leads,cpl}=getKPI();
+  const t=S.settings.targetCpl||2;
+  const vamps=S.campaigns.filter(c=>verdict(c)==='vampire');
+  const saved=vamps.reduce((s,c)=>s+(c.spend||0),0);
+  const lim=S.budget.limDaily||300;
+  const forecast=spend*30;
+  $('bSpend').textContent=spend>0?fmt$(spend):'—';
+  $('bSpendD').textContent=spend>0?(spend/lim*100).toFixed(0)+'% от лимита':'';
+  $('bSaved').textContent=fmt$(saved);
+  $('bLimit').textContent=fmt$(lim);
+  $('bLimitD').textContent=spend>0&&lim>0?`осталось ${fmt$(Math.max(0,lim-spend))}`:'';
+  $('bForecast').textContent=spend>0?fmt$(forecast):'—';
+  $('limDaily').value=S.budget.limDaily||'';
+  $('limCpl').value=S.budget.limCpl||'';
+  $('limLeads').value=S.budget.limLeads||'';
+  $('limAlert').checked=!!S.budget.alert;
+
+  const el=$('budgetBars');
+  if(!S.campaigns.length){ el.innerHTML='<div class="empty" style="padding:20px"><div class="ei" style="font-size:24px">💰</div>Нет кампаний</div>'; return; }
+  const maxSpend=Math.max(...S.campaigns.map(c=>c.spend||0),1);
+  el.innerHTML=S.campaigns.map(c=>{
+    const pct=Math.min(100,Math.round((c.spend||0)/maxSpend*100));
+    const v=verdict(c);
+    const cls={scale:'ok',keep:'ok',degrade:'warn',vampire:'bad',learning:'ok'}[v];
+    return `<div class="bbar">
+      <div class="bbar-top"><span>${c.name}</span><b>$${c.spend}</b></div>
+      <div class="track"><div class="fill ${cls}" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
+function saveBudgetSettings(){
+  S.budget.limDaily=+$('limDaily').value||300;
+  S.budget.limCpl=+$('limCpl').value||5;
+  S.budget.limLeads=+$('limLeads').value||5;
+  S.budget.alert=$('limAlert').checked;
+  save();
+}
+
+/* ────────────────────────────────
+   CREATIVES
+──────────────────────────────── */
+function renderCreatives(){
+  const el=$('creList');
+  if(!S.creatives.length){ el.innerHTML='<div class="empty"><div class="ei">🎨</div>Нет креативов. Добавьте — AI запустит тест автоматически.</div>'; return; }
+  el.innerHTML=S.creatives.map((c,i)=>{
+    const icons={video:'🎬',image:'🖼️',carousel:'📸',story:'📱'};
+    const statusC={testing:'testing',winner:'winner',dropped:'dropped',new:''}[c.status];
+    const statusL={testing:'Тестируется',winner:'Победитель',dropped:'Отключён',new:'Ожидает'}[c.status];
+    const cpl=c.leads>0?'$'+(c.spend/c.leads).toFixed(2):'—';
+    const pct=Math.min(100,c.testDays&&c.testDaysTotal?(c.testDays/c.testDaysTotal*100):0);
+    return `<div class="cre-card ${statusC}">
+      <div class="cre-top">
+        <div class="cre-thumb">${icons[c.format]||'🎨'}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;font-size:13.5px;margin-bottom:3px">${c.name}</div>
+          <div style="font-size:11.5px;color:var(--dim)">${c.campaign||'Без кампании'} · ${c.format}</div>
+        </div>
+        <span class="bdg ${c.status==='winner'?'scale':c.status==='dropped'?'vampire':c.status==='testing'?'learning':'new'}">${statusL}</span>
+      </div>
+      <div class="mets" style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--dim);margin-bottom:8px">
+        ${c.spend>0?`<span>$${c.spend} расход</span>`:''} ${c.leads>0?`<span>${c.leads} заявок</span>`:''} ${cpl!=='—'?`<span>CPL ${cpl}</span>`:''}
+        <span>$${c.budget}/день</span>
+        ${c.testDays?`<span>${c.testDays}/${c.testDaysTotal||7} дн.</span>`:''}
+      </div>
+      ${c.status==='testing'?`<div class="cbar"><i style="width:${pct}%"></i></div><div style="font-size:11px;color:var(--dim);margin-top:5px">Тест: ${pct.toFixed(0)}% завершён</div>`:''}
+      ${c.aiNote?`<div style="font-size:12px;color:var(--ok);margin-top:8px;padding-top:8px;border-top:1px solid var(--line)">🤖 ${c.aiNote}</div>`:''}
+      <div style="display:flex;gap:6px;margin-top:9px">
+        ${c.status!=='dropped'?`<button class="btn sm d" onclick="dropCreative(${i})">✕ Отключить</button>`:''}
+        <button class="btn sm g" onclick="delCreative(${i})">Удалить</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openAddCreative(){
+  $('crN').value='';$('crF').value='video';$('crB').value='30';$('crT').value='';
+  const sel=$('crC');
+  sel.innerHTML=S.campaigns.length
+    ?S.campaigns.map(c=>`<option>${c.name}</option>`).join('')
+    :`<option value="">— нет кампаний —</option>`;
+  $('creModal').classList.add('show');
+  setTimeout(()=>$('crN').focus(),50);
+}
+function closeCreModal(){ $('creModal').classList.remove('show'); }
+
+async function saveCreative(){
+  const name=$('crN').value.trim();
+  if(!name){ $('crN').focus(); return; }
+  const cre={
+    name,format:$('crF').value,campaign:$('crC').value,
+    budget:+$('crB').value||30,tone:$('crT').value.trim(),
+    status:'testing',spend:0,leads:0,testDays:0,testDaysTotal:7,
+    aiNote:'',createdAt:nowT()
+  };
+  // AI analysis of creative
+  if(S.settings.apiKey){
+    try{
+      const note=await callClaude([{role:'user',content:`Новый ${cre.format} креатив "${cre.name}" для кампании "${cre.campaign||'—'}". Тон: "${cre.tone||'не указан'}". Напиши одну строку: что ожидать от теста и рекламный заголовок (до 10 слов).`}],150);
+      cre.aiNote=note;
+    }catch{}
+  } else {
+    cre.aiNote=`Тест запущен · бюджет $${cre.budget}/день · ${cre.testDaysTotal} дней`;
+  }
+  S.creatives.unshift(cre);
+  save(); closeCreModal(); renderCreatives();
+  // Add to feed
+  addAction('🎨',`Новый креатив <b>«${name}»</b> запущен на тест · $${cre.budget}/день`,'act');
+  refreshDashboard();
+}
+
+function dropCreative(i){ S.creatives[i].status='dropped'; save(); renderCreatives(); }
+function delCreative(i){ if(!confirm('Удалить?')) return; S.creatives.splice(i,1); save(); renderCreatives(); }
+
+/* ────────────────────────────────
+   REPORTS
+──────────────────────────────── */
+function renderRepHistory(){
+  const el=$('repHistory');
+  $('repClient').value=$('repClient').value||S.settings.bizName||'';
+  if(!S.reports.length){ el.innerHTML='<div class="empty" style="padding:20px"><div class="ei" style="font-size:24px">📋</div>Отчётов нет</div>'; return; }
+  el.innerHTML=S.reports.map((r,i)=>`
+    <div style="border:1px solid var(--line);border-radius:10px;padding:11px 12px;margin-bottom:8px;cursor:pointer;transition:.15s" onmouseover="this.style.borderColor='var(--gd)'" onmouseout="this.style.borderColor='var(--line)'" onclick="showReport(${i})">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <b style="font-family:'Unbounded';font-size:12px">${r.date}</b>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--muted)">${r.time}</span>
+      </div>
+      <div style="font-size:12px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.text.substring(0,80)}…</div>
+    </div>`).join('');
+}
+function showReport(i){
+  const r=S.reports[i];
+  $('repBubble').innerHTML=esc(r.text)+'<span class="tg-tm">'+r.time+' ✓✓</span>';
+  $('repBubble').style.color='';
+  $('repSt').textContent='загружен';
+}
+
+async function genReport(){
+  const type=$('repType').value;
+  const client=$('repClient').value.trim()||S.settings.bizName||'Клиент';
+  const {spend,leads,cpl}=getKPI();
+  const t=S.settings.targetCpl||2;
+  const camps=S.campaigns;
+  const typeL={daily:'Ежедневный',weekly:'Еженедельный',ai:'AI-анализ'};
+
+  let aiText='';
+  if(S.settings.apiKey&&camps.length){
+    const campSum=camps.map(c=>{const cpl=c.leads>0?'$'+(c.spend/c.leads).toFixed(2):'нет заявок';return `"${c.name}": $${c.spend}, ${c.leads} заявок, CPL ${cpl}`;}).join('; ');
+    const lens={daily:'2 предложения',weekly:'3-4 предложения',ai:'подробный стратегический анализ 5-7 предложений'};
+    try{
+      aiText=await callClaude([{role:'user',content:`Бизнес: ${S.settings.bizName||'—'}, ниша: ${S.settings.niche||'—'}. Кампании: ${campSum}. Цель CPL: $${t}. Дай ${lens[type]}.`}],type==='ai'?600:250);
+    }catch{}
+  }
+
+  const lines=camps.map(c=>`${VI[verdict(c)]} ${c.name} (CPL ${c.leads>0?'$'+(c.spend/c.leads).toFixed(2):'—'})`);
+  let rep=`📊 ${typeL[type]} · ${today()}\n`;
+  rep+=`Клиент: ${client}\n\n`;
+  rep+=`Расход: ${fmt$(spend)} · Заявок: ${leads}\n`;
+  rep+=`CPL: $${cpl>0?cpl.toFixed(2):'—'} · Цель: ≤$${t}\n\n`;
+  if(lines.length) rep+=lines.join('\n')+'\n\n';
+  if(aiText) rep+=`💡 ${aiText}\n\n`;
+  rep+=`🤖 SmartTarget AI`;
+
+  S.lastReportText=rep;
+  S.reports.unshift({date:today(),time:nowT(),text:rep,type});
+  if(S.reports.length>20) S.reports=S.reports.slice(0,20);
+  save();
+  $('repBubble').innerHTML=esc(rep)+'<span class="tg-tm">'+nowT()+' ✓✓</span>';
+  $('repBubble').style.color='';
+  $('repSt').textContent='отправлен';
+  renderRepHistory();
+}
+
+function copyReport(){
+  navigator.clipboard.writeText($('repBubble').textContent).then(()=>{
+    const b=event.target; b.textContent='✓ Скопировано';
+    setTimeout(()=>b.textContent='📋 Копировать',2000);
+  });
+}
+function shareWA(){
+  const t=S.lastReportText||$('repBubble').textContent;
+  const wa=S.settings.wa;
+  window.open(wa?`https://wa.me/${wa.replace(/\D/g,'')}?text=${encodeURIComponent(t)}`:`https://wa.me/?text=${encodeURIComponent(t)}`,'_blank');
+}
+
+/* ────────────────────────────────
+   CLAUDE API
+──────────────────────────────── */
+const SYS=`Ты SmartTarget AI — профессиональный AI-таргетолог, автономный агент по работе с Meta Ads (Instagram/Facebook). Ты не просто советник — ты таргетолог, который сам принимает решения, оптимизирует кампании и управляет бюджетом. Отвечай на русском, кратко и конкретно. Используй цифры. Эмодзи для структуры — умеренно.`;
+
+async function callClaude(msgs,maxT=800){
+  const k=S.settings.apiKey;
+  if(!k) throw new Error('API-ключ не настроен');
+  const resp=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':k,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:S.settings.model||'claude-sonnet-4-6',max_tokens:maxT,system:SYS,messages:msgs})
+  });
+  if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||`HTTP ${resp.status}`);}
+  return (await resp.json()).content[0].text;
+}
+
+/* ────────────────────────────────
+   CHAT
+──────────────────────────────── */
+function ctx(){
+  const c=S.campaigns;
+  if(!c.length) return '';
+  const t=S.settings.targetCpl||2;
+  const k=getKPI();
+  return `\n[Данные: бизнес "${S.settings.bizName||'—'}", ниша "${S.settings.niche||'—'}", цель CPL $${t}. Кампании: ${c.map(x=>`"${x.name}": $${x.spend}, ${x.leads} заявок${x.leads>0?', CPL $'+(x.spend/x.leads).toFixed(2):''}`).join('; ')}. Расход итого: ${k.spend.toFixed(2)}, заявок: ${k.leads}]`;
+}
+
+function mockAI(msg){
+  const l=msg.toLowerCase(),t=S.settings.targetCpl||2,c=S.campaigns;
+  if(l.includes('анализ')||l.includes('кампани')){
+    if(!c.length) return '📋 Нет данных о кампаниях. Добавьте в разделе «Кампании».';
+    const sc=c.filter(x=>verdict(x)==='scale'),vm=c.filter(x=>verdict(x)==='vampire');
+    return `📊 Анализ ${c.length} кампаний:\n\n${sc.length?`📈 К масштабу: ${sc.map(x=>x.name).join(', ')}\n`:''}${vm.length?`⏸ Отключить: ${vm.map(x=>x.name).join(', ')}\n`:''}\n💡 Для персонального анализа настройте API-ключ в ⚙️`;
+  }
+  if(l.includes('отключ')||l.includes('вампир')){
+    const vm=c.filter(x=>verdict(x)==='vampire');
+    return vm.length?`⏸ Вампиры (тратят бюджет без заявок):\n\n${vm.map(x=>`• ${x.name} — ${x.leads} заявок, CPL ${x.leads>0?'$'+(x.spend/x.leads).toFixed(2):'нет'}`).join('\n')}`:'✅ Вампиров нет — все кампании в норме!';
+  }
+  if(l.includes('текст')||l.includes('объявлен')){
+    const best=c.find(x=>verdict(x)==='scale')||c[0];
+    return best?`✍️ Текст для «${best.name}»:\n\n**Заголовок:** Скидка на ${best.name} — запись онлайн\n**Текст:** Устали ждать? За 60 минут решим вашу проблему навсегда. Только 5 мест!\n**CTA:** Записаться →\n\n💡 Тестируйте 3+ варианта заголовка.`:'Добавьте кампании для написания текста под реальную услугу.';
+  }
+  if(l.includes('обучение')||l.includes('learning')){
+    return `📚 Фаза обучения Meta:\n\n• Длится 5-7 дней или до 50 конверсий\n• Любое изменение бюджета >20% — сбрасывает обучение\n• AI не трогает кампании в этой фазе\n• Advantage+ сам тестирует аудитории\n\n✅ SmartTarget AI уважает фазу обучения — не ломает алгоритм.`;
+  }
+  if(l.includes('план')||l.includes('стратег')){
+    return `📈 Стратегия:\n\n1. Нед. 1-2: Обучение, наблюдение\n2. Нед. 3: Отключить вампиров, масштабировать топ\n3. Нед. 4: A/B-тест новой аудитории\n\nЦель: −30-40% CPL за месяц\n\n💡 Настройте API-ключ для персональной стратегии`;
+  }
+  return `Понял. Для полного ответа настройте Claude API в ⚙️ — тогда я смогу работать с вашими реальными данными.\n\nМогу помочь:\n• Анализ кампаний\n• Что отключить?\n• Текст рекламы\n• Стратегия роста`;
+}
+
+let chatMsgs=[];
+function initChat(){
+  chatMsgs=[];
+  const body=$('chatBody');
+  body.innerHTML='';
+  const count=S.campaigns.length;
+  const biz=S.settings.bizName||'ваш бизнес';
+  addMsg(count>0
+    ?`Привет! Я SmartTarget AI.\n\nВижу ${count} кампаний для «${biz}». Автопилот ${S.settings.autopilot?'активен':'выключен'}.\n\nМогу объяснить любое решение, написать рекламный текст, составить стратегию — или просто ответить на вопрос по Meta Ads.`
+    :`Привет! Я SmartTarget AI — ваш AI-таргетолог.\n\nДобавьте кампании в разделе «Кампании» — начну работать с реальными данными. Или задайте вопрос по Meta Ads — отвечу сразу.`
+  ,false);
+}
+
+function addMsg(text,fromUser){
+  const body=$('chatBody');
+  const d=document.createElement('div');
+  d.className='msg'+(fromUser?' u':'');
+  d.innerHTML=`<div class="mav">${fromUser?'👤':'🤖'}</div><div><div class="mbub">${escChat(text)}</div><div class="tm-lbl">${nowT()}</div></div>`;
+  body.appendChild(d);
+  body.scrollTop=body.scrollHeight;
+}
+function escChat(t){ return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.*?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>'); }
+
+async function sendMsg(){
+  const ci=$('ci');
+  const text=ci.value.trim();
+  if(!text) return;
+  ci.value=''; ci.style.height='';
+  $('sb').disabled=true; $('chatSt').textContent='печатает…';
+  addMsg(text,true);
+  chatMsgs.push({role:'user',content:text+ctx()});
+  // typing
+  const body=$('chatBody');
+  const td=document.createElement('div');
+  td.className='msg';td.id='td';
+  td.innerHTML=`<div class="mav">🤖</div><div class="mbub"><div class="typing-bub"><span></span><span></span><span></span></div></div>`;
+  body.appendChild(td); body.scrollTop=body.scrollHeight;
+  await sl(300);
+  let reply='';
+  if(S.settings.apiKey){
+    try{ reply=await callClaude(chatMsgs.slice(-12)); }
+    catch(e){ reply=`⚠️ Ошибка API: ${e.message}\n\nПроверьте ключ в ⚙️ настройках.`; }
+  } else {
+    await sl(500+Math.random()*400); reply=mockAI(text);
+  }
+  td.remove();
+  chatMsgs.push({role:'assistant',content:reply});
+  addMsg(reply,false);
+  $('sb').disabled=false; $('chatSt').textContent='онлайн';
+}
+function qSend(t){ $('ci').value=t; sendMsg(); }
+function clearChat(){ chatMsgs=[]; initChat(); }
+$('ci').addEventListener('input',function(){ this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,90)+'px'; });
+$('ci').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendMsg(); } });
+
+/* ────────────────────────────────
+   SETTINGS
+──────────────────────────────── */
+async function testAPI(){
+  const key=$('sKey').value.trim();
+  const model=$('sModel').value||'claude-sonnet-4-6';
+  const res=$('testResult');
+  const btn=$('testBtn');
+  if(!key){ res.style.display='block'; res.style.color='var(--bad)'; res.textContent='⚠️ Введите API-ключ'; return; }
+  btn.disabled=true; btn.textContent='⏳…';
+  res.style.display='block'; res.style.color='var(--dim)'; res.textContent='Подключаюсь к Claude API…';
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model,max_tokens:60,messages:[{role:'user',content:'Ответь одной строкой: "SmartTarget AI подключён успешно ✓"'}]})
+    });
+    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.error?.message||`HTTP ${r.status}`); }
+    const d=await r.json();
+    const txt=d.content[0].text;
+    res.style.color='var(--ok)';
+    res.textContent='✅ '+txt;
+  }catch(e){
+    res.style.color='var(--bad)';
+    res.textContent='❌ '+e.message;
+  }
+  btn.disabled=false; btn.textContent='Проверить';
+}
+
+function openSettings(){
+  const st=S.settings;
+  $('sKey').value=st.apiKey||'';
+  $('sModel').value=st.model||'claude-sonnet-4-6';
+  $('sBiz').value=st.bizName||'';
+  $('sNiche').value=st.niche||'';
+  $('sCpl').value=st.targetCpl||2;
+  $('sWa').value=st.wa||'';
+  $('sAuto').checked=!!st.autopilot;
+  $('sReport').checked=!!st.dailyReport;
+  $('settingsModal').classList.add('show');
+  setTimeout(()=>$('sKey').focus(),50);
+}
+function closeSettings(){ $('settingsModal').classList.remove('show'); }
+function saveSettings(){
+  S.settings={
+    apiKey:$('sKey').value.trim(),
+    model:$('sModel').value,
+    bizName:$('sBiz').value.trim(),
+    niche:$('sNiche').value.trim(),
+    targetCpl:+$('sCpl').value||2,
+    wa:$('sWa').value.trim(),
+    autopilot:$('sAuto').checked,
+    dailyReport:$('sReport').checked,
+  };
+  save(); closeSettings(); refreshDashboard(); initChat();
+}
+
+// Close modals on overlay click
+['campModal','creModal','settingsModal'].forEach(id=>{
+  $(id).addEventListener('click',e=>{ if(e.target===$(id)) $(id).classList.remove('show'); });
+});
+
+/* ────────────────────────────────
+   INIT
+──────────────────────────────── */
+refreshDashboard();
+initChat();
+// Auto-run if has campaigns and autopilot on
+if(S.campaigns.length>0&&S.settings.autopilot&&!S.lastOptDate){
+  setTimeout(()=>runDay(),1200);
+}
+
+/* ────────────────────────────────
+   USER MENU & NOTIFICATION BAR
+──────────────────────────────── */
+function toggleUserMenu(){
+  var m=document.getElementById('userMenu');
+  m.style.display=m.style.display==='none'?'block':'none';
+}
+function closeUserMenu(){
+  document.getElementById('userMenu').style.display='none';
+}
+function doLogout(){
+  if(confirm('Выйти из аккаунта?')){
+    window.location.href='auth.html?mode=login';
+  }
+}
+document.addEventListener('click',function(e){
+  var btn=document.getElementById('userAvatarBtn');
+  var menu=document.getElementById('userMenu');
+  if(btn&&menu&&!btn.contains(e.target)&&!menu.contains(e.target)){
+    menu.style.display='none';
+  }
+});
+
+// Populate user name from settings if available
+(function(){
+  var name=(S.settings&&S.settings.bizName)||'Айгерим Садыкова';
+  var first=name.split(' ')[0]||name.substring(0,8);
+  var el=document.getElementById('navUserName');
+  if(el) el.textContent=first;
+  var barEl=document.getElementById('barClientName');
+  if(barEl&&S.settings&&S.settings.bizName) barEl.textContent=S.settings.bizName;
+})();
+</script>
+</body>
+</html>

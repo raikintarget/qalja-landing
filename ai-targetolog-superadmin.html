@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI-таргетолог — супер-админ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0E0D0B;--surface:#181613;--surface-2:#221F19;--line:#2F2A22;
+    --gold:#D9A441;--gold-soft:#EBD7A6;--gold-dim:#8A6E36;
+    --text:#F2ECDD;--text-dim:#9A9384;--muted:#6E685C;
+    --ok:#86B375;--bad:#CC6A5C;--warn:#E0A436;--info:#7BA7C9;
+    --r:14px;--ease:cubic-bezier(.22,.61,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:radial-gradient(1000px 600px at 50% -15%,#1c1813 0,transparent 60%),var(--bg);
+    color:var(--text);font-family:"Manrope",system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;
+    padding:max(16px,env(safe-area-inset-top)) 16px max(24px,env(safe-area-inset-bottom))}
+  .wrap{max-width:1040px;margin:0 auto}
+
+  .top{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .brand{display:flex;align-items:center;gap:8px;font-family:"Unbounded";font-weight:600;font-size:13px;letter-spacing:.02em;color:var(--gold-soft)}
+  .brand .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px rgba(217,164,65,.16)}
+  .brand .role{color:var(--text-dim);font-weight:400;font-family:"Manrope"}
+  .owner{margin-left:auto;display:flex;align-items:center;gap:9px}
+  .owner .av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#2a2218,#3a2e1c);
+    border:1px solid var(--gold-dim);display:flex;align-items:center;justify-content:center;font-family:"Unbounded";font-weight:600;color:var(--gold-soft);font-size:13px}
+  .owner small{font-size:12px;color:var(--text-dim)}
+
+  .shell{display:grid;grid-template-columns:200px 1fr;gap:16px}
+  @media(max-width:760px){.shell{grid-template-columns:1fr}}
+  .nav{display:flex;flex-direction:column;gap:4px}
+  @media(max-width:760px){.nav{flex-direction:row;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}}
+  .nav button{appearance:none;cursor:pointer;font-family:inherit;font-size:14px;color:var(--text-dim);
+    background:transparent;border:1px solid transparent;border-radius:10px;padding:11px 14px;text-align:left;
+    display:flex;align-items:center;gap:10px;white-space:nowrap;transition:.15s}
+  .nav button .ic{font-size:16px;width:18px;text-align:center}
+  .nav button:hover{background:var(--surface);color:var(--text)}
+  .nav button.on{background:var(--surface);color:var(--gold-soft);border-color:var(--gold-dim)}
+  .nav .badge{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:11px;background:var(--surface-2);
+    color:var(--gold-soft);padding:2px 7px;border-radius:99px}
+  @media(max-width:760px){.nav .badge{display:none}}
+
+  .content{min-width:0}
+  .h1{font-family:"Unbounded";font-weight:600;font-size:22px;margin-bottom:4px}
+  .h1s{color:var(--text-dim);font-size:13.5px;margin-bottom:18px}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px;margin-bottom:18px}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .kpi small{display:block;font-size:11px;color:var(--text-dim);margin-bottom:6px}
+  .kpi b{font-family:"Unbounded";font-weight:600;font-size:21px;display:block}
+  .kpi .d{font-size:11.5px;font-weight:600;margin-top:4px}
+  .kpi .d.ok{color:var(--ok)} .kpi .d.warn{color:var(--warn)} .kpi .d.dim{color:var(--text-dim)}
+
+  .pan{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:14px}
+  .pan h3{font-family:"Unbounded";font-weight:500;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:13px}
+  .pcols{display:grid;grid-template-columns:1fr;gap:14px}
+  @media(min-width:680px){.pcols{grid-template-columns:1fr 1fr}}
+
+  .alert{display:flex;align-items:flex-start;gap:11px;padding:11px 0;border-bottom:1px solid var(--line)}
+  .alert:last-child{border-bottom:none}
+  .alert .sev{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none}
+  .sev.bad{background:var(--bad)} .sev.warn{background:var(--warn)} .sev.info{background:var(--info)}
+  .alert .t{flex:1;min-width:0} .alert .t b{font-size:13.5px;display:block} .alert .t small{color:var(--text-dim);font-size:12px}
+  .alert .go{background:none;border:1px solid var(--gold-dim);color:var(--gold-soft);border-radius:8px;
+    cursor:pointer;font-family:inherit;font-size:12px;padding:6px 11px;white-space:nowrap}
+  .alert .go:hover{background:rgba(217,164,65,.08)}
+
+  .stat-row{display:flex;gap:18px;flex-wrap:wrap}
+  .stat-row .s{flex:1;min-width:90px} .stat-row .s b{font-family:"Unbounded";font-weight:600;font-size:24px;display:block}
+  .stat-row .s small{font-size:12px;color:var(--text-dim)}
+
+  .feed{font-family:"JetBrains Mono",monospace;font-size:12px;line-height:1.8;color:var(--text-dim)}
+  .feed .tm{color:var(--gold-dim)} .feed .cl{color:var(--gold-soft)} .feed .act{color:var(--ok)} .feed .off{color:var(--bad)}
+
+  /* clients */
+  .filters{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
+  .filters button{appearance:none;cursor:pointer;font-family:inherit;font-size:12.5px;color:var(--text-dim);
+    background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:7px 13px;transition:.15s}
+  .filters button.on{background:rgba(217,164,65,.1);border-color:var(--gold-dim);color:var(--gold-soft)}
+  .crow{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:9px;cursor:pointer;transition:border-color .15s}
+  .crow:hover{border-color:var(--gold-dim)}
+  .crow .main{display:flex;align-items:center;gap:12px}
+  .crow .av{width:38px;height:38px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;font-family:"Unbounded";font-weight:600;color:var(--gold-soft);font-size:13px;flex:none}
+  .crow .nm{flex:1;min-width:0} .crow .nm b{font-size:14.5px;display:block} .crow .nm small{color:var(--text-dim);font-size:12px}
+  .crow .meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+  .tier{font-family:"Unbounded";font-weight:500;font-size:10.5px;padding:4px 9px;border-radius:99px;white-space:nowrap}
+  .tier.ai{background:rgba(123,167,201,.13);color:var(--info)}
+  .tier.expert{background:rgba(217,164,65,.14);color:var(--gold-soft)}
+  .chip{font-size:11px;font-weight:600;padding:4px 9px;border-radius:99px;white-space:nowrap}
+  .chip.active{background:rgba(134,179,117,.14);color:var(--ok)}
+  .chip.learn{background:rgba(224,164,54,.12);color:var(--warn)}
+  .chip.attn{background:rgba(204,106,92,.14);color:var(--bad)}
+  .crow .cpl{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--gold-soft);white-space:nowrap}
+  .crow .det{max-height:0;overflow:hidden;transition:max-height .3s var(--ease);font-size:13px;color:var(--text-dim)}
+  .crow.open .det{max-height:120px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+  .crow .det .g{display:flex;justify-content:space-between;padding:4px 0}
+  .crow .det .g b{font-family:"JetBrains Mono",monospace;font-weight:500;color:var(--text)}
+  .crow .det a{color:var(--gold);text-decoration:none;font-weight:500}
+
+  /* leads funnel */
+  .funnel{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:16px}
+  @media(max-width:560px){.funnel{grid-template-columns:repeat(2,1fr)}}
+  .fstep{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:13px;text-align:center}
+  .fstep b{font-family:"Unbounded";font-weight:600;font-size:22px;display:block} .fstep small{font-size:11.5px;color:var(--text-dim)}
+  .lead{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:12px 13px;margin-bottom:9px}
+  .lead .l1{display:flex;align-items:center;gap:10px} .lead .l1 b{font-size:14px} .lead .l1 .rt{margin-left:auto}
+  .lead .l2{font-size:12px;color:var(--text-dim);margin-top:6px;font-family:"JetBrains Mono",monospace}
+  .lead .acts{display:flex;gap:8px;margin-top:10px}
+  .lead .acts button{appearance:none;cursor:pointer;font-family:inherit;font-size:12px;border-radius:8px;padding:7px 12px;border:1px solid var(--gold-dim);background:transparent;color:var(--gold-soft)}
+  .lead .acts button.p{background:linear-gradient(180deg,#E6B453,var(--gold));color:#1a1305;border:none;font-weight:600}
+
+  /* finance bars */
+  .bars{display:flex;flex-direction:column;gap:12px;margin-top:6px}
+  .barrow .bl{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px} .barrow .bl b{font-family:"JetBrains Mono",monospace;color:var(--gold-soft)}
+  .bartrack{height:9px;background:var(--surface-2);border-radius:99px;overflow:hidden}
+  .bartrack i{display:block;height:100%;border-radius:99px}
+
+  /* messages */
+  .msg-list{display:flex;flex-direction:column;gap:9px}
+  .msg{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px 14px;transition:border-color .15s}
+  .msg.unread{border-color:var(--gold-dim);background:rgba(217,164,65,.04)}
+  .msg .mh{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .msg .mav{width:34px;height:34px;border-radius:9px;background:var(--surface-2);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;font-family:"Unbounded";font-weight:600;color:var(--gold-soft);font-size:12px;flex:none}
+  .msg .minfo{flex:1;min-width:0} .msg .minfo b{font-size:14px;display:block} .msg .minfo small{color:var(--text-dim);font-size:11.5px}
+  .msg .mtime{font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--muted)}
+  .msg .mbody{font-size:13.5px;line-height:1.55;color:var(--text);margin-bottom:10px}
+  .msg .mtag{display:inline-flex;align-items:center;font-size:11px;padding:3px 9px;border-radius:99px;font-weight:600;margin-right:6px}
+  .mtag.q{background:rgba(123,167,201,.12);color:var(--info)}
+  .mtag.r{background:rgba(134,179,117,.12);color:var(--ok)}
+  .mtag.c{background:rgba(204,106,92,.12);color:var(--bad)}
+  .msg .reply-box{display:none;margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
+  .msg.open .reply-box{display:block}
+  .msg .reply-box textarea{width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;
+    color:var(--text);font-family:inherit;font-size:13.5px;padding:10px 12px;resize:vertical;min-height:72px}
+  .msg .reply-box textarea:focus{outline:none;border-color:var(--gold)}
+  .msg .reply-box .ract{display:flex;gap:8px;margin-top:8px}
+  .msg .reply-box .ract button{appearance:none;cursor:pointer;font-family:inherit;font-size:13px;border-radius:9px;padding:8px 14px;border:1px solid var(--gold-dim);background:transparent;color:var(--gold-soft);transition:.15s}
+  .msg .reply-box .ract button.send{background:linear-gradient(180deg,#E6B453,var(--gold));color:#1a1305;border:none;font-weight:600}
+  .msg .reply-box .ract button:hover{filter:brightness(1.08)}
+
+  /* results in client detail */
+  .res-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+  @media(max-width:480px){.res-grid{grid-template-columns:1fr 1fr}}
+  .res-cell{background:var(--surface-2);border-radius:9px;padding:10px 12px;text-align:center}
+  .res-cell b{font-family:"Unbounded";font-weight:600;font-size:17px;display:block;margin-bottom:2px}
+  .res-cell small{font-size:11px;color:var(--text-dim)}
+
+  /* system */
+  .sys{display:flex;align-items:center;gap:11px;padding:12px 0;border-bottom:1px solid var(--line)}
+  .sys:last-child{border-bottom:none} .sys .d{width:9px;height:9px;border-radius:50%;flex:none}
+  .sys .d.ok{background:var(--ok)} .sys .d.warn{background:var(--warn)}
+  .sys .t{flex:1} .sys .t b{font-size:14px;display:block} .sys .t small{color:var(--text-dim);font-size:12px}
+  .sys .v{font-family:"JetBrains Mono",monospace;font-size:12.5px;color:var(--gold-soft)}
+
+  .note{text-align:center;color:var(--muted);font-size:12px;margin-top:18px}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand"><span class="dot"></span>@smarttarget.ai <span class="role">· супер-админ</span></div>
+    <div class="owner"><div class="av">RA</div><div><b style="font-size:13px;display:block;font-family:Unbounded;font-weight:500">Raya</b><small>владелец</small></div></div>
+  </div>
+
+  <div class="shell">
+    <nav class="nav" id="nav">
+      <button data-v="overview" class="on"><span class="ic">▦</span>Обзор</button>
+      <button data-v="clients"><span class="ic">◉</span>Клиенты<span class="badge">8</span></button>
+      <button data-v="leads"><span class="ic">⇲</span>Лиды<span class="badge">12</span></button>
+      <button data-v="messages"><span class="ic">💬</span>Сообщения<span class="badge" style="background:rgba(204,106,92,.2);color:var(--bad)">3</span></button>
+      <button data-v="results"><span class="ic">📊</span>Результаты</button>
+      <button data-v="finance"><span class="ic">₸</span>Финансы</button>
+      <button data-v="system"><span class="ic">⚙</span>Система</button>
+    </nav>
+    <div class="content" id="content"></div>
+  </div>
+  <p class="note">Демо · супер-админ панель владельца. Данные клиентов приведены для примера.</p>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const content=$("#content");
+
+const CLIENTS=[
+  {ini:"ЖС",name:"Жан Сұлу",niche:"Бьюти-клиника · Астана",tier:"ai",status:"active",cpl:"$2.10",spend:"$340/нед",fee:"50 000₸",report:"CPL −50% за неделю"},
+  {ini:"DA",name:"DentArt",niche:"Стоматология · Алматы",tier:"expert",status:"active",cpl:"$3.40",spend:"$910/нед",fee:"300 000₸",report:"Имплантация: 2 направления стабильны"},
+  {ini:"BL",name:"BodyLab Atyrau",niche:"Эстетическая медицина",tier:"expert",status:"attn",cpl:"$5.10",spend:"$620/нед",fee:"300 000₸",report:"Креатив выгорает — нужен новый"},
+  {ini:"КА",name:"КешАвто",niche:"E-commerce · автотовары",tier:"ai",status:"active",cpl:"$1.80",spend:"$480/нед",fee:"50 000₸",report:"Лучший CPL в портфеле"},
+  {ini:"QA",name:"QALJA",niche:"Велнес · постнатал",tier:"expert",status:"attn",cpl:"$4.80",spend:"$530/нед",fee:"300 000₸",report:"CPL вырос на 35% за 3 дня"},
+  {ini:"АД",name:"Алтын Дәм",niche:"HoReCa · Шымкент",tier:"ai",status:"active",cpl:"$2.60",spend:"$210/нед",fee:"50 000₸",report:"Стабильно, тренд вниз"},
+  {ini:"EP",name:"EduPro",niche:"Онлайн-курсы",tier:"ai",status:"attn",cpl:"$3.20",spend:"$170/нед",fee:"50 000₸",report:"Оплата просрочена 2 дня"},
+  {ini:"LU",name:"Lumière",niche:"Бьюти · новый",tier:"ai",status:"learn",cpl:"$4.40",spend:"$90/нед",fee:"50 000₸",report:"Завершает обучение завтра"},
+];
+
+const ALERTS=[
+  ["bad","QALJA — CPL вырос на 35% за 3 дня","AI снизил бюджет, рекомендует пересмотреть оффер","Открыть"],
+  ["bad","EduPro — оплата просрочена 2 дня","Автопилот на паузе до оплаты","Напомнить"],
+  ["warn","BodyLab Atyrau — выгорание креатива","Нужен новый креатив в пул Advantage+","Дать креатив"],
+  ["info","Lumière — завершает обучение завтра","AI начнёт оптимизацию после 08:00","Ок"],
+];
+
+const LEADS=[
+  {ini:"АН",name:"Айгерим Н.",niche:"Стоматология",budget:"500 000–1 500 000₸",tier:"expert",src:"квиз"},
+  {ini:"МК",name:"Марат К.",niche:"E-commerce",budget:"150 000–500 000₸",tier:"ai",src:"квиз"},
+  {ini:"СБ",name:"Сауле Б.",niche:"Бьюти",budget:"до 150 000₸",tier:"ai",src:"квиз"},
+];
+
+const ACTIVITY=[
+  ["08:07",'<span class="cl">Жан Сұлу</span>: <span class="act">отчёт отправлен · CPL $2.10</span>'],
+  ["08:05",'<span class="cl">QALJA</span>: <span class="off">CPL +35% — снизил бюджет</span>'],
+  ["08:03",'<span class="cl">DentArt</span>: A/B-тест аудитории <span class="act">завершён (95%)</span>'],
+  ["08:02",'<span class="cl">КешАвто</span>: масштаб победителя +30%'],
+  ["08:01",'<span class="cl">EduPro</span>: <span class="off">автопилот на паузе (оплата)</span>'],
+  ["08:00",'Утренняя оптимизация запущена по 7 аккаунтам'],
+];
+
+const MESSAGES=[
+  {id:1,ini:"ЖС",name:"Жан Сұлу",niche:"Бьюти-клиника",time:"09:14",tag:"q",unread:true,
+    text:"Здравствуйте! Почему сегодня утром реклама не показывалась с 7 до 9 утра? Клиентов не было совсем.",
+    reply:""},
+  {id:2,ini:"BL",name:"BodyLab Atyrau",niche:"Эстетическая медицина",time:"08:52",tag:"c",unread:true,
+    text:"Нам нужен новый креатив — видео с процедурой биоревитализации. Сделаем сами или вы поможете?",
+    reply:""},
+  {id:3,ini:"QA",name:"QALJA",niche:"Велнес · постнатал",time:"08:31",tag:"q",unread:true,
+    text:"CPL вырос за 3 дня с $3.20 до $4.80. Что случилось? Когда вернётся к норме?",
+    reply:""},
+  {id:4,ini:"КА",name:"КешАвто",niche:"E-commerce",time:"вчера",tag:"r",unread:false,
+    text:"Отличный результат на прошлой неделе! CPL снизился до $1.80. Можно ли масштабировать ещё сильнее?",
+    reply:"Отличный вопрос! AI уже начал плавное масштабирование победителей — бюджет увеличен на 30%. Следующий шаг через 3 дня, после оценки новой фазы обучения."},
+  {id:5,ini:"DA",name:"DentArt",niche:"Стоматология",time:"вчера",tag:"q",unread:false,
+    text:"Можете добавить ещё одно направление — детская стоматология? Есть ли ограничения по Meta?",
+    reply:"Да, детская стоматология работает в Meta без ограничений. Добавим новое направление — настройте в разделе 'Направления' в вашем кабинете, AI запустит отдельные кампании."},
+];
+
+const RESULTS=[
+  {ini:"ЖС",name:"Жан Сұлу",niche:"Бьюти-клиника · Астана",tier:"ai",
+    leads:47,cpl:"$2.10",cplDelta:-50,spend:"$340",roas:"3.2x",period:"7 дней",
+    top:"Lookalike 2% + видео-рилс",note:"CPL снизился вдвое за неделю — аудитория LLA стабильно конвертит"},
+  {ini:"DA",name:"DentArt",niche:"Стоматология · Алматы",tier:"expert",
+    leads:89,cpl:"$3.40",cplDelta:-12,spend:"$910",roas:"5.1x",period:"7 дней",
+    top:"Имплантация + ретаргет",note:"Два направления стабильны, третье — тест"},
+  {ini:"BL",name:"BodyLab Atyrau",niche:"Эстетическая медицина",tier:"expert",
+    leads:34,cpl:"$5.10",cplDelta:+28,spend:"$620",roas:"2.1x",period:"7 дней",
+    top:"Биоревитализация · видео",note:"Креатив выгорает — частота 4.2, нужен свежий"},
+  {ini:"КА",name:"КешАвто",niche:"E-commerce · автотовары",tier:"ai",
+    leads:112,cpl:"$1.80",cplDelta:-31,spend:"$480",roas:"6.4x",period:"7 дней",
+    top:"Каталог + Advantage+",note:"Лучший ROAS в портфеле — масштаб идёт"},
+  {ini:"QA",name:"QALJA",niche:"Велнес · постнатал",tier:"expert",
+    leads:28,cpl:"$4.80",cplDelta:+35,spend:"$530",roas:"1.8x",period:"7 дней",
+    top:"Постнатал уход · Stories",note:"CPL вырос — AI снизил бюджет, рекомендует пересмотр оффера"},
+  {ini:"АД",name:"Алтын Дәм",niche:"HoReCa · Шымкент",tier:"ai",
+    leads:31,cpl:"$2.60",cplDelta:-8,spend:"$210",roas:"3.8x",period:"7 дней",
+    top:"Бизнес-ланч · геотаргет",note:"Стабильно, тренд вниз — тест новой аудитории"},
+  {ini:"EP",name:"EduPro",niche:"Онлайн-курсы",tier:"ai",
+    leads:19,cpl:"$3.20",cplDelta:+14,spend:"$170",roas:"2.4x",period:"7 дней",
+    top:"Lookalike курс",note:"Автопилот на паузе из-за оплаты — данные неполные"},
+  {ini:"LU",name:"Lumière",niche:"Бьюти · новый",tier:"ai",
+    leads:9,cpl:"$4.40",cplDelta:0,spend:"$90",roas:"—",period:"7 дней",
+    top:"Обучение",note:"Завершает фазу обучения — данные ещё не репрезентативны"},
+];
+
+function navTo(v){
+  $("#nav").querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
+  ({overview:rOverview,clients:rClients,leads:rLeads,messages:rMessages,results:rResults,finance:rFinance,system:rSystem}[v])();
+  content.scrollIntoView({block:"nearest"});
+}
+
+function rOverview(){
+  loadClientMsgs();
+  content.innerHTML=`
+  <div class="h1">Обзор бизнеса</div>
+  <div class="h1s">Все клиенты, реклама и доход — в одном месте</div>
+  <div class="kpis">
+    <div class="kpi"><small>Активных клиентов</small><b>8</b><div class="d ok">+2 за месяц</div></div>
+    <div class="kpi"><small>Под управлением</small><b>$3 350</b><div class="d dim">реклама / нед</div></div>
+    <div class="kpi"><small>MRR</small><b>1.15M₸</b><div class="d ok">+300K за месяц</div></div>
+    <div class="kpi"><small>Средний CPL</small><b>$3.18</b><div class="d ok">▼ 22% по портфелю</div></div>
+    <div class="kpi" style="cursor:pointer;border-color:rgba(204,106,92,.35);background:rgba(204,106,92,.05)" onclick="navTo('messages')"><small>Новых сообщений</small><b style="color:var(--bad)">3</b><div class="d" style="color:var(--bad)">↗ требуют ответа</div></div>
+  </div>
+  <div class="pcols">
+    <div class="pan"><h3>Требует внимания</h3>${ALERTS.map(a=>
+      `<div class="alert"><span class="sev ${a[0]}"></span><div class="t"><b>${a[1]}</b><small>${a[2]}</small></div><button class="go">${a[3]}</button></div>`).join("")}</div>
+    <div>
+      <div class="pan"><h3>Клиенты по статусу</h3><div class="stat-row">
+        <div class="s"><b style="color:var(--ok)">5</b><small>Активно</small></div>
+        <div class="s"><b style="color:var(--warn)">1</b><small>Обучение</small></div>
+        <div class="s"><b style="color:var(--bad)">3</b><small>Внимание</small></div>
+      </div></div>
+      <div class="pan"><h3>Действия AI · сегодня</h3><div class="feed">${ACTIVITY.map(a=>
+        `<div><span class="tm">${a[0]}</span> ${a[1]}</div>`).join("")}</div></div>
+    </div>
+  </div>`;
+  bindAlerts();
+}
+
+let filter="all";
+function rClients(){
+  const fl=[["all","Все"],["active","Активно"],["learn","Обучение"],["attn","Внимание"],["ai","AI-тариф"],["expert","Expert"]];
+  const list=CLIENTS.filter(c=> filter==="all"?true : (filter==="ai"||filter==="expert")? c.tier===filter : c.status===filter);
+  content.innerHTML=`
+  <div class="h1">Клиенты</div>
+  <div class="h1s">${CLIENTS.length} аккаунтов под управлением AI-таргетолога</div>
+  <div class="filters">${fl.map(f=>`<button data-f="${f[0]}" class="${filter===f[0]?'on':''}">${f[1]}</button>`).join("")}</div>
+  <div id="clist">${list.map((c,i)=>clientRow(c,i)).join("")||'<p style="color:var(--muted)">Нет клиентов в этом фильтре</p>'}</div>`;
+  $(".filters").querySelectorAll("button").forEach(b=>b.onclick=()=>{filter=b.dataset.f;rClients();});
+  content.querySelectorAll(".crow").forEach(r=>r.onclick=()=>r.classList.toggle("open"));
+}
+function clientRow(c){
+  const stl={active:["active","Активно"],learn:["learn","Обучение"],attn:["attn","Внимание"]}[c.status];
+  return `<div class="crow"><div class="main">
+    <div class="av">${c.ini}</div>
+    <div class="nm"><b>${c.name}</b><small>${c.niche}</small></div>
+    <div class="meta">
+      <span class="tier ${c.tier}">${c.tier==='ai'?'AI-тариф':'Expert'}</span>
+      <span class="chip ${stl[0]}">${stl[1]}</span>
+      <span class="cpl">${c.cpl}</span>
+    </div></div>
+    <div class="det">
+      <div class="g"><span>Расход рекламы</span><b>${c.spend}</b></div>
+      <div class="g"><span>Абонплата</span><b>${c.fee}/мес</b></div>
+      <div class="g"><span>Последний отчёт</span><b>${c.report}</b></div>
+      <div class="g"><span></span><a>Полный мониторинг →</a></div>
+    </div></div>`;
+}
+
+function rLeads(){
+  content.innerHTML=`
+  <div class="h1">Лиды</div>
+  <div class="h1s">Воронка из квиза до активного клиента</div>
+  <div class="funnel">
+    <div class="fstep"><b>12</b><small>Новые с квиза</small></div>
+    <div class="fstep"><b>5</b><small>На демо</small></div>
+    <div class="fstep"><b>3</b><small>Онбординг</small></div>
+    <div class="fstep"><b style="color:var(--ok)">8</b><small>Активные</small></div>
+  </div>
+  <div class="pan"><h3>Новые лиды · из квиза</h3>${LEADS.map(l=>
+    `<div class="lead"><div class="l1"><b>${l.name}</b>
+      <span class="tier ${l.tier} rt">${l.tier==='ai'?'AI-тариф':'Expert'}</span></div>
+      <div class="l2">${l.niche} · бюджет ${l.budget} · источник: ${l.src}</div>
+      <div class="acts"><button class="p">Связаться</button><button>На демо</button></div></div>`).join("")}</div>`;
+}
+
+function loadClientMsgs(){
+  try{
+    const raw=JSON.parse(sessionStorage.getItem('specMsgs')||'[]');
+    raw.forEach(m=>{
+      const exists=MESSAGES.some(x=>x.text===m.text&&x.name===m.client);
+      if(!exists) MESSAGES.unshift({id:Date.now()+Math.random(),
+        ini:m.client.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(),
+        name:m.client,niche:m.niche||'—',time:m.time,tag:'q',unread:true,text:m.text,reply:''});
+    });
+    sessionStorage.removeItem('specMsgs');
+  }catch(e){}
+}
+
+function rMessages(){
+  loadClientMsgs();
+  const tags={q:['q','Вопрос'],r:['r','Отзыв'],c:['c','Запрос']};
+  content.innerHTML=`
+  <div class="h1">Сообщения клиентов</div>
+  <div class="h1s">Вопросы, запросы и отзывы из Telegram-бота</div>
+  <div class="filters" style="margin-bottom:16px">
+    <button class="on" onclick="showMsgs('all',this)">Все (${MESSAGES.length})</button>
+    <button onclick="showMsgs('unread',this)" style="color:var(--bad);border-color:rgba(204,106,92,.3)">Непрочитанные (${MESSAGES.filter(m=>m.unread).length})</button>
+    <button onclick="showMsgs('q',this)">Вопросы</button>
+    <button onclick="showMsgs('c',this)">Запросы</button>
+    <button onclick="showMsgs('r',this)">Отзывы</button>
+  </div>
+  <div class="msg-list" id="msgList">${MESSAGES.map(msgRow).join('')}</div>`;
+  bindMsgActions();
+}
+
+function showMsgs(f,btn){
+  document.querySelectorAll('.filters button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const list = f==='all' ? MESSAGES : f==='unread' ? MESSAGES.filter(m=>m.unread) : MESSAGES.filter(m=>m.tag===f);
+  document.getElementById('msgList').innerHTML = list.map(msgRow).join('');
+  bindMsgActions();
+}
+
+function msgRow(m){
+  const tags={q:'Вопрос',r:'Отзыв',c:'Запрос'};
+  return `<div class="msg ${m.unread?'unread':''}" id="msg${m.id}">
+    <div class="mh">
+      <div class="mav">${m.ini}</div>
+      <div class="minfo"><b>${m.name}</b><small>${m.niche}</small></div>
+      <span class="mtag ${m.tag}">${tags[m.tag]}</span>
+      <span class="mtime">${m.time}</span>
+    </div>
+    <div class="mbody">${m.text}</div>
+    ${m.reply ? `
+    <div style="background:rgba(134,179,117,.07);border:1px solid rgba(134,179,117,.2);border-radius:9px;padding:10px 13px;font-size:13px;color:var(--text-dim);line-height:1.55;margin-bottom:8px">
+      <span style="font-size:11px;color:var(--ok);font-weight:600;display:block;margin-bottom:4px">✓ Ответ отправлен</span>
+      ${m.reply}
+    </div>` : ''}
+    <div style="display:flex;gap:8px;align-items:center">
+      <button onclick="toggleReply(${m.id})" style="appearance:none;cursor:pointer;font-family:inherit;font-size:12.5px;border-radius:8px;padding:7px 13px;border:1px solid var(--gold-dim);background:transparent;color:var(--gold-soft)">
+        ${m.reply?'Дополнить ответ':'Ответить'}
+      </button>
+      ${m.unread?`<button onclick="markRead(${m.id})" style="appearance:none;cursor:pointer;font-family:inherit;font-size:12px;border-radius:8px;padding:7px 13px;border:1px solid var(--line);background:transparent;color:var(--text-dim)">Прочитано ✓</button>`:''}
+    </div>
+    <div class="reply-box">
+      <textarea placeholder="Напишите ответ — отправится клиенту в Telegram...">${m.reply||''}</textarea>
+      <div class="ract">
+        <button class="send" onclick="sendReply(${m.id})">Отправить в Telegram ✈️</button>
+        <button onclick="toggleReply(${m.id})">Отмена</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleReply(id){
+  const el=document.getElementById('msg'+id);
+  if(el) el.classList.toggle('open');
+}
+function markRead(id){
+  const m=MESSAGES.find(x=>x.id===id);
+  if(m) m.unread=false;
+  rMessages();
+}
+function sendReply(id){
+  const el=document.getElementById('msg'+id);
+  const ta=el?el.querySelector('textarea'):null;
+  if(!ta||!ta.value.trim()){alert('Напишите ответ');return;}
+  const m=MESSAGES.find(x=>x.id===id);
+  if(m){m.reply=ta.value.trim();m.unread=false;}
+  rMessages();
+}
+function bindMsgActions(){}
+
+function rResults(){
+  content.innerHTML=`
+  <div class="h1">Результаты клиентов</div>
+  <div class="h1s">Ключевые метрики за последние 7 дней по всем аккаунтам</div>
+  <div class="kpis">
+    <div class="kpi"><small>Всего лидов / нед</small><b>${RESULTS.reduce((s,r)=>s+(r.leads||0),0)}</b><div class="d ok">по портфелю</div></div>
+    <div class="kpi"><small>Средний CPL</small><b>$3.18</b><div class="d ok">▼22% за месяц</div></div>
+    <div class="kpi"><small>Общий расход</small><b>$${RESULTS.reduce((s,r)=>s+parseInt(r.spend.replace('$','')),0)}</b><div class="d dim">реклама / нед</div></div>
+    <div class="kpi"><small>Лучший ROAS</small><b>6.4x</b><div class="d ok">КешАвто</div></div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px">
+  ${RESULTS.map(r=>{
+    const deltaColor = r.cplDelta<0?'var(--ok)':r.cplDelta>0?'var(--bad)':'var(--muted)';
+    const deltaText = r.cplDelta===0?'→ стабильно':(r.cplDelta>0?'▲':'▼')+Math.abs(r.cplDelta)+'%';
+    return `<div class="pan" style="margin-bottom:0">
+      <div style="display:flex;align-items:center;gap:11px;margin-bottom:12px">
+        <div style="width:40px;height:40px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);
+          display:flex;align-items:center;justify-content:center;font-family:Unbounded;font-weight:600;color:var(--gold-soft);font-size:13px;flex:none">${r.ini}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14.5px;font-weight:600">${r.name}</div>
+          <div style="font-size:12px;color:var(--text-dim)">${r.niche}</div>
+        </div>
+        <span class="tier ${r.tier}">${r.tier==='ai'?'AI-тариф':'Expert'}</span>
+      </div>
+      <div class="res-grid">
+        <div class="res-cell"><b>${r.leads}</b><small>Лидов / нед</small></div>
+        <div class="res-cell"><b style="color:${deltaColor}">${r.cpl}</b><small>CPL <span style="color:${deltaColor};font-size:10px">${deltaText}</span></small></div>
+        <div class="res-cell"><b>${r.roas}</b><small>ROAS</small></div>
+      </div>
+      <div style="margin-top:10px;font-size:12.5px;color:var(--text-dim);line-height:1.5">
+        <span style="color:var(--gold-soft);font-weight:500">Топ-связка:</span> ${r.top}<br>
+        <span style="font-size:12px;margin-top:3px;display:block">💡 ${r.note}</span>
+      </div>
+    </div>`;
+  }).join('')}
+  </div>`;
+}
+
+function rFinance(){
+  const ai=CLIENTS.filter(c=>c.tier==="ai").length, ex=CLIENTS.filter(c=>c.tier==="expert").length;
+  const aiRev=ai*50000, exRev=ex*300000, mrr=aiRev+exRev, max=Math.max(aiRev,exRev);
+  content.innerHTML=`
+  <div class="h1">Финансы</div>
+  <div class="h1s">Доход от подписок на AI-таргетолога</div>
+  <div class="kpis">
+    <div class="kpi"><small>MRR</small><b>${(mrr/1e6).toFixed(2)}M₸</b><div class="d ok">+300K м/м</div></div>
+    <div class="kpi"><small>ARR</small><b>${(mrr*12/1e6).toFixed(1)}M₸</b><div class="d dim">прогноз</div></div>
+    <div class="kpi"><small>Клиентов</small><b>${ai+ex}</b><div class="d dim">${ai} AI · ${ex} Expert</div></div>
+    <div class="kpi"><small>Отток</small><b>0%</b><div class="d ok">за месяц</div></div>
+  </div>
+  <div class="pan"><h3>Доход по тарифам</h3><div class="bars">
+    <div class="barrow"><div class="bl"><span>AI-тариф · ${ai} клиентов × 50 000₸</span><b>${aiRev.toLocaleString()}₸</b></div>
+      <div class="bartrack"><i style="width:${aiRev/max*100}%;background:var(--info)"></i></div></div>
+    <div class="barrow"><div class="bl"><span>Expert · ${ex} клиентов × 300 000₸</span><b>${exRev.toLocaleString()}₸</b></div>
+      <div class="bartrack"><i style="width:${exRev/max*100}%;background:var(--gold)"></i></div></div>
+  </div></div>
+  <div class="pan"><h3>Юнит-экономика</h3>
+    <div class="alert"><span class="sev info"></span><div class="t"><b>AI-тариф почти полностью пассивный</b><small>Система ведёт рекламу сама — маржа высокая, время владельца минимально</small></div></div>
+    <div class="alert"><span class="sev warn"></span><div class="t"><b>Expert требует вашего времени</b><small>Стратегия от вас, рутину делает AI — выше чек, но не пассивный</small></div></div>
+  </div>`;
+}
+
+function rSystem(){
+  content.innerHTML=`
+  <div class="h1">Система</div>
+  <div class="h1s">Здоровье инфраструктуры всего сервиса</div>
+  <div class="pan"><h3>Сервисы</h3>
+    <div class="sys"><span class="d ok"></span><div class="t"><b>n8n · оркестрация</b><small>Все workflow активны</small></div><span class="v">online</span></div>
+    <div class="sys"><span class="d ok"></span><div class="t"><b>Meta Ads API / MCP</b><small>Подключено аккаунтов</small></div><span class="v">8 / 8</span></div>
+    <div class="sys"><span class="d ok"></span><div class="t"><b>Telegram bot</b><small>Отчёты и команды</small></div><span class="v">online</span></div>
+    <div class="sys"><span class="d warn"></span><div class="t"><b>Conversions API (CAPI)</b><small>Качество сигнала по аккаунтам</small></div><span class="v">6 / 8 ok</span></div>
+    <div class="sys"><span class="d ok"></span><div class="t"><b>Kaspi Pay · подписки</b><small>Приём оплат</small></div><span class="v">online</span></div>
+  </div>
+  <div class="pan"><h3>Требует настройки</h3>
+    <div class="alert"><span class="sev warn"></span><div class="t"><b>CAPI не настроен: QALJA, Lumière</b><small>Без серверного сигнала Advantage+ калибруется на неполных данных</small></div><button class="go">Настроить</button></div>
+  </div>`;
+  bindAlerts();
+}
+
+function bindAlerts(){ content.querySelectorAll(".go").forEach(b=>b.onclick=()=>{b.textContent="✓";b.style.opacity=".6";}); }
+
+$("#nav").querySelectorAll("button").forEach(b=>b.onclick=()=>navTo(b.dataset.v));
+rOverview();
+</script>
+</body>
+</html>

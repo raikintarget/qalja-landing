@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI-таргетолог — демо и разбор рекламы</title>
+<meta name="description" content="Ответьте на 7 вопросов — покажем демо AI-таргетолога на примере вашей ниши и бесплатно разберём вашу рекламу.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0E0D0B; --surface:#181613; --surface-2:#221F19; --line:#2F2A22;
+    --gold:#D9A441; --gold-soft:#EBD7A6; --gold-dim:#8A6E36;
+    --text:#F2ECDD; --text-dim:#9A9384; --muted:#6E685C;
+    --ok:#86B375;
+    --r:14px; --maxw:560px;
+    --ease:cubic-bezier(.22,.61,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:
+      radial-gradient(900px 500px at 50% -10%, #1c1813 0%, transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:"Manrope",system-ui,sans-serif;
+    font-size:16px; line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    display:flex; justify-content:center;
+    padding:max(16px,env(safe-area-inset-top)) 16px max(20px,env(safe-area-inset-bottom));
+  }
+  .app{width:100%;max-width:var(--maxw);display:flex;flex-direction:column;min-height:calc(100vh - 40px)}
+
+  .brand{display:flex;align-items:center;gap:8px;font-family:"Unbounded";font-weight:600;
+    font-size:14px;letter-spacing:.02em;color:var(--gold-soft);margin-bottom:18px}
+  .brand .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);
+    box-shadow:0 0 0 4px rgba(217,164,65,.16)}
+
+  /* ---- calibration header (quiz + contact only) ---- */
+  .chrome{display:none;margin-bottom:22px}
+  .chrome.show{display:block}
+  .rail{height:4px;background:var(--surface-2);border-radius:99px;overflow:hidden}
+  .rail i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold-dim),var(--gold));
+    border-radius:99px;transition:width .5s var(--ease)}
+  .meta{display:flex;align-items:center;justify-content:space-between;margin-top:14px;gap:14px}
+  .calib{display:flex;align-items:center;gap:12px;min-width:0}
+  .ring{flex:none;position:relative;width:54px;height:54px}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .v{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-family:"Unbounded";font-weight:600;font-size:13px;color:var(--gold-soft)}
+  .calib .lbl{min-width:0}
+  .calib .lbl b{display:block;font-family:"Unbounded";font-weight:500;font-size:12px;
+    letter-spacing:.04em;text-transform:uppercase;color:var(--text-dim)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
+  .chip{font-size:11.5px;line-height:1;padding:5px 8px;border:1px solid var(--gold-dim);
+    color:var(--gold-soft);border-radius:99px;background:rgba(217,164,65,.07);
+    white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis}
+  .count{flex:none;font-family:"Unbounded";font-weight:500;font-size:12px;color:var(--text-dim);
+    letter-spacing:.04em;white-space:nowrap}
+
+  /* ---- stage ---- */
+  .stage{flex:1;display:flex;flex-direction:column;justify-content:center}
+  .step{animation:rise .42s var(--ease) both}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+  .eyebrow{font-family:"Unbounded";font-weight:500;font-size:11.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--gold);margin-bottom:14px}
+  h1{font-family:"Unbounded";font-weight:600;font-size:clamp(28px,7vw,40px);line-height:1.08;
+    letter-spacing:-.01em;margin-bottom:16px}
+  h2{font-family:"Unbounded";font-weight:500;font-size:clamp(21px,5.2vw,27px);line-height:1.2;
+    letter-spacing:-.01em;margin-bottom:22px}
+  .lead{color:var(--text-dim);font-size:16px;line-height:1.6;margin-bottom:28px;max-width:46ch}
+
+  .opts{display:flex;flex-direction:column;gap:10px}
+  .opt{appearance:none;text-align:left;width:100%;cursor:pointer;font-family:inherit;
+    font-size:16px;color:var(--text);background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--r);padding:16px 16px 16px 48px;position:relative;
+    transition:border-color .18s var(--ease),background .18s var(--ease),transform .12s var(--ease)}
+  .opt::before{content:"";position:absolute;left:16px;top:50%;transform:translateY(-50%);
+    width:16px;height:16px;border-radius:50%;border:1.5px solid var(--muted);
+    transition:border-color .18s,background .18s,box-shadow .18s}
+  .opt:hover{border-color:var(--gold-dim);background:var(--surface-2)}
+  .opt:focus-visible{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(217,164,65,.25)}
+  .opt.sel{border-color:var(--gold);background:rgba(217,164,65,.08)}
+  .opt.sel::before{border-color:var(--gold);background:var(--gold);
+    box-shadow:inset 0 0 0 3px var(--surface)}
+
+  .nav{display:flex;align-items:center;gap:16px;margin-top:24px}
+  .back{appearance:none;background:none;border:none;cursor:pointer;color:var(--text-dim);
+    font-family:inherit;font-size:14px;padding:8px 0;display:inline-flex;align-items:center;gap:6px}
+  .back:hover{color:var(--text)} .back:disabled{opacity:0;pointer-events:none}
+  .back svg{width:16px;height:16px}
+
+  /* ---- CTA buttons ---- */
+  .btn{appearance:none;cursor:pointer;font-family:"Unbounded";font-weight:600;font-size:16px;
+    border:none;border-radius:var(--r);padding:17px 22px;width:100%;
+    background:linear-gradient(180deg,#E6B453,var(--gold));color:#1a1305;
+    transition:transform .12s var(--ease),filter .18s;letter-spacing:.01em}
+  .btn:hover{filter:brightness(1.05)} .btn:active{transform:scale(.985)}
+  .btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(217,164,65,.4)}
+  .btn.ghost{background:transparent;color:var(--gold-soft);border:1px solid var(--gold-dim);font-weight:500}
+  .btn.ghost:hover{filter:none;background:rgba(217,164,65,.07)}
+  .micro{text-align:center;color:var(--muted);font-size:13px;margin-top:14px}
+  .micro b{color:var(--gold-soft);font-weight:600}
+
+  /* ---- contact form ---- */
+  .reco{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--gold-dim);
+    border-radius:var(--r);padding:13px 15px;margin-bottom:22px}
+  .reco .tag{font-family:"Unbounded";font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--text-dim)}
+  .reco b{font-family:"Unbounded";font-weight:600;color:var(--gold-soft)}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:13px;color:var(--text-dim);margin-bottom:7px;font-weight:500}
+  .field input{width:100%;font-family:inherit;font-size:16px;color:var(--text);
+    background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 15px;
+    transition:border-color .18s,box-shadow .18s}
+  .field input::placeholder{color:var(--muted)}
+  .field input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(217,164,65,.2)}
+  .field.bad input{border-color:#b5564e}
+  .err{display:none;color:#d98a82;font-size:12.5px;margin-top:6px}
+  .field.bad .err{display:block}
+  .opt-note{color:var(--muted);font-weight:400}
+
+  /* ---- done ---- */
+  .done-mark{width:64px;height:64px;border-radius:50%;background:rgba(134,179,117,.12);
+    border:1px solid rgba(134,179,117,.4);display:flex;align-items:center;justify-content:center;
+    margin-bottom:22px;animation:pop .4s var(--ease) both}
+  .done-mark svg{width:30px;height:30px;stroke:var(--ok)}
+  @keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+
+  @media (max-width:380px){ .chip{max-width:120px} h1{font-size:26px} }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="brand"><span class="dot"></span>@smarttarget.ai</div>
+
+  <div class="chrome" id="chrome">
+    <div class="rail"><i id="rail"></i></div>
+    <div class="meta">
+      <div class="calib">
+        <div class="ring" aria-hidden="true">
+          <svg width="54" height="54" viewBox="0 0 54 54">
+            <circle cx="27" cy="27" r="22" fill="none" stroke="var(--surface-2)" stroke-width="5"/>
+            <circle id="ringfill" cx="27" cy="27" r="22" fill="none" stroke="var(--gold)" stroke-width="5"
+              stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="138.2"/>
+          </svg>
+          <span class="v" id="ringv">0%</span>
+        </div>
+        <div class="lbl">
+          <b>Профиль кампании</b>
+          <div class="chips" id="chips"></div>
+        </div>
+      </div>
+      <div class="count" id="count"></div>
+    </div>
+  </div>
+
+  <main class="stage" id="stage" aria-live="polite"></main>
+</div>
+
+<script>
+/* =========================================================
+   НАСТРОЙКА — поменяйте на свои данные
+   ========================================================= */
+const CONFIG = {
+  whatsapp: "77000000000",      // номер WhatsApp без + и пробелов
+  telegram: "raikintarget"      // username без @
+};
+
+const QUESTIONS = [
+  { key:"niche", q:"В какой нише ваш бизнес?", opts:[
+    {v:"Бьюти / эстетика"}, {v:"Медицина / стоматология"},
+    {v:"Услуги / образование / курсы"}, {v:"E-commerce / товары"},
+    {v:"HoReCa / общепит"}, {v:"Другое"} ]},
+  { key:"ads", q:"Вы запускаете рекламу в Instagram / Meta?", opts:[
+    {v:"Да, запускаю регулярно"}, {v:"Запускал, сейчас на паузе"},
+    {v:"Пока только планирую"} ]},
+  { key:"budget", q:"Какой рекламный бюджет в месяц?", opts:[
+    {v:"До 150 000 ₸"}, {v:"150 000 – 500 000 ₸"},
+    {v:"500 000 – 1 500 000 ₸"}, {v:"Больше 1 500 000 ₸"} ]},
+  { key:"pain", q:"Что беспокоит больше всего?", opts:[
+    {v:"Заявки дорогие, CPL растёт"}, {v:"Не вижу, какая реклама приносит деньги"},
+    {v:"Нет времени следить каждый день"}, {v:"Сложно найти хорошего таргетолога"},
+    {v:"Креативы быстро выгорают"}, {v:"Хочу масштабироваться без слива бюджета"} ]},
+  { key:"manage", q:"Кто сейчас ведёт вашу рекламу?", opts:[
+    {v:"Сам / сама"}, {v:"Фрилансер-таргетолог"},
+    {v:"Агентство"}, {v:"Никто, нужен с нуля"} ]},
+  { key:"priority", q:"Что для вас приоритет №1?", opts:[
+    {v:"Низкая стоимость заявки"}, {v:"Ежедневные отчёты в Telegram"},
+    {v:"Автогенерация и тест креативов"}, {v:"Вижу, кто реально купил"},
+    {v:"Полная автоматизация"} ]},
+  { key:"workstyle", q:"Как вам удобнее работать?", opts:[
+    {v:"AI ведёт рекламу сам, я смотрю отчёты", tier:"ai"},
+    {v:"Эксперт ведёт стратегию, AI — рутину", tier:"expert"},
+    {v:"Пока выбираю, нужна консультация", tier:"consult"} ]}
+];
+
+const TIER = { ai:"AI-таргетолог", expert:"Expert-таргетолог", consult:"Консультация эксперта" };
+const CHIP_SHORT = { // короткие подписи для чипов
+  "Услуги / образование / курсы":"Услуги / образование",
+  "Не вижу, какая реклама приносит деньги":"Не вижу окупаемость",
+  "Хочу масштабироваться без слива бюджета":"Масштабирование",
+  "AI ведёт рекламу сам, я смотрю отчёты":"Авто-режим",
+  "Эксперт ведёт стратегию, AI — рутину":"Эксперт + AI",
+  "Пока выбираю, нужна консультация":"Консультация"
+};
+
+const CIRC = 138.2;
+const state = { screen:"hero", i:0, answers:{} };
+const $ = id => document.getElementById(id);
+const stage = $("stage");
+
+function answeredCount(){ return Object.keys(state.answers).length; }
+
+function updateChrome(){
+  const show = state.screen === "quiz" || state.screen === "contact";
+  $("chrome").classList.toggle("show", show);
+  if(!show) return;
+  const total = QUESTIONS.length;
+  const done = state.screen === "contact" ? total : answeredCount();
+  const pct = Math.round(done / total * 100);
+  $("rail").style.width = pct + "%";
+  $("ringfill").style.strokeDashoffset = CIRC * (1 - done/total);
+  $("ringv").textContent = pct + "%";
+  $("count").textContent = state.screen === "contact"
+    ? "Готово" : "Вопрос " + (state.i + 1) + " / " + total;
+  const chips = QUESTIONS.filter(q => state.answers[q.key])
+    .map(q => { const v = state.answers[q.key]; return `<span class="chip">${CHIP_SHORT[v]||v}</span>`; });
+  $("chips").innerHTML = chips.join("") || `<span class="chip" style="border-style:dashed;opacity:.6">собираем…</span>`;
+}
+
+function renderHero(){
+  stage.innerHTML = `
+    <div class="step">
+      <div class="eyebrow">Бесплатный разбор</div>
+      <h1>AI-таргетолог<br>для вашего бизнеса</h1>
+      <p class="lead">Запускает рекламу, оптимизирует её каждый день и присылает отчёты в Telegram.
+      Ответьте на 7 вопросов — покажем демо на примере вашей ниши и бесплатно разберём вашу рекламу.</p>
+      <button class="btn" id="start">Начать разбор</button>
+      <p class="micro">≈ 40 секунд · <b>бесплатно</b> · без обязательств</p>
+    </div>`;
+  $("start").onclick = () => { state.screen="quiz"; state.i=0; render(); };
+}
+
+function renderQuestion(){
+  const q = QUESTIONS[state.i];
+  const cur = state.answers[q.key];
+  const opts = q.opts.map((o,idx) =>
+    `<button class="opt${o.v===cur?" sel":""}" data-v="${idx}">${o.v}</button>`).join("");
+  stage.innerHTML = `
+    <div class="step">
+      <div class="eyebrow">Шаг ${state.i+1} из ${QUESTIONS.length}</div>
+      <h2>${q.q}</h2>
+      <div class="opts">${opts}</div>
+      <div class="nav">
+        <button class="back" id="back" ${state.i===0?"disabled":""}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          Назад
+        </button>
+      </div>
+    </div>`;
+  stage.querySelectorAll(".opt").forEach(btn => {
+    btn.onclick = () => {
+      const o = q.opts[+btn.dataset.v];
+      state.answers[q.key] = o.v;
+      if(o.tier) state.answers._tier = o.tier;
+      stage.querySelectorAll(".opt").forEach(b=>b.classList.remove("sel"));
+      btn.classList.add("sel");
+      updateChrome();
+      setTimeout(next, 260);
+    };
+  });
+  $("back").onclick = back;
+  updateChrome();
+}
+
+function next(){
+  if(state.i < QUESTIONS.length-1){ state.i++; render(); }
+  else { state.screen="contact"; render(); }
+}
+function back(){
+  if(state.screen==="contact"){ state.screen="quiz"; state.i=QUESTIONS.length-1; render(); }
+  else if(state.i>0){ state.i--; render(); }
+}
+
+function renderContact(){
+  const tier = TIER[state.answers._tier] || "Подберём на демо";
+  stage.innerHTML = `
+    <div class="step">
+      <div class="eyebrow">Профиль собран</div>
+      <h2>Куда прислать демо и разбор?</h2>
+      <div class="reco">
+        <span class="tag">Вам подойдёт</span>
+        <b>${tier}</b>
+      </div>
+      <div class="field" id="f-name">
+        <label for="name">Как вас зовут</label>
+        <input id="name" type="text" autocomplete="name" placeholder="Имя">
+        <div class="err">Напишите имя</div>
+      </div>
+      <div class="field" id="f-phone">
+        <label for="phone">Телефон или Telegram для связи</label>
+        <input id="phone" type="text" autocomplete="tel" placeholder="+7 ___ ___ __ __  или  @username">
+        <div class="err">Оставьте контакт для связи</div>
+      </div>
+      <div class="field">
+        <label for="ig">Instagram-аккаунт <span class="opt-note">— по желанию, для мини-аудита</span></label>
+        <input id="ig" type="text" autocomplete="off" placeholder="@вашаккаунт">
+      </div>
+      <button class="btn" id="submit">Получить демо и разбор</button>
+      <div class="nav"><button class="back" id="back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        Назад</button></div>
+    </div>`;
+  $("back").onclick = back;
+  $("submit").onclick = submit;
+  updateChrome();
+}
+
+function submit(){
+  const name = $("name").value.trim();
+  const phone = $("phone").value.trim();
+  const ig = $("ig").value.trim();
+  let ok = true;
+  $("f-name").classList.toggle("bad", !name); if(!name) ok=false;
+  $("f-phone").classList.toggle("bad", !phone); if(!phone) ok=false;
+  if(!ok){ (!name?$("name"):$("phone")).focus(); return; }
+
+  const a = state.answers;
+  const tier = TIER[a._tier] || "подобрать на демо";
+  const lines = [
+    "Здравствуйте! Прошёл(ла) квиз на демо AI-таргетолога 🎯", "",
+    "Имя: " + name,
+    "Контакт: " + phone,
+    ig ? "Instagram: " + ig : null, "",
+    "Ниша: " + (a.niche||"—"),
+    "Реклама сейчас: " + (a.ads||"—"),
+    "Бюджет/мес: " + (a.budget||"—"),
+    "Главная задача: " + (a.pain||"—"),
+    "Рекламу ведёт: " + (a.manage||"—"),
+    "Приоритет: " + (a.priority||"—"),
+    "Формат: " + (a.workstyle||"—"), "",
+    "Рекомендованный тариф: " + tier
+  ].filter(Boolean).join("\n");
+  const text = encodeURIComponent(lines);
+  const waURL = `https://wa.me/${CONFIG.whatsapp}?text=${text}`;
+  const tgURL = `https://t.me/${CONFIG.telegram}`;
+
+  state.screen = "done";
+  $("chrome").classList.remove("show");
+  stage.innerHTML = `
+    <div class="step" style="text-align:center">
+      <div class="done-mark" style="margin-left:auto;margin-right:auto">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round"
+          stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+      </div>
+      <h2>Готово, ${name.split(" ")[0]}!</h2>
+      <p class="lead" style="margin-left:auto;margin-right:auto">Нажмите кнопку — отправьте заявку,
+      и мы пришлём демо на примере вашей ниши + бесплатный мини-аудит в течение 24 часов.</p>
+      <a class="btn" href="${waURL}" target="_blank" rel="noopener" style="text-decoration:none;display:block">
+        Отправить в WhatsApp</a>
+      <a class="btn ghost" href="${tgURL}" target="_blank" rel="noopener"
+        style="text-decoration:none;display:block;margin-top:12px">Написать в Telegram</a>
+    </div>`;
+  setTimeout(()=>{ window.location.href = waURL; }, 700);
+}
+
+function render(){
+  updateChrome();
+  if(state.screen==="hero") renderHero();
+  else if(state.screen==="quiz") renderQuestion();
+  else if(state.screen==="contact") renderContact();
+}
+render();
+</script>
+</body>
+</html>

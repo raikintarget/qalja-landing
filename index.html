@@ -1,366 +1,176 @@
 <!DOCTYPE html>
-<html lang="kk">
+<html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>QALJA – Қалжаның дәмін сезін</title>
-  <!-- Meta Pixel Code -->
-  <script>
-  !function(f,b,e,v,n,t,s)
-  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-  n.queue=[];t=b.createElement(e);t.async=!0;
-  t.src=v;s=b.getElementsByTagName(e)[0];
-  s.parentNode.insertBefore(t,s)}(window, document,'script',
-  'https://connect.facebook.net/en_US/fbevents.js');
-  fbq('init', '2261896784561449');
-  fbq('track', 'PageView');
-  </script>
-  <noscript><img height="1" width="1" style="display:none"
-  src="https://www.facebook.com/tr?id=2261896784561449&ev=PageView&noscript=1"
-  /></noscript>
-  <!-- End Meta Pixel Code -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800;900&display=swap" rel="stylesheet" />
-  <style>
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="refresh" content="1;url=landing.html">
+<title>SmartTarget AI — перенаправление…</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0E0D0B;--surface:#181613;--surface-2:#221F19;--line:#2F2A22;
+    --gold:#D9A441;--gold-soft:#EBD7A6;--gold-dim:#8A6E36;
+    --text:#F2ECDD;--text-dim:#9A9384;--muted:#6E685C;--info:#7BA7C9;--ok:#86B375;
+    --r:14px;--nav:60px;--ease:cubic-bezier(.22,.61,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--text);font-family:"Manrope",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 
-    body {
-      font-family: 'Montserrat', 'Arial Black', Arial, sans-serif;
-      background: #120600;
-      color: #fff;
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
+  /* nav */
+  .nav{position:sticky;top:0;z-index:10;height:var(--nav);display:flex;align-items:center;gap:14px;
+    padding:0 16px;background:rgba(14,13,11,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:8px;font-family:"Unbounded";font-weight:600;font-size:14px;color:var(--gold-soft);flex:none}
+  .brand .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px rgba(217,164,65,.16)}
+  .tabs{display:flex;align-items:center;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;flex:1;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs .sep{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:0 4px 0 8px;white-space:nowrap;flex:none}
+  .tab{appearance:none;cursor:pointer;font-family:inherit;font-size:13.5px;color:var(--text-dim);background:transparent;
+    border:1px solid transparent;border-radius:9px;padding:8px 13px;white-space:nowrap;flex:none;transition:.15s}
+  .tab:hover{color:var(--text);background:var(--surface)}
+  .tab.on{color:var(--gold-soft);background:var(--surface);border-color:var(--gold-dim)}
+  .tab:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(217,164,65,.3)}
 
-    /* ── HERO ── */
-    .hero {
-      position: relative;
-      width: 100%;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 36px 20px 48px;
-      background:
-        linear-gradient(
-          180deg,
-          rgba(12, 4, 0, 0.88) 0%,
-          rgba(22, 8, 0, 0.80) 28%,
-          rgba(90, 38, 0, 0.72) 58%,
-          rgba(180, 100, 8, 0.88) 80%,
-          rgba(210, 130, 12, 0.96) 100%
-        ),
-        url('banner.jpg') center center / cover no-repeat;
-    }
+  /* stage */
+  .stage{height:calc(100vh - var(--nav));position:relative;overflow:hidden}
+  iframe{width:100%;height:100%;border:none;display:none;background:var(--bg)}
+  iframe.on{display:block}
 
-    /* ── LOGO ── */
-    .logo-wrap {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-bottom: 22px;
-    }
+  /* home cover */
+  .home{height:100%;overflow:auto;display:none}
+  .home.on{display:block}
+  .cover{max-width:920px;margin:0 auto;padding:40px 20px 60px}
+  .eyebrow{font-family:"Unbounded";font-weight:500;font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:16px}
+  h1{font-family:"Unbounded";font-weight:600;font-size:clamp(30px,6vw,48px);line-height:1.06;letter-spacing:-.01em;margin-bottom:16px}
+  h1 .g{color:var(--gold-soft)}
+  .lead{color:var(--text-dim);font-size:clamp(15px,2.4vw,18px);line-height:1.6;max-width:54ch;margin-bottom:36px}
 
-    .logo-circle {
-      width: 68px;
-      height: 68px;
-      border-radius: 50%;
-      border: 2.5px solid rgba(255,255,255,0.35);
-      background: rgba(0,0,0,0.45);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.5rem;
-      font-weight: 900;
-      letter-spacing: -1px;
-      color: #fff;
-      margin-bottom: 6px;
-      backdrop-filter: blur(6px);
-    }
+  .track-lbl{font-family:"Unbounded";font-weight:500;font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--text-dim);margin:28px 0 14px;display:flex;align-items:center;gap:10px}
+  .track-lbl::after{content:"";flex:1;height:1px;background:var(--line)}
 
-    .logo-sub {
-      font-size: 0.65rem;
-      font-weight: 600;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.6);
-    }
+  .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}
+  @media(max-width:720px){.flow{grid-template-columns:repeat(2,1fr)}}
+  .flow.one{grid-template-columns:1fr;max-width:280px}
+  .card{position:relative;text-align:left;cursor:pointer;background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--r);padding:16px;transition:border-color .18s,transform .12s var(--ease);overflow:hidden}
+  .card:hover{border-color:var(--gold-dim);transform:translateY(-2px)}
+  .card:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(217,164,65,.3)}
+  .card .n{font-family:"Unbounded";font-weight:600;font-size:13px;color:var(--gold-dim);margin-bottom:10px}
+  .card h4{font-family:"Unbounded";font-weight:500;font-size:15px;margin-bottom:6px}
+  .card p{font-size:12.5px;color:var(--text-dim);line-height:1.5}
+  .card .arrow{position:absolute;right:14px;top:14px;color:var(--muted);font-size:15px;transition:.18s}
+  .card:hover .arrow{color:var(--gold)}
+  .card.owner{border-color:var(--gold-dim);background:rgba(217,164,65,.05)}
 
-    /* ── MAIN TITLE ── */
-    .main-title {
-      font-size: clamp(1.9rem, 7vw, 3rem);
-      font-weight: 900;
-      text-transform: uppercase;
-      text-align: center;
-      line-height: 1.08;
-      letter-spacing: -0.5px;
-      text-shadow: 0 3px 14px rgba(0,0,0,0.75);
-      margin-bottom: 14px;
-    }
+  .pitch{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-top:36px}
+  @media(max-width:720px){.pitch{grid-template-columns:1fr}}
+  .pc{background:var(--surface-2);border-radius:12px;padding:15px}
+  .pc b{font-family:"Unbounded";font-weight:500;font-size:14px;display:block;margin-bottom:6px;color:var(--gold-soft)}
+  .pc small{font-size:12.5px;color:var(--text-dim);line-height:1.5}
 
-    /* ── PILL SUBTITLE ── */
-    .pill {
-      display: inline-block;
-      border: 2.5px solid #fff;
-      border-radius: 100px;
-      padding: 9px 28px;
-      font-size: clamp(0.95rem, 3.5vw, 1.25rem);
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      background: rgba(10,4,0,0.55);
-      backdrop-filter: blur(4px);
-      margin-bottom: 28px;
-    }
-
-    /* ── SOUP DECORATION ── */
-    .soup-emoji {
-      font-size: 5rem;
-      filter: drop-shadow(0 6px 18px rgba(0,0,0,0.6));
-      margin-bottom: 12px;
-      animation: float 3s ease-in-out infinite;
-    }
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50%       { transform: translateY(-8px); }
-    }
-
-    /* ── DATE ── */
-    .date-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-    .date-icon { font-size: 2.2rem; }
-    .date-num {
-      font-size: clamp(2.4rem, 9vw, 3.4rem);
-      font-weight: 900;
-      color: #F5A623;
-      text-shadow: 0 2px 12px rgba(0,0,0,0.55);
-      line-height: 1;
-    }
-
-    /* ── DESCRIPTION ── */
-    .desc {
-      font-size: clamp(0.85rem, 3vw, 1rem);
-      font-weight: 500;
-      text-align: center;
-      max-width: 340px;
-      line-height: 1.6;
-      color: rgba(255,255,255,0.92);
-      margin-bottom: 28px;
-    }
-    .desc .free { font-weight: 800; color: #F5A623; }
-
-    /* ── FORM CARD ── */
-    .card {
-      width: 100%;
-      max-width: 400px;
-      background: rgba(8, 3, 0, 0.72);
-      border: 1.5px solid rgba(245,166,35,0.35);
-      border-radius: 20px;
-      padding: 28px 22px 24px;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 8px 40px rgba(0,0,0,0.55);
-    }
-
-    .card-title {
-      font-size: 0.82rem;
-      font-weight: 700;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: #F5A623;
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
-    .field { margin-bottom: 14px; }
-    .field label {
-      display: block;
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: rgba(255,255,255,0.65);
-      letter-spacing: 0.5px;
-      margin-bottom: 6px;
-      text-transform: uppercase;
-    }
-    .field input {
-      width: 100%;
-      padding: 13px 16px;
-      border-radius: 12px;
-      border: 1.5px solid rgba(245,166,35,0.4);
-      background: rgba(255,255,255,0.08);
-      color: #fff;
-      font-size: 0.98rem;
-      font-family: 'Montserrat', sans-serif;
-      font-weight: 500;
-      outline: none;
-      transition: border-color 0.2s, background 0.2s;
-    }
-    .field input:focus {
-      border-color: #F5A623;
-      background: rgba(255,255,255,0.13);
-    }
-    .field input::placeholder { color: rgba(255,255,255,0.3); }
-
-    /* ── SUBMIT BUTTON ── */
-    .btn-submit {
-      width: 100%;
-      margin-top: 8px;
-      padding: 15px 10px;
-      border: none;
-      border-radius: 100px;
-      background: linear-gradient(135deg, #C87800 0%, #F5A623 50%, #FFB830 100%);
-      color: #1a0800;
-      font-family: 'Montserrat', sans-serif;
-      font-size: clamp(0.78rem, 2.8vw, 0.92rem);
-      font-weight: 900;
-      letter-spacing: 1.2px;
-      text-transform: uppercase;
-      cursor: pointer;
-      box-shadow: 0 4px 24px rgba(212,130,0,0.55);
-      transition: transform 0.12s, box-shadow 0.2s, opacity 0.2s;
-    }
-    .btn-submit:hover  { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(212,130,0,0.7); }
-    .btn-submit:active { transform: translateY(0); }
-    .btn-submit:disabled { opacity: 0.6; cursor: default; transform: none; }
-
-    /* ── STATES ── */
-    .loading-text {
-      display: none;
-      text-align: center;
-      margin-top: 12px;
-      font-size: 0.85rem;
-      color: rgba(255,255,255,0.5);
-      font-weight: 600;
-    }
-
-    .success-block {
-      display: none;
-      text-align: center;
-      padding: 10px 0 4px;
-    }
-    .success-block .check { font-size: 2.8rem; margin-bottom: 8px; }
-    .success-block p {
-      font-size: 1rem;
-      font-weight: 700;
-      color: #F5A623;
-      margin-bottom: 4px;
-    }
-    .success-block small {
-      font-size: 0.8rem;
-      color: rgba(255,255,255,0.5);
-    }
-
-    /* ── FOOTER ── */
-    .footer {
-      margin-top: 28px;
-      font-size: 0.72rem;
-      color: rgba(255,255,255,0.3);
-      text-align: center;
-      letter-spacing: 1px;
-    }
-  </style>
+  .foot{text-align:center;color:var(--muted);font-size:12px;margin-top:40px}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
 </head>
 <body>
-  <section class="hero">
 
-    <!-- Logo -->
-    <div class="logo-wrap">
-      <div class="logo-circle">QALJA</div>
-      <span class="logo-sub">ана мен бала орталығы</span>
-    </div>
+<!-- Redirect splash -->
+<div id="splash" style="position:fixed;inset:0;background:#0E0D0B;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;transition:opacity .5s ease">
+  <div style="display:flex;align-items:center;gap:10px;font-family:'Unbounded',sans-serif;font-weight:700;font-size:20px;color:#EBD7A6;margin-bottom:12px">
+    <span style="width:10px;height:10px;border-radius:50%;background:#D9A441;box-shadow:0 0 16px rgba(217,164,65,.6);display:inline-block"></span>
+    SmartTarget AI
+  </div>
+  <div style="font-size:13px;color:#6E685C;font-family:'Manrope',sans-serif">Загружаем лендинг…</div>
+</div>
 
-    <!-- Headline -->
-    <h1 class="main-title">QALJA-ҒА КЕЛМЕЙ ТҰРЫП</h1>
-    <div class="pill">ҚАЛЖАНЫҢ ДӘМІН СЕЗІН</div>
+<script>
+// Immediate redirect with small brand splash
+setTimeout(function(){
+  var s = document.getElementById('splash');
+  if(s){ s.style.opacity='0'; }
+  setTimeout(function(){ window.location.href='landing.html'; }, 500);
+}, 800);
+</script>
 
-    <!-- Floating soup -->
-    <div class="soup-emoji">🍲</div>
+<nav class="nav" style="display:none">
+  <div class="brand"><span class="dot"></span>SmartTarget AI</div>
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-k="home">Главная</button>
+    <span class="sep">🤖 продукт</span>
+    <button class="tab" data-k="app" style="color:var(--gold-soft);border-color:var(--gold-dim)">AI Таргетолог</button>
+    <span class="sep">демо</span>
+    <button class="tab" data-k="quiz">Квиз</button>
+    <button class="tab" data-k="demo">Демо-день</button>
+    <button class="tab" data-k="onboarding">Онбординг</button>
+    <button class="tab" data-k="monitoring">Мониторинг</button>
+    <span class="sep">владелец</span>
+    <button class="tab" data-k="admin">Супер-админ</button>
+  </div>
+</nav>
 
-    <!-- Date -->
-    <div class="date-row">
-      <span class="date-icon">📅</span>
-      <span class="date-num">9 мамыр</span>
-    </div>
+<div class="stage">
+  <div class="home on" id="home">
+    <div class="cover">
+      <div class="eyebrow">@smarttarget.ai · прототип</div>
+      <h1>AI ведёт рекламу.<br><span class="g">Вы видите результат.</span></h1>
+      <p class="lead">AI-таргетолог запускает рекламу, уважает фазу обучения Meta, тестирует через A/B и Advantage+, оптимизирует сам и присылает отчёты. Клиент только наблюдает. Пройдите весь путь — от заявки до панели владельца.</p>
 
-    <!-- Description -->
-    <p class="desc">
-      Бізге келгісі келіп жүрген аналарды қалжа сорпасын
-      ішуге шақырамыз.&nbsp;<span class="free">КІРУ ТЕГІН</span>
-    </p>
-
-    <!-- Registration form -->
-    <div class="card">
-      <p class="card-title">Тіркелу үшін толтырыңыз</p>
-
-      <form id="regForm">
-        <div class="field">
-          <label>Аты-жөніңіз</label>
-          <input type="text" name="name" placeholder="Айгүл Жаксыбекова" required />
-        </div>
-        <div class="field">
-          <label>Телефон нөміріңіз</label>
-          <input type="tel" name="phone" placeholder="+7 700 000 00 00" required />
-        </div>
-        <button type="submit" class="btn-submit" id="submitBtn">
-          ТІРКЕЛУ ҮШІН СІЛТЕМЕГЕ ӨТІҢІЗ
-        </button>
-        <p class="loading-text" id="loadingText">Жіберілуде…</p>
-      </form>
-
-      <div class="success-block" id="successBlock">
-        <div class="check">✅</div>
-        <p>Тіркеліңіз! WhatsApp чатқа бағытталуда…</p>
-        <small>Секунд сайын автоматты өтеді</small>
+      <div class="track-lbl">Путь клиента</div>
+      <div class="flow">
+        <button class="card" data-k="quiz"><span class="arrow">→</span><div class="n">01</div><h4>Квиз</h4><p>7 вопросов → демо на примере ниши + бесплатный мини-аудит</p></button>
+        <button class="card" data-k="demo"><span class="arrow">→</span><div class="n">02</div><h4>Демо</h4><p>Один день работы AI: анализ, решения, отчёт в Telegram</p></button>
+        <button class="card" data-k="onboarding"><span class="arrow">→</span><div class="n">03</div><h4>Онбординг</h4><p>Подключение, направления, автопилот, правила креативов</p></button>
+        <button class="card" data-k="monitoring"><span class="arrow">→</span><div class="n">04</div><h4>Мониторинг</h4><p>Система работает сама — клиент наблюдает за результатом</p></button>
       </div>
+
+      <div class="track-lbl">Для владельца</div>
+      <div class="flow one">
+        <button class="card owner" data-k="admin"><span class="arrow">→</span><div class="n">∞</div><h4>Супер-админ</h4><p>Все клиенты, лиды, MRR и система — командный центр бизнеса</p></button>
+      </div>
+
+      <div class="pitch">
+        <div class="pc"><b>Не борется с Meta</b><small>AI дирижирует Advantage+, а не ломает фазу обучения ежедневными правками</small></div>
+        <div class="pc"><b>Два тарифа</b><small>AI-тариф — пассивный доход. Expert — стратегия от вас, рутина на AI</small></div>
+        <div class="pc"><b>Креатив = результат</b><small>Сильный монтаж и свежие креативы — главный рычаг CPL в 2026</small></div>
+      </div>
+
+      <p class="foot">Нажмите любую карточку или вкладку вверху, чтобы открыть экран</p>
     </div>
+  </div>
 
-    <p class="footer">© 2025 QALJA – ана мен бала орталығы</p>
-  </section>
+  <iframe id="frame" title="Экран продукта" loading="lazy"></iframe>
+</div>
 
-  <script>
-    // ─── CONFIG ────────────────────────────────────────────────────────────────
-    const SCRIPT_URL   = 'https://script.google.com/macros/s/AKfycbxAAwebtxRfvhZZ02INLgMX3Gjn-5MK_SepqrEB-a09N4Cnn-rAf9i7vGQv4quTBQIk/exec';
-    const WHATSAPP_URL = 'https://chat.whatsapp.com/JfLdMGwIo75GMCU2IqF9nz?mode=gi_t';
-    // ───────────────────────────────────────────────────────────────────────────
+<script>
+const SRC={
+  app:"ai-targetolog-app.html",
+  quiz:"ai-targetolog-demo-quiz.html",
+  demo:"ai-targetolog-demo-day.html",
+  onboarding:"ai-targetolog-onboarding.html",
+  monitoring:"ai-targetolog-monitoring.html",
+  admin:"ai-targetolog-superadmin.html"
+};
+const home=document.getElementById("home");
+const frame=document.getElementById("frame");
+const tabs=document.getElementById("tabs");
 
-    document.getElementById('regForm').addEventListener('submit', async function (e) {
-      e.preventDefault();
+function go(k){
+  tabs.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.k===k));
+  if(k==="home"){
+    home.classList.add("on"); frame.classList.remove("on"); frame.removeAttribute("src");
+  } else {
+    home.classList.remove("on");
+    if(frame.getAttribute("src")!==SRC[k]) frame.src=SRC[k];
+    frame.classList.add("on");
+  }
+  document.querySelector(".stage").scrollTop=0;
+}
 
-      const form      = e.target;
-      const name      = form.name.value.trim();
-      const phone     = form.phone.value.trim();
-      const btn       = document.getElementById('submitBtn');
-      const loading   = document.getElementById('loadingText');
-      const success   = document.getElementById('successBlock');
-
-      btn.disabled          = true;
-      loading.style.display = 'block';
-
-      try {
-        const params = new URLSearchParams({
-            name,
-            phone,
-            date: new Date().toLocaleString('ru-RU', { timeZone: 'Asia/Almaty' })
-          });
-        await fetch(`${SCRIPT_URL}?${params.toString()}`, { mode: 'no-cors' });
-      } catch (err) {
-        // Sheets-ке жазу сәтсіз болса да, чатқа өтеміз
-        console.warn('Sheets error:', err);
-      }
-
-      loading.style.display = 'none';
-      form.style.display    = 'none';
-      success.style.display = 'block';
-
-      fbq('track', 'Lead');
-
-      setTimeout(() => { window.location.href = WHATSAPP_URL; }, 1800);
-    });
-  </script>
+tabs.querySelectorAll(".tab").forEach(t=>t.onclick=()=>go(t.dataset.k));
+document.querySelectorAll(".card").forEach(c=>c.onclick=()=>go(c.dataset.k));
+</script>
 </body>
 </html>

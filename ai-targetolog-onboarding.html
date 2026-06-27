@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI-таргетолог — подключение и панель управления</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0E0D0B;--surface:#181613;--surface-2:#221F19;--line:#2F2A22;
+    --gold:#D9A441;--gold-soft:#EBD7A6;--gold-dim:#8A6E36;
+    --text:#F2ECDD;--text-dim:#9A9384;--muted:#6E685C;
+    --ok:#86B375;--bad:#CC6A5C;--warn:#E0A436;
+    --r:14px;--ease:cubic-bezier(.22,.61,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:radial-gradient(1000px 600px at 50% -15%,#1c1813 0,transparent 60%),var(--bg);
+    color:var(--text);font-family:"Manrope",system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;
+    padding:max(18px,env(safe-area-inset-top)) 16px max(24px,env(safe-area-inset-bottom))}
+  .wrap{max-width:880px;margin:0 auto}
+  .head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:22px}
+  .brand{display:flex;align-items:center;gap:8px;font-family:"Unbounded";font-weight:600;font-size:13px;
+    letter-spacing:.02em;color:var(--gold-soft)}
+  .brand .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px rgba(217,164,65,.16)}
+  .steps{margin-left:auto;display:flex;gap:6px;align-items:center}
+  .steps .s{width:26px;height:4px;border-radius:99px;background:var(--surface-2);transition:background .3s}
+  .steps .s.on{background:var(--gold)} .steps .s.done{background:var(--gold-dim)}
+
+  h1{font-family:"Unbounded";font-weight:600;font-size:clamp(22px,5vw,30px);line-height:1.12;letter-spacing:-.01em;margin-bottom:8px}
+  .sub{color:var(--text-dim);font-size:15px;margin-bottom:24px;max-width:60ch}
+  .eyebrow{font-family:"Unbounded";font-weight:500;font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--gold);margin-bottom:12px}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin-bottom:14px;
+    animation:rise .4s var(--ease) both}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+  /* connect rows */
+  .conn{display:flex;align-items:center;gap:13px;padding:14px 0;border-bottom:1px solid var(--line)}
+  .conn:last-child{border-bottom:none}
+  .conn .ic{width:40px;height:40px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;font-size:19px;flex:none}
+  .conn .t{flex:1;min-width:0} .conn .t b{font-size:14.5px;display:block} .conn .t small{color:var(--muted);font-size:12.5px}
+  .conn input{width:100%;margin-top:7px;font-family:inherit;font-size:14px;color:var(--text);background:var(--bg);
+    border:1px solid var(--line);border-radius:9px;padding:9px 11px}
+  .conn input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(217,164,65,.18)}
+
+  .pill{font-family:"Unbounded";font-weight:500;font-size:12px;padding:8px 14px;border-radius:99px;cursor:pointer;
+    border:1px solid var(--gold-dim);background:transparent;color:var(--gold-soft);transition:.18s;white-space:nowrap}
+  .pill:hover{background:rgba(217,164,65,.08)}
+  .pill.ok{background:rgba(134,179,117,.14);border-color:rgba(134,179,117,.4);color:var(--ok);cursor:default}
+  .pill:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(217,164,65,.3)}
+
+  /* form fields */
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:520px){.row{grid-template-columns:1fr}}
+  .field{margin-bottom:13px}
+  .field label{display:block;font-size:13px;color:var(--text-dim);margin-bottom:7px;font-weight:500}
+  .field label .hint{color:var(--muted);font-weight:400}
+  .field input,.field select{width:100%;font-family:inherit;font-size:15px;color:var(--text);background:var(--surface-2);
+    border:1px solid var(--line);border-radius:10px;padding:11px 12px}
+  .field input:focus,.field select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(217,164,65,.18)}
+  .suffix{position:relative} .suffix input{padding-right:42px}
+  .suffix .sfx{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;font-family:"JetBrains Mono",monospace}
+
+  /* toggle */
+  .tog{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 0;border-bottom:1px solid var(--line)}
+  .tog:last-child{border-bottom:none}
+  .tog .t b{font-size:14.5px;display:block} .tog .t small{color:var(--muted);font-size:12.5px;display:block;margin-top:2px}
+  .sw{appearance:none;width:46px;height:26px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);
+    position:relative;cursor:pointer;flex:none;transition:background .2s}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:var(--muted);transition:.2s}
+  .sw:checked{background:rgba(217,164,65,.25);border-color:var(--gold-dim)}
+  .sw:checked::after{left:22px;background:var(--gold)}
+  .sw:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(217,164,65,.3)}
+
+  .seg{display:flex;gap:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:4px}
+  .seg button{flex:1;appearance:none;border:none;background:none;cursor:pointer;font-family:inherit;font-size:13px;
+    color:var(--text-dim);padding:9px;border-radius:7px;transition:.15s}
+  .seg button.on{background:var(--gold);color:#1a1305;font-weight:600}
+
+  .btn{appearance:none;cursor:pointer;font-family:"Unbounded";font-weight:600;font-size:15px;border:none;border-radius:12px;
+    padding:14px 22px;background:linear-gradient(180deg,#E6B453,var(--gold));color:#1a1305;transition:transform .12s,filter .18s;width:100%}
+  .btn:hover{filter:brightness(1.05)} .btn:active{transform:scale(.99)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(217,164,65,.4)}
+  .btn.ghost{background:transparent;color:var(--gold-soft);border:1px solid var(--gold-dim);width:auto;padding:11px 18px;font-weight:500;font-size:14px}
+  .btn.ghost:hover{filter:none;background:rgba(217,164,65,.07)}
+  .nav{display:flex;gap:12px;align-items:center;margin-top:6px}
+  .nav .back{margin-right:auto;background:none;border:none;color:var(--text-dim);cursor:pointer;font-family:inherit;font-size:14px;padding:8px 0}
+  .nav .back:hover{color:var(--text)}
+
+  .dirlist{margin-top:4px}
+  .diritem{display:flex;align-items:center;gap:11px;background:var(--surface-2);border:1px solid var(--line);
+    border-radius:10px;padding:11px 13px;margin-bottom:9px;animation:rise .3s var(--ease) both}
+  .diritem b{font-size:14px} .diritem small{color:var(--muted);font-size:12px;font-family:"JetBrains Mono",monospace}
+  .diritem .x{margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1}
+  .diritem .x:hover{color:var(--bad)}
+
+  /* panel */
+  .banner{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,rgba(134,179,117,.12),rgba(217,164,65,.08));
+    border:1px solid rgba(134,179,117,.35);border-radius:var(--r);padding:15px 17px;margin-bottom:16px}
+  .banner .live{width:10px;height:10px;border-radius:50%;background:var(--ok);animation:blink 1.2s infinite;flex:none}
+  @keyframes blink{50%{opacity:.3}}
+  .banner b{font-family:"Unbounded";font-weight:600;font-size:15px;display:block}
+  .banner small{color:var(--text-dim);font-size:12.5px}
+  .banner .sw{margin-left:auto}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px}
+  @media(max-width:560px){.kpis{grid-template-columns:repeat(2,1fr)}}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px}
+  .kpi small{display:block;font-size:11px;color:var(--text-dim);margin-bottom:5px}
+  .kpi b{font-family:"Unbounded";font-weight:600;font-size:19px;display:block}
+  .kpi .d{font-size:11.5px;font-weight:600;margin-top:3px;color:var(--ok)}
+
+  .pcols{display:grid;grid-template-columns:1fr;gap:14px}
+  @media(min-width:720px){.pcols{grid-template-columns:1fr 1fr}}
+  .pan{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+  .pan h3{font-family:"Unbounded";font-weight:500;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:13px}
+  .set{display:flex;justify-content:space-between;gap:10px;font-size:13.5px;padding:8px 0;border-bottom:1px solid var(--line)}
+  .set:last-child{border-bottom:none} .set span{color:var(--text-dim)} .set b{font-family:"JetBrains Mono",monospace;font-weight:500;color:var(--gold-soft)}
+  .log{font-family:"JetBrains Mono",monospace;font-size:12px;line-height:1.75;color:var(--text-dim);max-height:230px;overflow:auto}
+  .log div{opacity:0;animation:fade .35s forwards} .log .tm{color:var(--gold-dim)} .log .hl{color:var(--gold-soft)}
+  @keyframes fade{to{opacity:1}}
+
+  .note{text-align:center;color:var(--muted);font-size:12px;margin-top:20px}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  /* Budget modal */
+  .modal-overlay{position:fixed;inset:0;background:rgba(10,9,7,.82);backdrop-filter:blur(6px);z-index:100;
+    display:flex;align-items:flex-end;justify-content:center;animation:mo-fadein .22s ease both}
+  @keyframes mo-fadein{from{opacity:0}to{opacity:1}}
+  .modal-sheet{width:100%;max-width:580px;background:var(--surface);border-radius:22px 22px 0 0;
+    border:1px solid var(--line);border-bottom:none;padding:10px 22px max(28px,env(safe-area-inset-bottom));
+    animation:mo-up .3s var(--ease) both}
+  @keyframes mo-up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  .mo-handle{width:40px;height:4px;background:var(--line);border-radius:99px;margin:0 auto 20px}
+  .mo-badge{display:inline-flex;align-items:center;gap:7px;background:rgba(134,179,117,.12);
+    border:1px solid rgba(134,179,117,.3);border-radius:99px;padding:6px 14px;font-size:12px;font-weight:600;color:var(--ok);margin-bottom:14px}
+  .mo-badge .blink{width:7px;height:7px;border-radius:50%;background:var(--ok);animation:bpulse 1.4s infinite}
+  @keyframes bpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="brand"><span class="dot"></span>@smarttarget.ai</div>
+    <div class="steps" id="steps"></div>
+  </div>
+  <div id="app"></div>
+  <p class="note">Демо интерфейса клиента. Подключения и данные показаны для примера.</p>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const app=$("#app");
+const S={
+  screen:"connect", step:0,
+  conn:{meta:false,tg:false,wa:"",metaMode:"",bmId:"",ig:"",fb:"",fbMode:"",igLogin:"",igPass:"",igStep:null,waPhone:"",waStep:null},
+  dirs:[],
+  draft:{name:"",budget:5000,target:2,max:5,wa:"",dest:"",cities:"",geoWide:false,ageFrom:"18",ageTo:"45",gender:"all",audience:"",url:""},
+  ap:{mode:"auto",vampire:true,scale:true,scaleStep:30,regen:true,time:"08:00",freq:"daily",cap:50000,on:false},
+  cr:{budget:2000,days:3,autocopy:true,lang:"kz-ru",tone:"Премиум, тёплый, уверенный. Казахско-русский."},
+  budget:{fb:"own",card:false,daily:10,weeks:1,consult:false},
+  client:{name:"Жан Сұлу",niche:"Бьюти-клиника · Астана"}
+};
+const SCREENS=["connect","direction","autopilot","creative","panel"];
+const STEP_OF={connect:0,direction:1,autopilot:2,creative:3,panel:4};
+
+function steps(){
+  const cur=STEP_OF[S.screen];
+  $("#steps").innerHTML=[0,1,2,3,4].map(i=>
+    `<span class="s ${i<cur?'done':i===cur?'on':''}"></span>`).join("");
+}
+function go(scr){ S.screen=scr; render(); window.scrollTo({top:0,behavior:"smooth"}); }
+
+/* ---------- 1. CONNECT ---------- */
+function vConnect(){
+  const mode = S.conn.metaMode || ''; // 'own' | 'ours'
+  app.innerHTML=`
+  <div class="eyebrow">Шаг 1 · Подключение</div>
+  <h1>Подключим вашу рекламу</h1>
+  <p class="sub">Есть ли у вас рекламный кабинет Meta Ads (Facebook Ads Manager)?</p>
+
+  <!-- Выбор сценария -->
+  <div class="card" style="margin-bottom:14px;padding:6px">
+    <div class="conn" id="optOwn" style="cursor:pointer;border-radius:10px;padding:14px;${mode==='own'?'background:rgba(217,164,65,.07);border:1px solid var(--gold-dim)':'border:1px solid transparent'}">
+      <div class="ic">✅</div>
+      <div class="t">
+        <b>Да, есть Meta Ads кабинет</b>
+        <small>Выдадите партнёрский доступ — кабинет останется вашим</small>
+      </div>
+      <div style="width:20px;height:20px;border-radius:50%;border:2px solid ${mode==='own'?'var(--gold)':'var(--muted)'};background:${mode==='own'?'var(--gold)':'transparent'};flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;color:#1a1104">${mode==='own'?'✓':''}</div>
+    </div>
+    <div class="conn" id="optOurs" style="cursor:pointer;border-radius:10px;padding:14px;margin-top:4px;${mode==='ours'?'background:rgba(217,164,65,.07);border:1px solid var(--gold-dim)':'border:1px solid transparent'}">
+      <div class="ic">🆕</div>
+      <div class="t">
+        <b>Нет, Facebook/Meta нет</b>
+        <small>Оставьте данные — специалист свяжется и подключит всё сам</small>
+      </div>
+      <div style="width:20px;height:20px;border-radius:50%;border:2px solid ${mode==='ours'?'var(--gold)':'var(--muted)'};background:${mode==='ours'?'var(--gold)':'transparent'};flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;color:#1a1104">${mode==='ours'?'✓':''}</div>
+    </div>
+  </div>
+
+  ${mode==='own' ? `
+  <!-- ── СЦЕНАРИЙ 1: партнёрский доступ ── -->
+  <div class="card">
+    <div style="background:rgba(134,179,117,.07);border:1px solid rgba(134,179,117,.3);border-radius:10px;padding:12px 15px;margin-bottom:18px;font-size:13px;line-height:1.6">
+      🔒 <b style="color:var(--ok)">Безопасно.</b> Партнёрский доступ позволяет нам управлять рекламой — снять деньги или изменить платёжные данные мы не можем.
+    </div>
+
+    <div style="background:var(--surface-2);border-radius:10px;padding:15px;margin-bottom:6px">
+      <div style="font-family:'Unbounded',sans-serif;font-weight:500;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:14px">Как назначить SmartTarget AI партнёром</div>
+      <div style="display:flex;flex-direction:column;gap:14px;font-size:13px;line-height:1.6">
+
+        <div style="display:flex;gap:11px;align-items:flex-start">
+          <span style="font-family:'Unbounded',sans-serif;font-weight:700;color:var(--gold);min-width:22px;flex:none">1</span>
+          <span>Откройте <b>business.facebook.com</b> → Настройки → <b>Партнёры</b> → «Добавить партнёра»</span>
+        </div>
+
+        <div style="display:flex;gap:11px;align-items:flex-start">
+          <span style="font-family:'Unbounded',sans-serif;font-weight:700;color:var(--gold);min-width:22px;flex:none">2</span>
+          <div style="flex:1;min-width:0">
+            <div style="margin-bottom:9px">Введите наш <b>ID Business Manager:</b></div>
+            <div style="background:var(--bg);border:1px solid var(--gold-dim);border-radius:8px;padding:11px 15px;font-family:'JetBrains Mono',monospace;font-size:16px;color:var(--gold-soft);display:flex;align-items:center;justify-content:space-between;gap:10px">
+              <span>1234567890123456</span>
+              <button onclick="navigator.clipboard.writeText('1234567890123456');this.textContent='✓ Скопировано';setTimeout(()=>this.textContent='Копировать',2000)" style="appearance:none;background:transparent;border:1px solid var(--gold-dim);border-radius:6px;color:var(--gold-soft);font-family:inherit;font-size:11px;padding:5px 10px;cursor:pointer;white-space:nowrap">Копировать</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:11px;align-items:flex-start">
+          <span style="font-family:'Unbounded',sans-serif;font-weight:700;color:var(--gold);min-width:22px;flex:none">3</span>
+          <span>Назначьте нас партнёром для: <b>рекламного аккаунта</b>, <b>Facebook Бизнес-страницы</b> и <b>Instagram аккаунта</b> — выдайте право <b>Manage campaigns</b></span>
+        </div>
+
+        <div style="display:flex;gap:11px;align-items:flex-start">
+          <span style="font-family:'Unbounded',sans-serif;font-weight:700;color:var(--gold);min-width:22px;flex:none">4</span>
+          <span>Нажмите «Готово» ниже — наш специалист проверит доступ и подтвердит подключение в течение 1–2 часов</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:rgba(217,164,65,.05);border:1px solid var(--gold-dim);border-radius:10px;padding:13px 15px;margin-top:14px;font-size:12.5px;color:var(--text-dim);line-height:1.6">
+      ✈️ <b style="color:var(--gold-soft)">Подтверждение через Telegram:</b> после того как вы назначите партнёра, наш бот пришлёт уведомление о проверке доступа.
+    </div>
+  </div>
+  ` : mode==='ours' ? `
+  <!-- ── СЦЕНАРИЙ 2: нет Facebook — специалист подключит ── -->
+  <div class="card">
+    <div style="background:rgba(123,167,201,.07);border:1px solid rgba(123,167,201,.25);border-radius:10px;padding:13px 15px;margin-bottom:18px;font-size:13px;line-height:1.6">
+      👋 Оставьте данные Instagram и WhatsApp — <b style="color:#7BA7C9">специалист свяжется с вами</b> для уточнения деталей и подключит всё сам. Коды подтверждения, если потребуются, введёт специалист вместе с вами.
+    </div>
+
+    <div class="field">
+      <label>Логин Instagram <span style="color:var(--muted);font-weight:400">— имя пользователя или email аккаунта</span></label>
+      <input id="oursIgLogin" type="text" placeholder="@yourpage" value="${S.conn.igLogin||''}" oninput="S.conn.igLogin=this.value.trim();checkConnReady()">
+      <div style="font-size:12px;color:var(--muted);margin-top:5px">Реклама будет выходить от имени этой страницы</div>
+    </div>
+
+    <div class="field">
+      <label>Пароль Instagram</label>
+      <div style="position:relative">
+        <input id="oursIgPass" type="password" autocomplete="current-password" placeholder="••••••••" value="${S.conn.igPass||''}" oninput="S.conn.igPass=this.value;checkConnReady()" style="width:100%;font-family:inherit;font-size:15px;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:11px 44px 11px 12px">
+        <button onclick="var i=document.getElementById('oursIgPass');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;line-height:1">👁</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-top:5px">🔒 Передаётся по защищённому каналу. Используется только для подключения через Meta — специалист не хранит ваш пароль.</div>
+    </div>
+
+    <div class="field" style="margin-bottom:0">
+      <label>Бизнес WhatsApp <span style="color:var(--muted);font-weight:400">— номер, куда будут приходить заявки из рекламы</span></label>
+      <input id="oursWaPhone" type="tel" placeholder="+7 777 000 00 00" value="${S.conn.waPhone||''}" oninput="S.conn.waPhone=this.value.trim();checkConnReady()">
+      <div style="font-size:12px;color:var(--muted);margin-top:5px">Используйте WhatsApp Business — специалист поможет настроить, если нужно</div>
+    </div>
+  </div>
+
+  <div style="background:var(--surface-2);border-radius:10px;padding:13px 15px;margin-bottom:14px;font-size:12.5px;color:var(--text-dim);line-height:1.6">
+    💬 <b style="color:var(--gold-soft)">Что происходит дальше:</b> Специалист напишет вам в Telegram (или позвонит на WhatsApp), проведёт через все шаги подключения, введёт коды подтверждения вместе с вами, создаст рекламный кабинет и запустит первые кампании.
+  </div>
+  ` : ''}
+
+  <!-- Telegram (показываем когда выбран сценарий) -->
+  ${mode ? `
+  <div class="card" style="margin-bottom:14px">
+    <div class="conn" style="align-items:flex-start">
+      <div class="ic">✈️</div>
+      <div class="t">
+        <b>Telegram-бот SmartTarget AI</b>
+        <small>Отчёты каждый день · ответы на вопросы · уведомления · общение со специалистом</small>
+        ${S.conn.tg ? `
+        <div style="display:flex;align-items:center;gap:8px;margin-top:9px;color:var(--ok);font-size:13px;font-weight:600">
+          ✓ Telegram подключён
+          <button onclick="S.conn.tg=false;vConnect()" style="appearance:none;background:none;border:none;color:var(--muted);font-family:inherit;font-size:12px;cursor:pointer">Изменить</button>
+        </div>` : `
+        <div style="margin-top:12px">
+          <a href="https://t.me/SmartTargetAIBot" target="_blank" style="display:inline-flex;align-items:center;gap:7px;background:rgba(123,167,201,.1);border:1px solid rgba(123,167,201,.3);border-radius:8px;padding:10px 15px;font-size:13px;color:#7BA7C9;text-decoration:none;font-weight:600">
+            ✈️ Открыть @SmartTargetAIBot
+          </a>
+          <div style="font-size:12px;color:var(--muted);margin-top:8px;line-height:1.6">
+            Напишите боту <b>/start</b> — он свяжет ваш аккаунт.<br>
+            Через бота вы будете получать: ежедневные отчёты по рекламе, уведомления о важных событиях, ответы на вопросы и общение с вашим специалистом. Креативы также отправляются на согласование через бот.
+          </div>
+          <button onclick="S.conn.tg=true;vConnect()" style="appearance:none;margin-top:10px;background:transparent;border:1px solid var(--ok);border-radius:8px;padding:9px 15px;color:var(--ok);font-family:inherit;font-size:13px;cursor:pointer;font-weight:500">✓ Написал боту, готово</button>
+        </div>`}
+      </div>
+    </div>
+  </div>
+  ` : ''}
+
+  <div class="nav">
+    <button class="btn" id="connNext" ${connReady(mode)?'':'disabled'}>
+      ${mode==='ours'?'Отправить данные специалисту →':mode==='own'?'Готово, жду проверки →':''}
+    </button>
+  </div>`;
+
+  $("#optOwn").onclick=()=>{ S.conn.metaMode='own'; vConnect(); };
+  $("#optOurs").onclick=()=>{ S.conn.metaMode='ours'; vConnect(); };
+
+  if(mode==='own'){
+    if($("#ownBmId")) $("#ownBmId").oninput=e=>{S.conn.bmId=e.target.value.trim();checkConnReady();};
+    if($("#ownIg"))   $("#ownIg").oninput=e=>{S.conn.ig=e.target.value.trim();checkConnReady();};
+  }
+  if(mode==='ours'){
+    if($("#oursIgLogin")) $("#oursIgLogin").oninput=e=>{S.conn.igLogin=e.target.value.trim();checkConnReady();};
+    if($("#oursIgPass"))  $("#oursIgPass").oninput=e=>{S.conn.igPass=e.target.value;checkConnReady();};
+    if($("#oursWaPhone")) $("#oursWaPhone").oninput=e=>{S.conn.waPhone=e.target.value.trim();checkConnReady();};
+  }
+  if($("#connNext")) $("#connNext").onclick=()=>{
+    if(S.conn.metaMode==='ours'){ submitOurs(); } else { go("direction"); }
+  };
+}
+
+function connReady(mode){
+  if(!mode||!S.conn.tg) return false;
+  if(mode==='own') return true; // достаточно Telegram — доступ проверит специалист
+  if(mode==='ours') return !!(S.conn.igLogin&&S.conn.igPass&&S.conn.waPhone);
+  return false;
+}
+
+function checkConnReady(){
+  const btn=$("#connNext");
+  if(btn) btn.disabled=!connReady(S.conn.metaMode);
+}
+
+function submitOurs(){
+  const btn=$("#connNext");
+  if(btn){btn.textContent='Отправляем…';btn.disabled=true;}
+  setTimeout(()=>{
+    // Данные сохранены, переходим на следующий шаг
+    go("direction");
+  },1200);
+}
+
+/* ---------- 2. BUDGET & PAYMENT ---------- */
+function vBudget(){
+  const b=S.budget;
+  const isOwn = S.conn.metaMode==='own'; // партнёрский доступ — карта уже у них
+  const lo=Math.round(b.daily*7*b.weeks);
+  const hi=Math.round(lo*1.14);
+
+  app.innerHTML=`
+  <div class="eyebrow">Шаг 2 · Рекламный бюджет</div>
+  <h1>Бюджет на рекламу</h1>
+  <p class="sub">Рекламный бюджет — это <b style="color:var(--gold-soft)">отдельно</b> от абонплаты SmartTarget AI. Он идёт напрямую в Facebook/Meta.</p>
+
+  ${isOwn ? `
+  <!-- СЦЕНАРИЙ: партнёрский доступ — карта уже у клиента -->
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <span style="font-size:24px">✅</span>
+      <div>
+        <div style="font-weight:600;font-size:14.5px">Карта уже привязана к вашему аккаунту</div>
+        <div style="font-size:12.5px;color:var(--text-dim);margin-top:3px">Так как мы подключены как партнёр, ваша карта в Meta Ads работает автоматически — дополнительно ничего делать не нужно.</div>
+      </div>
+    </div>
+    <div style="background:rgba(134,179,117,.07);border:1px solid rgba(134,179,117,.25);border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--text-dim);line-height:1.6">
+      💡 Реклама тратит деньги с вашего рекламного аккаунта напрямую. Автопилот работает в рамках вашего лимита — вы видите расходы в Ads Manager в режиме реального времени.
+    </div>
+  </div>
+  ` : `
+  <!-- СЦЕНАРИЙ: наш рекламный аккаунт — предоплата картой -->
+  <div class="card">
+    <div style="background:rgba(123,167,201,.07);border:1px solid rgba(123,167,201,.25);border-radius:10px;padding:13px 15px;margin-bottom:16px;font-size:13px;line-height:1.6">
+      💳 Мы предоставляем рекламный аккаунт и подключаем Instagram + WhatsApp. <b style="color:#7BA7C9">Рекламный бюджет снимается с вашей карты предоплатой</b> — мы пополняем аккаунт и запускаем кампании.
+    </div>
+
+    <div style="font-family:'Unbounded',sans-serif;font-weight:500;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:13px">Данные карты для предоплаты</div>
+
+    <div class="field">
+      <label>Номер карты</label>
+      <input id="cardNum" type="text" inputmode="numeric" maxlength="19" placeholder="0000 0000 0000 0000"
+        value="${S.budget.cardNum||''}"
+        oninput="this.value=this.value.replace(/\D/g,'').replace(/(.{4})/g,'$1 ').trim().slice(0,19);S.budget.cardNum=this.value;"
+        style="font-family:'JetBrains Mono',monospace;font-size:17px;letter-spacing:.08em">
+    </div>
+    <div class="row">
+      <div class="field" style="margin-bottom:0">
+        <label>Срок действия</label>
+        <input id="cardExp" type="text" inputmode="numeric" maxlength="5" placeholder="ММ/ГГ"
+          value="${S.budget.cardExp||''}"
+          oninput="let v=this.value.replace(/\D/g,'');if(v.length>2)v=v.slice(0,2)+'/'+v.slice(2);this.value=v.slice(0,5);S.budget.cardExp=this.value;"
+          style="font-family:'JetBrains Mono',monospace;font-size:16px;letter-spacing:.06em">
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>CVV / CVC</label>
+        <input id="cardCvv" type="password" inputmode="numeric" maxlength="3" placeholder="•••"
+          value="${S.budget.cardCvv||''}"
+          oninput="this.value=this.value.replace(/\D/g,'').slice(0,3);S.budget.cardCvv=this.value;"
+          style="font-family:'JetBrains Mono',monospace;font-size:16px;letter-spacing:.1em;width:100px">
+      </div>
+    </div>
+    <div class="field" style="margin-top:13px;margin-bottom:0">
+      <label>Имя держателя карты <span style="color:var(--muted);font-weight:400">— как на карте</span></label>
+      <input id="cardName" type="text" placeholder="IVAN IVANOV"
+        value="${S.budget.cardName||''}"
+        oninput="this.value=this.value.toUpperCase();S.budget.cardName=this.value;"
+        style="font-family:'JetBrains Mono',monospace;font-size:15px;letter-spacing:.04em">
+    </div>
+
+    <div style="background:var(--surface-2);border-radius:10px;padding:12px 14px;margin-top:14px;font-size:12px;color:var(--muted);line-height:1.6;display:flex;gap:10px;align-items:flex-start">
+      <span style="font-size:16px;flex:none">🔒</span>
+      <span>Данные карты передаются по защищённому соединению. Предоплата снимается однократно выбранной суммой — мы уведомим вас перед каждым списанием. Когда баланс заканчивается → автопилот на паузу + уведомление в Telegram.</span>
+    </div>
+  </div>
+  `}
+
+  <!-- Расчёт бюджета — одинаковый для обоих сценариев -->
+  <div class="card">
+    <div style="font-family:'Unbounded',sans-serif;font-weight:500;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:14px">
+      ${isOwn ? 'Планируемый бюджет' : 'Рассчитайте предоплату'}
+    </div>
+    <div class="row" style="margin-bottom:14px">
+      <div class="field" style="margin-bottom:0">
+        <label>Бюджет в день</label>
+        <div class="suffix"><input id="bDaily" type="number" min="5" value="${b.daily}"><span class="sfx">$</span></div>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>${isOwn ? 'Период планирования' : 'Предоплата на срок'}</label>
+        <select id="bWeeks">
+          <option value="1" ${b.weeks==1?'selected':''}>1 неделя</option>
+          <option value="2" ${b.weeks==2?'selected':''}>2 недели</option>
+          <option value="4" ${b.weeks==4?'selected':''}>4 недели</option>
+        </select>
+      </div>
+    </div>
+    <div style="background:var(--surface-2);border-radius:10px;padding:14px 16px">
+      <div style="font-size:13px;color:var(--text-dim);margin-bottom:6px">${isOwn ? 'Ожидаемый расход:' : 'Сумма предоплаты:'}</div>
+      <div style="font-family:'Unbounded',sans-serif;font-weight:600;font-size:26px;color:var(--gold-soft)">$${lo}–${hi}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:5px">${b.daily}$/день × 7 дней × ${b.weeks} нед. ${isOwn?'':'+ буферный запас 14%'}</div>
+      ${!isOwn ? `<div style="font-size:12.5px;color:var(--text-dim);margin-top:10px;line-height:1.5">Эта сумма будет снята с вашей карты как предоплата. Мы уведомим перед списанием.</div>` : ''}
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="back" id="back">← Назад</button>
+    <button class="btn" id="next" style="width:auto;padding:14px 24px">Дальше — направления →</button>
+  </div>`;
+
+  $("#bDaily").onchange=e=>{S.budget.daily=+e.target.value||10;vBudget();};
+  $("#bWeeks").onchange=e=>{S.budget.weeks=+e.target.value;vBudget();};
+  $("#back").onclick=()=>go("connect");
+  $("#next").onclick=()=>{
+    if(!isOwn){
+      const num=(S.budget.cardNum||'').replace(/\s/g,'');
+      const exp=S.budget.cardExp||'';
+      const cvv=S.budget.cardCvv||'';
+      const name=S.budget.cardName||'';
+      if(num.length<16){alert('Введите полный номер карты');return;}
+      if(exp.length<5){alert('Введите срок действия карты (ММ/ГГ)');return;}
+      if(cvv.length<3){alert('Введите CVV/CVC код');return;}
+      if(!name.trim()){alert('Введите имя держателя карты');return;}
+    }
+    go("direction");
+  };
+}
+
+/* ---------- 2. DIRECTION ---------- */
+function vDirection(){
+  const d=S.draft;
+  app.innerHTML=`
+  <div class="eyebrow">Шаг 3 · Направления</div>
+  <h1>Настройте направление</h1>
+  <p class="sub">Направление — отдельная услуга со своей аудиторией и бюджетом. Например: «Лазерная эпиляция», «Ботокс». Можно добавить несколько.</p>
+
+  <div class="card">
+    <!-- Название -->
+    <div class="field">
+      <label>Название направления</label>
+      <input id="dName" placeholder="Напр. Лазерная эпиляция" value="${d.name}">
+    </div>
+
+    <!-- Куда вести лидов -->
+    <div class="field">
+      <label>Куда вести клиентов из рекламы</label>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px">
+        ${[['wa','💬 WhatsApp'],['direct','✉️ Direct Instagram'],['traffic','🌐 Трафик на сайт']].map(([v,lbl])=>`
+        <button data-dest="${v}" onclick="S.draft.dest='${v}';vDirection()" style="appearance:none;cursor:pointer;font-family:inherit;font-size:12.5px;padding:10px 6px;border-radius:10px;border:1px solid ${d.dest===v?'var(--gold)':'var(--line)'};background:${d.dest===v?'rgba(217,164,65,.08)':'var(--surface-2)'};color:${d.dest===v?'var(--gold-soft)':'var(--text-dim)'};text-align:center;line-height:1.3;transition:.15s">
+          ${lbl}
+        </button>`).join('')}
+      </div>
+      ${d.dest==='wa'?`<div style="font-size:12px;color:var(--muted);margin-top:7px">Кнопка «Написать в WhatsApp» — заявки приходят напрямую вам</div>`:''}
+      ${d.dest==='direct'?`<div style="font-size:12px;color:var(--muted);margin-top:7px">Реклама ведёт в Direct Instagram — общение с клиентом там</div>`:''}
+      ${d.dest==='traffic'?`<div style="font-size:12px;color:var(--muted);margin-top:7px">Трафик на сайт или лендинг — укажите ссылку ниже</div>
+        <input id="dUrl" placeholder="https://yoursite.com/promo" value="${d.url||''}" style="margin-top:7px;width:100%;font-family:inherit;font-size:14px;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:9px 11px" oninput="S.draft.url=this.value.trim()">
+      `:''}
+    </div>
+
+    <!-- Города -->
+    <div class="field">
+      <label>География показа рекламы</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px">
+        <button onclick="S.draft.geoWide=false;vDirection()" style="appearance:none;cursor:pointer;font-family:inherit;font-size:12.5px;padding:10px;border-radius:10px;border:1px solid ${!d.geoWide?'var(--gold)':'var(--line)'};background:${!d.geoWide?'rgba(217,164,65,.08)':'var(--surface-2)'};color:${!d.geoWide?'var(--gold-soft)':'var(--text-dim)'};text-align:center;transition:.15s">
+          📍 Конкретные города
+        </button>
+        <button onclick="S.draft.geoWide=true;S.draft.cities='По всему Казахстану';vDirection()" style="appearance:none;cursor:pointer;font-family:inherit;font-size:12.5px;padding:10px;border-radius:10px;border:1px solid ${d.geoWide?'var(--gold)':'var(--line)'};background:${d.geoWide?'rgba(217,164,65,.08)':'var(--surface-2)'};color:${d.geoWide?'var(--gold-soft)':'var(--text-dim)'};text-align:center;transition:.15s">
+          🇰🇿 По всему Казахстану
+        </button>
+      </div>
+      ${d.geoWide ? `
+        <div style="background:rgba(217,164,65,.06);border:1px solid var(--gold-dim);border-radius:9px;padding:10px 13px;font-size:12.5px;color:var(--text-dim)">
+          Широкая аудитория по всей стране — AI сам найдёт конвертирующие сегменты через Advantage+
+        </div>
+      ` : `
+        <input id="dCities" placeholder="Астана, Алматы, Шымкент…" value="${(!d.geoWide&&d.cities!=='По всему Казахстану')?d.cities:''}" oninput="S.draft.cities=this.value.trim()">
+        <div style="font-size:12px;color:var(--muted);margin-top:5px">Перечислите через запятую — AI настроит геотаргетинг по каждому отдельно</div>
+      `}
+    </div>
+
+    <!-- Аудитория и возраст -->
+    <div class="row">
+      <div class="field">
+        <label>Возраст аудитории</label>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input id="dAgeFrom" type="number" min="18" max="65" placeholder="18" value="${d.ageFrom||'18'}" style="width:70px;font-family:'JetBrains Mono',monospace;font-size:15px;text-align:center">
+          <span style="color:var(--muted);flex:none">—</span>
+          <input id="dAgeTo" type="number" min="18" max="65" placeholder="45" value="${d.ageTo||'45'}" style="width:70px;font-family:'JetBrains Mono',monospace;font-size:15px;text-align:center">
+          <span style="color:var(--muted);font-size:13px">лет</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Пол аудитории</label>
+        <div style="display:flex;gap:6px">
+          ${[['all','Все'],['f','Женщины'],['m','Мужчины']].map(([v,lbl])=>`
+          <button onclick="S.draft.gender='${v}';vDirection()" style="appearance:none;cursor:pointer;font-family:inherit;font-size:12.5px;padding:9px 8px;border-radius:9px;border:1px solid ${(d.gender||'all')===v?'var(--gold)':'var(--line)'};background:${(d.gender||'all')===v?'rgba(217,164,65,.08)':'var(--surface-2)'};color:${(d.gender||'all')===v?'var(--gold-soft)':'var(--text-dim)'};flex:1;text-align:center;transition:.15s">${lbl}</button>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- Описание аудитории -->
+    <div class="field">
+      <label>Описание аудитории <span style="color:var(--muted);font-weight:400">— для AI</span></label>
+      <textarea id="dAudience" placeholder="Напр.: замужние женщины 25–40, интересуются красотой и уходом за собой, живут в Астане, средний+ доход" style="width:100%;font-family:inherit;font-size:13.5px;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;resize:vertical;min-height:64px;line-height:1.5" oninput="S.draft.audience=this.value">${d.audience||''}</textarea>
+      <div style="font-size:12px;color:var(--muted);margin-top:5px">AI использует это описание для настройки Advantage+ и создания текстов объявлений.</div>
+    </div>
+
+    <!-- Бюджет и CPL -->
+    <div style="border-top:1px solid var(--line);padding-top:14px;margin-top:4px">
+      <div style="font-family:'Unbounded',sans-serif;font-weight:500;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px">Бюджет и цели</div>
+      <div class="row">
+        <div class="field" style="margin-bottom:0">
+          <label>Бюджет в день</label>
+          <div class="suffix"><input id="dBudget" type="number" value="${d.budget}"><span class="sfx">₸</span></div>
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>WhatsApp для заявок <span class="hint">если отличается</span></label>
+          <input id="dWa" placeholder="основной, если пусто" value="${d.wa}">
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div class="field" style="margin-bottom:0">
+          <label>Целевой CPL <span class="hint">желаемая цена</span></label>
+          <div class="suffix"><input id="dTarget" type="number" step="0.1" value="${d.target}"><span class="sfx">$</span></div>
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>Макс CPL <span class="hint">выше — авто-стоп</span></label>
+          <div class="suffix"><input id="dMax" type="number" step="0.1" value="${d.max}"><span class="sfx">$</span></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn ghost" id="addDir" style="width:100%;margin-top:16px">+ Добавить ещё направление</button>
+  </div>
+
+  <!-- Креативы -->
+  <div class="card">
+    <div style="font-family:'Unbounded',sans-serif;font-weight:500;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px">Материалы для запуска</div>
+    <p style="font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:14px">Загрузите фото/видео для первых объявлений, а также PDF с информацией о продукте или аудитории — AI и специалист используют их для настройки.</p>
+
+    <!-- Файл-дроп -->
+    <div id="dropzone" style="border:2px dashed var(--line);border-radius:12px;padding:22px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:12px"
+      onclick="document.getElementById('fileInput').click()"
+      ondragover="event.preventDefault();this.style.borderColor='var(--gold)'"
+      ondragleave="this.style.borderColor='var(--line)'"
+      ondrop="event.preventDefault();this.style.borderColor='var(--line)';handleFiles(event.dataTransfer.files)">
+      <div style="font-size:28px;margin-bottom:8px">📎</div>
+      <div style="font-size:13.5px;color:var(--text-dim)">Перетащите файлы или <span style="color:var(--gold-soft);font-weight:600">нажмите для выбора</span></div>
+      <div style="font-size:12px;color:var(--muted);margin-top:5px">Фото, видео, PDF — до 500 МБ каждый</div>
+    </div>
+    <input id="fileInput" type="file" multiple accept="image/*,video/*,.pdf" style="display:none" onchange="handleFiles(this.files)">
+    <div id="fileList" style="display:flex;flex-direction:column;gap:7px"></div>
+
+    <div style="background:var(--surface-2);border-radius:9px;padding:11px 13px;font-size:12px;color:var(--muted);line-height:1.55;margin-top:10px">
+      💡 Файлы отправятся специалисту через Telegram-бот. Если нет материалов — мы поможем подготовить первые креативы.
+    </div>
+  </div>
+
+  <!-- Написать специалисту -->
+  <div class="card" style="border-color:rgba(123,167,201,.25);background:rgba(123,167,201,.04)">
+    <div style="display:flex;align-items:flex-start;gap:12px">
+      <div style="font-size:24px;flex:none">💬</div>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:14.5px;margin-bottom:5px">Написать специалисту</div>
+        <div style="font-size:12.5px;color:var(--text-dim);line-height:1.55;margin-bottom:12px">Есть вопросы по настройке? Опишите — специалист ответит в Telegram в течение 1–2 часов.</div>
+        <textarea id="specMsg" placeholder="Напр.: у нас два города — Астана и Алматы, можно ли запустить разные объявления для каждого?" style="width:100%;font-family:inherit;font-size:13.5px;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;resize:vertical;min-height:72px;line-height:1.5"></textarea>
+        <button id="sendSpec" style="appearance:none;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;margin-top:9px;background:rgba(123,167,201,.12);border:1px solid rgba(123,167,201,.3);border-radius:9px;padding:10px 18px;color:#7BA7C9;transition:.15s" onmouseover="this.style.background='rgba(123,167,201,.2)'" onmouseout="this.style.background='rgba(123,167,201,.12)'">
+          ✈️ Отправить специалисту
+        </button>
+        <div id="specSent" style="display:none;color:var(--ok);font-size:13px;font-weight:600;margin-top:9px">✓ Сообщение отправлено — ответим в Telegram</div>
+      </div>
+    </div>
+  </div>
+
+  ${S.dirs.length?`
+  <div class="card">
+    <h3 style="font-family:Unbounded;font-weight:500;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px">Добавленные направления (${S.dirs.length})</h3>
+    <div class="dirlist" id="dl"></div>
+  </div>`:''}
+
+  <div class="nav">
+    <button class="back" id="back">← Назад</button>
+    <button class="btn" id="next" style="width:auto;padding:14px 24px">Дальше — автопилот →</button>
+  </div>`;
+
+  const read=()=>{
+    S.draft.name=($("#dName")||{}).value?.trim()||S.draft.name;
+    S.draft.budget=+($("#dBudget")||{}).value||5000;
+    S.draft.target=+($("#dTarget")||{}).value||2;
+    S.draft.max=+($("#dMax")||{}).value||5;
+    S.draft.wa=($("#dWa")||{}).value?.trim()||'';
+    if(!S.draft.geoWide) S.draft.cities=($("#dCities")||{}).value?.trim()||S.draft.cities||'';
+    S.draft.ageFrom=($("#dAgeFrom")||{}).value||'18';
+    S.draft.ageTo=($("#dAgeTo")||{}).value||'45';
+    S.draft.audience=($("#dAudience")||{}).value??S.draft.audience??'';
+    if($("#dUrl")) S.draft.url=$("#dUrl").value.trim();
+  };
+
+  function tryAddDir(){
+    read();
+    if(!S.draft.name){ const el=$("#dName");if(el){el.style.borderColor='var(--bad)';el.focus();}return false; }
+    if(!S.draft.dest){
+      const msg=document.createElement('div');
+      msg.style.cssText='color:var(--bad);font-size:12.5px;margin-top:6px';
+      msg.textContent='Выберите куда вести клиентов ↑';
+      msg.className='dest-err';
+      const df=document.querySelector('[data-dest]')?.closest('.field');
+      if(df&&!df.querySelector('.dest-err')) df.appendChild(msg);
+      return false;
+    }
+    if(!S.draft.geoWide&&!S.draft.cities){ const el=$("#dCities");if(el){el.style.borderColor='var(--bad)';el.focus();}return false; }
+    S.dirs.push({...S.draft});
+    S.draft={name:'',budget:5000,target:2,max:5,wa:'',dest:'',cities:'',geoWide:false,ageFrom:'18',ageTo:'45',gender:'all',audience:'',url:''};
+    return true;
+  }
+
+  $("#addDir").onclick=()=>{ if(tryAddDir()) vDirection(); };
+
+  // File upload handler
+  window.handleFiles=function(files){
+    const list=document.getElementById('fileList');
+    if(!list) return;
+    Array.from(files).forEach(f=>{
+      const ext=f.name.split('.').pop().toLowerCase();
+      const icon=ext==='pdf'?'📄':f.type.startsWith('video')?'🎬':'🖼';
+      if(f.size>500*1024*1024){ alert(`Файл "${f.name}" превышает 500 МБ`); return; }
+      const size=(f.size/1024/1024).toFixed(1);
+      const row=document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:10px 13px';
+      row.innerHTML=`<span style="font-size:18px;flex:none">${icon}</span>
+        <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</div>
+        <div style="font-size:11.5px;color:var(--muted)">${size} МБ</div></div>
+        <span style="font-size:11.5px;color:var(--ok);font-weight:600">✓ Загружен</span>`;
+      list.appendChild(row);
+    });
+  };
+
+  // Send to specialist
+  if($("#sendSpec")) $("#sendSpec").onclick=()=>{
+    const msg=(document.getElementById('specMsg')||{}).value?.trim();
+    if(!msg){ document.getElementById('specMsg').style.borderColor='var(--bad)'; return; }
+    // Add to superadmin messages (stored in sessionStorage for demo)
+    try{
+      const msgs=JSON.parse(sessionStorage.getItem('specMsgs')||'[]');
+      msgs.push({time:new Date().toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'}),
+        client:S.client.name, niche:S.client.niche, text:msg, unread:true, tag:'q'});
+      sessionStorage.setItem('specMsgs',JSON.stringify(msgs));
+    }catch(e){}
+    document.getElementById('sendSpec').style.display='none';
+    document.getElementById('specSent').style.display='block';
+  };
+
+  if(S.dirs.length){
+    const destLabel={wa:'WhatsApp',direct:'Direct',traffic:'Сайт'};
+    $("#dl").innerHTML=S.dirs.map((d,i)=>`
+      <div class="diritem">
+        <div style="flex:1;min-width:0">
+          <b>${d.name}</b>
+          <small>${d.budget.toLocaleString()}₸/день · ${destLabel[d.dest]||'—'} · ${d.geoWide?'🇰🇿 Казахстан':d.cities||'—'} · ${d.ageFrom}–${d.ageTo} лет</small>
+        </div>
+        <button class="x" data-i="${i}">×</button>
+      </div>`).join('');
+    $("#dl").querySelectorAll(".x").forEach(b=>b.onclick=()=>{S.dirs.splice(+b.dataset.i,1);vDirection();});
+  }
+
+  $("#back").onclick=()=>go("connect");
+  $("#next").onclick=()=>{
+    // Auto-save current form if name is filled
+    read();
+    if(S.draft.name){
+      if(!S.draft.dest||(!S.draft.geoWide&&!S.draft.cities)){ tryAddDir(); return; }
+      tryAddDir();
+    }
+    if(!S.dirs.length){ const el=$("#dName");if(el){el.style.borderColor='var(--bad)';el.scrollIntoView({behavior:'smooth'});el.focus();} return; }
+    go("autopilot");
+  };
+}
+
+/* ---------- 3. AUTOPILOT ---------- */
+function vAutopilot(){
+  const a=S.ap;
+  app.innerHTML=`
+  <div class="eyebrow">Шаг 4 · Автопилот</div>
+  <h1>Правила оптимизации</h1>
+  <p class="sub">Решите, что система может делать сама каждое утро. Эти правила применяются ко всем направлениям.</p>
+  <div class="card">
+    <div class="field"><label>Режим работы</label>
+      <div class="seg" id="mode">
+        <button data-v="auto" class="${a.mode==='auto'?'on':''}">Автопилот</button>
+        <button data-v="semi" class="${a.mode==='semi'?'on':''}">С подтверждением</button>
+        <button data-v="manual" class="${a.mode==='manual'?'on':''}">Ручной</button>
+      </div>
+      <p style="color:var(--muted);font-size:12.5px;margin-top:9px">${
+        a.mode==='auto'?'AI действует сам и присылает отчёт постфактум.':
+        a.mode==='semi'?'AI предлагает действия — вы подтверждаете в Telegram.':
+        'AI только присылает рекомендации, ничего не меняет.'}</p>
+    </div>
+    <div class="tog"><div class="t"><b>Отключать «вампиров»</b><small>Тратят бюджет почти без заявок</small></div>
+      <input type="checkbox" class="sw" id="t-vamp" ${a.vampire?'checked':''}></div>
+    <div class="tog"><div class="t"><b>Масштабировать победителей</b><small>Поднимать бюджет на +${a.scaleStep}% лучшим связкам</small></div>
+      <input type="checkbox" class="sw" id="t-scale" ${a.scale?'checked':''}></div>
+    <div class="tog"><div class="t"><b>Регенерировать креативы</b><small>Создавать новые на основе лучших</small></div>
+      <input type="checkbox" class="sw" id="t-regen" ${a.regen?'checked':''}></div>
+  </div>
+  <div class="card">
+    <div class="row">
+      <div class="field"><label>Время отчёта</label><input id="apTime" type="time" value="${a.time}"></div>
+      <div class="field"><label>Частота</label><select id="apFreq">
+        <option value="daily" ${a.freq==='daily'?'selected':''}>Каждый день</option>
+        <option value="2day" ${a.freq==='2day'?'selected':''}>Раз в 2 дня</option>
+        <option value="weekly" ${a.freq==='weekly'?'selected':''}>Раз в неделю</option></select></div>
+    </div>
+    <div class="field"><label>Дневной лимит расхода <span class="hint">стоп-кран на весь аккаунт</span></label>
+      <div class="suffix"><input id="apCap" type="number" value="${a.cap}"><span class="sfx">₸</span></div></div>
+  </div>
+  <div class="nav">
+    <button class="back" id="back">← Назад</button>
+    <button class="btn" id="next" style="width:auto;padding:14px 24px">Дальше — креативы</button>
+  </div>`;
+  $("#mode").querySelectorAll("button").forEach(b=>b.onclick=()=>{S.ap.mode=b.dataset.v;vAutopilot();});
+  $("#t-vamp").onchange=e=>S.ap.vampire=e.target.checked;
+  $("#t-scale").onchange=e=>S.ap.scale=e.target.checked;
+  $("#t-regen").onchange=e=>S.ap.regen=e.target.checked;
+  $("#apTime").onchange=e=>S.ap.time=e.target.value;
+  $("#apFreq").onchange=e=>S.ap.freq=e.target.value;
+  $("#apCap").onchange=e=>S.ap.cap=+e.target.value;
+  $("#back").onclick=()=>go("direction");
+  $("#next").onclick=()=>go("creative");
+}
+
+/* ---------- 4. CREATIVE RULES ---------- */
+function vCreative(){
+  const c=S.cr;
+  app.innerHTML=`
+  <div class="eyebrow">Шаг 5 · Правила креативов</div>
+  <h1>Что делать с новым креативом</h1>
+  <p class="sub">Это про ваш сценарий: когда вы кидаете системе видео или картинку, она по этим правилам сама добавляет креатив в тест и пишет текст.</p>
+  <div class="card">
+    <div class="row">
+      <div class="field"><label>Бюджет на тест нового креатива</label>
+        <div class="suffix"><input id="crBudget" type="number" value="${c.budget}"><span class="sfx">₸/день</span></div></div>
+      <div class="field"><label>Длительность теста</label>
+        <div class="suffix"><input id="crDays" type="number" value="${c.days}"><span class="sfx">дн.</span></div></div>
+    </div>
+    <div class="tog"><div class="t"><b>Автоген рекламного текста</b><small>AI пишет заголовок и описание под креатив</small></div>
+      <input type="checkbox" class="sw" id="crCopy" ${c.autocopy?'checked':''}></div>
+    <div class="field" style="margin-top:13px"><label>Язык текстов</label>
+      <select id="crLang">
+        <option value="kz-ru" ${c.lang==='kz-ru'?'selected':''}>Казахско-русский (микс)</option>
+        <option value="kz" ${c.lang==='kz'?'selected':''}>Казахский</option>
+        <option value="ru" ${c.lang==='ru'?'selected':''}>Русский</option></select></div>
+    <div class="field"><label>Тон бренда <span class="hint">как должен звучать текст</span></label>
+      <input id="crTone" value="${c.tone}"></div>
+  </div>
+  <div class="card" style="background:var(--surface-2)">
+    <p style="font-size:13.5px;color:var(--text-dim);line-height:1.6">
+    <b style="color:var(--gold-soft);font-family:Unbounded;font-weight:600">Как это работает →</b>
+    Вы отправляете креатив боту → AI добавляет его в тест с бюджетом <b style="color:var(--gold-soft)">${c.budget}₸/день</b>${c.autocopy?', пишет текст на выбранном языке':''}.
+    Если за ${c.days} дн. CPL ниже целевого — масштабирует. Если выше макс CPL — отключает.</p>
+  </div>
+  <div class="nav">
+    <button class="back" id="back">← Назад</button>
+    <button class="btn" id="launch" style="width:auto;padding:14px 28px">⚡ Включить автопилот</button>
+  </div>`;
+  $("#crBudget").onchange=e=>{S.cr.budget=+e.target.value;vCreative();};
+  $("#crDays").onchange=e=>{S.cr.days=+e.target.value;vCreative();};
+  $("#crCopy").onchange=e=>S.cr.autocopy=e.target.checked;
+  $("#crLang").onchange=e=>S.cr.lang=e.target.value;
+  $("#crTone").onchange=e=>S.cr.tone=e.target.value;
+  $("#back").onclick=()=>go("autopilot");
+  $("#launch").onclick=()=>{S.ap.on=true;go("panel");};
+}
+
+/* ---------- 5. PANEL ---------- */
+const reduce=matchMedia("(prefers-reduced-motion:reduce)").matches;
+const sleep=ms=>new Promise(r=>setTimeout(r,reduce?0:ms));
+let creativeCount=0;
+
+function vPanel(){
+  const a=S.ap, modeTxt={auto:"Автопилот",semi:"С подтверждением",manual:"Ручной"}[a.mode];
+  const totalBudget=S.dirs.reduce((s,d)=>s+d.budget,0);
+  const isOwn = S.conn.metaMode==='own';
+  app.innerHTML=`
+  <div class="banner">
+    <span class="live" style="background:var(--warn)"></span>
+    <div><b>Настройка завершена · ${S.client.name}</b><small>Специалист настраивает кампании — скоро запуск</small></div>
+  </div>
+
+  <!-- Статус подготовки -->
+  <div class="card" style="margin-bottom:14px">
+    <div style="font-family:'Unbounded',sans-serif;font-weight:500;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:14px">Статус подготовки к запуску</div>
+    <div style="display:flex;flex-direction:column;gap:10px;font-size:13.5px">
+      <div style="display:flex;align-items:center;gap:11px"><span style="color:var(--ok);font-size:16px">✓</span><span>Подключение аккаунтов</span><span style="margin-left:auto;font-size:12px;color:var(--ok);font-weight:600">Готово</span></div>
+      <div style="display:flex;align-items:center;gap:11px"><span style="color:var(--ok);font-size:16px">✓</span><span>Направления и настройки автопилота</span><span style="margin-left:auto;font-size:12px;color:var(--ok);font-weight:600">Готово</span></div>
+      <div style="display:flex;align-items:center;gap:11px"><span style="color:var(--warn);font-size:16px">⏳</span><span>Специалист создаёт кампании</span><span style="margin-left:auto;font-size:12px;color:var(--warn);font-weight:600">В процессе</span></div>
+      <div style="display:flex;align-items:center;gap:11px;opacity:.45"><span style="font-size:16px">⬜</span><span>${isOwn?'Запуск рекламы':'Предоплата и запуск рекламы'}</span><span style="margin-left:auto;font-size:12px;color:var(--muted)">Ожидает</span></div>
+    </div>
+    <div style="margin-top:14px;padding:12px 14px;background:rgba(123,167,201,.06);border:1px solid rgba(123,167,201,.2);border-radius:10px;font-size:12.5px;color:var(--text-dim);line-height:1.55">
+      ✈️ Когда кампании будут готовы — вам придёт уведомление в <b style="color:#7BA7C9">Telegram</b>${!isOwn?' и откроется окно для внесения предоплаты':''}.
+    </div>
+  </div>
+
+  <div class="pcols">
+    <div class="pan">
+      <h3>Направления · ${totalBudget.toLocaleString()}₸/день</h3>
+      ${S.dirs.map(d=>`<div class="set"><span>${d.name}</span><b>${d.budget.toLocaleString()}₸ · CPL ≤ $${d.max}</b></div>`).join("")||'<p style="color:var(--muted);font-size:13px">Нет направлений</p>'}
+      <h3 style="margin-top:18px">Настройки автопилота</h3>
+      <div class="set"><span>Режим</span><b>${modeTxt}</b></div>
+      <div class="set"><span>Вампиры</span><b>${a.vampire?'выключать':'не трогать'}</b></div>
+      <div class="set"><span>Масштабирование</span><b>${a.scale?'+'+a.scaleStep+'%':'выкл'}</b></div>
+      <div class="set"><span>Дневной лимит</span><b>${a.cap.toLocaleString()}₸</b></div>
+    </div>
+    <div class="pan">
+      <h3>Журнал · подготовка</h3>
+      <div class="log" id="plog"></div>
+    </div>
+  </div>
+
+  <!-- Демо-кнопка: имитирует уведомление "кампании готовы" -->
+  <div style="margin-top:18px;padding:14px 16px;background:var(--surface-2);border-radius:12px;border:1px dashed var(--line);text-align:center">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">— Демо: симуляция уведомления от специалиста —</div>
+    <button onclick="showBudgetModal()" class="btn" style="width:auto;padding:11px 24px;font-size:14px">📲 Кампании готовы — показать окно</button>
+  </div>
+
+  <div class="nav" style="margin-top:16px">
+    <button class="back" id="edit">← Изменить настройки</button>
+    <a href="ai-targetolog-app.html" class="btn" style="margin-left:auto;text-decoration:none">Открыть AI-кабинет →</a>
+  </div>`;
+
+  // seed log
+  const seed=[
+    ["сейчас","✓ Данные подключения приняты"],
+    ["сейчас","✓ Telegram-бот связан с аккаунтом"],
+    ["сейчас",`⏳ Специалист создаёт рекламные кампании…`],
+  ];
+  seed.forEach(([t,h],i)=>{
+    const d=document.createElement("div");
+    d.style.animationDelay=(i*0.15)+"s";
+    d.innerHTML=`<span class="tm">${t}</span> ${h}`;
+    $("#plog").appendChild(d);
+  });
+
+  $("#edit").onclick=()=>go("autopilot");
+}
+
+function showBudgetModal(){
+  const isOwn = S.conn.metaMode==='own';
+  const b = S.budget;
+  const lo = Math.round(b.daily*7*b.weeks);
+  const hi = Math.round(lo*1.14);
+
+  // Remove existing modal if any
+  const prev=document.getElementById('budgetModal');
+  if(prev) prev.remove();
+
+  const overlay=document.createElement('div');
+  overlay.className='modal-overlay';
+  overlay.id='budgetModal';
+  overlay.innerHTML=`
+    <div class="modal-sheet">
+      <div class="mo-handle"></div>
+      <div class="mo-badge"><span class="blink"></span>Кампании готовы к запуску!</div>
+      <h2 style="font-family:'Unbounded',sans-serif;font-weight:600;font-size:22px;line-height:1.1;margin-bottom:8px">Чуть-чуть осталось 🚀</h2>
+      <p style="font-size:14px;color:var(--text-dim);line-height:1.55;margin-bottom:20px">
+        ${isOwn
+          ? 'Специалист настроил все кампании. Реклама запустится с вашего рекламного аккаунта — просто подтвердите запуск.'
+          : 'Специалист настроил кампании и готов к запуску. Для старта рекламы внесите предоплату картой — мы пополним рекламный аккаунт и включим автопилот.'}
+      </p>
+
+      ${isOwn ? `
+      <div style="background:rgba(134,179,117,.07);border:1px solid rgba(134,179,117,.25);border-radius:12px;padding:14px 16px;margin-bottom:20px;font-size:13.5px;line-height:1.55">
+        ✅ <b style="color:var(--ok)">Карта уже привязана к вашему Meta Ads аккаунту.</b><br>
+        <span style="color:var(--text-dim)">Реклама начнёт списывать бюджет сразу после запуска кампаний.</span>
+      </div>
+      ` : `
+      <div style="background:var(--surface-2);border-radius:12px;padding:14px 16px;margin-bottom:16px">
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px">Сумма предоплаты</div>
+        <div style="font-family:'Unbounded',sans-serif;font-weight:600;font-size:28px;color:var(--gold-soft);margin-bottom:4px">$${lo}–${hi}</div>
+        <div style="font-size:12px;color:var(--muted)">${b.daily}$/день × 7 дней × ${b.weeks} нед. + буфер</div>
+      </div>
+
+      <div class="field">
+        <label>Номер карты</label>
+        <input id="mCardNum" type="text" inputmode="numeric" maxlength="19" placeholder="0000 0000 0000 0000"
+          oninput="this.value=this.value.replace(/\D/g,'').replace(/(.{4})/g,'$1 ').trim().slice(0,19);S.budget.cardNum=this.value"
+          style="font-family:'JetBrains Mono',monospace;font-size:18px;letter-spacing:.08em" value="${b.cardNum||''}">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:13px">
+        <div class="field" style="margin-bottom:0">
+          <label>Срок действия</label>
+          <input id="mCardExp" type="text" inputmode="numeric" maxlength="5" placeholder="ММ/ГГ"
+            oninput="let v=this.value.replace(/\D/g,'');if(v.length>2)v=v.slice(0,2)+'/'+v.slice(2);this.value=v.slice(0,5);S.budget.cardExp=this.value"
+            style="font-family:'JetBrains Mono',monospace;font-size:16px" value="${b.cardExp||''}">
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>CVV / CVC</label>
+          <input id="mCardCvv" type="password" inputmode="numeric" maxlength="3" placeholder="•••"
+            oninput="this.value=this.value.replace(/\D/g,'').slice(0,3);S.budget.cardCvv=this.value"
+            style="font-family:'JetBrains Mono',monospace;font-size:16px" value="${b.cardCvv||''}">
+        </div>
+      </div>
+      <div class="field">
+        <label>Имя на карте</label>
+        <input id="mCardName" type="text" placeholder="IVAN IVANOV"
+          oninput="this.value=this.value.toUpperCase();S.budget.cardName=this.value"
+          style="font-family:'JetBrains Mono',monospace;font-size:15px;letter-spacing:.04em" value="${b.cardName||''}">
+      </div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.55;margin-bottom:16px;display:flex;gap:8px;align-items:flex-start">
+        <span>🔒</span><span>Данные карты передаются по защищённому соединению. Списание однократное — предоплата за рекламный бюджет.</span>
+      </div>
+      `}
+
+      <button onclick="confirmBudget()" class="btn" style="font-size:15px;padding:15px">
+        ${isOwn ? '🚀 Запустить рекламу' : '💳 Внести предоплату и запустить'}
+      </button>
+      <button onclick="document.getElementById('budgetModal').remove()" style="appearance:none;background:none;border:none;color:var(--muted);font-family:inherit;font-size:13px;cursor:pointer;width:100%;padding:12px 0;margin-top:4px">Закрыть</button>
+    </div>`;
+
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+}
+
+function confirmBudget(){
+  const isOwn = S.conn.metaMode==='own';
+  if(!isOwn){
+    const num=(S.budget.cardNum||'').replace(/\s/g,'');
+    const exp=S.budget.cardExp||'';
+    const cvv=S.budget.cardCvv||'';
+    const name=S.budget.cardName||'';
+    if(num.length<16){alert('Введите полный номер карты');return;}
+    if(exp.length<5){alert('Введите срок действия (ММ/ГГ)');return;}
+    if(cvv.length<3){alert('Введите CVV/CVC');return;}
+    if(!name.trim()){alert('Введите имя держателя карты');return;}
+  }
+  const overlay=document.getElementById('budgetModal');
+  if(overlay){
+    overlay.querySelector('.modal-sheet').innerHTML=`
+      <div class="mo-handle"></div>
+      <div style="text-align:center;padding:20px 0 30px">
+        <div style="font-size:52px;margin-bottom:16px">🚀</div>
+        <div style="font-family:'Unbounded',sans-serif;font-weight:600;font-size:20px;margin-bottom:10px">Реклама запущена!</div>
+        <div style="font-size:14px;color:var(--text-dim);line-height:1.6;max-width:36ch;margin:0 auto 20px">
+          ${isOwn ? 'AI-автопилот начал работу. Первый отчёт придёт в Telegram завтра в 08:00.' : 'Предоплата принята. AI-автопилот включён — первый отчёт придёт в Telegram завтра в 08:00.'}
+        </div>
+        <button onclick="document.getElementById('budgetModal').remove();vPanel()" class="btn" style="width:auto;padding:12px 28px">Отлично ✓</button>
+      </div>`;
+  }
+}
+
+async function giveCreative(){
+  const btn=$("#giveCre"); btn.disabled=true; btn.textContent="AI обрабатывает…";
+  const log=$("#plog");
+  const now=new Date();const hh=String(8).padStart(2,'0');
+  const add=(t,h)=>{const d=document.createElement("div");d.innerHTML=`<span class="tm">${t}</span> ${h}`;log.appendChild(d);log.scrollTop=log.scrollHeight;};
+  creativeCount++;
+  const nm=`Новый креатив #${creativeCount}`;
+  add("сейчас",`📎 Получен креатив — <span class="hl">проверяю</span>`);
+  await sleep(800);
+  add("сейчас",`✓ Качество ОК · добавляю в тест с бюджетом <span class="hl">${S.cr.budget.toLocaleString()}₸/день</span>`);
+  await sleep(750);
+  if(S.cr.autocopy){
+    const langTxt={"kz-ru":"каз-рус","kz":"казахском","ru":"русском"}[S.cr.lang];
+    add("сейчас",`✍️ Сгенерирован текст на <span class="hl">${langTxt}</span> в тоне бренда`);
+    await sleep(750);
+  }
+  add("сейчас",`🚀 <span class="hl">${nm}</span> запущен · тест ${S.cr.days} дн. · цель CPL ≤ $${S.dirs[0]?S.dirs[0].target:2}`);
+  btn.disabled=false; btn.textContent="📎 Дать ещё креатив";
+}
+
+/* ---------- router ---------- */
+function render(){
+  steps();
+  ({connect:vConnect,direction:vDirection,autopilot:vAutopilot,creative:vCreative,panel:vPanel}[S.screen])();
+}
+render();
+</script>
+</body>
+</html>

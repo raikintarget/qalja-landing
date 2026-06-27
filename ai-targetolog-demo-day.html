@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI-таргетолог — один день работы</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0E0D0B; --surface:#181613; --surface-2:#221F19; --line:#2F2A22;
+    --gold:#D9A441; --gold-soft:#EBD7A6; --gold-dim:#8A6E36;
+    --text:#F2ECDD; --text-dim:#9A9384; --muted:#6E685C;
+    --ok:#86B375; --bad:#CC6A5C; --warn:#E0A436;
+    --r:14px; --ease:cubic-bezier(.22,.61,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:radial-gradient(1000px 600px at 50% -15%,#1c1813 0,transparent 60%),var(--bg);
+    color:var(--text);font-family:"Manrope",system-ui,sans-serif;line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    padding:max(18px,env(safe-area-inset-top)) 16px max(24px,env(safe-area-inset-bottom));
+  }
+  .wrap{max-width:920px;margin:0 auto}
+
+  .brand{display:flex;align-items:center;gap:8px;font-family:"Unbounded";font-weight:600;
+    font-size:13px;letter-spacing:.02em;color:var(--gold-soft)}
+  .brand .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);
+    box-shadow:0 0 0 4px rgba(217,164,65,.16)}
+
+  h1{font-family:"Unbounded";font-weight:600;font-size:clamp(24px,5.4vw,34px);line-height:1.1;
+    letter-spacing:-.01em;margin:16px 0 8px}
+  .sub{color:var(--text-dim);font-size:15px;max-width:60ch}
+  .legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin:16px 0 4px;font-size:12.5px;color:var(--text-dim)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:9px;height:9px;border-radius:3px;display:inline-block}
+
+  /* control bar */
+  .bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+    padding:14px 16px;margin:18px 0}
+  .acct{display:flex;align-items:center;gap:11px;min-width:0}
+  .ava{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#2a2218,#3a2e1c);
+    border:1px solid var(--gold-dim);display:flex;align-items:center;justify-content:center;
+    font-family:"Unbounded";font-weight:600;color:var(--gold-soft);font-size:15px;flex:none}
+  .acct b{font-family:"Unbounded";font-weight:500;font-size:14px;display:block}
+  .acct small{color:var(--muted);font-size:12px}
+  .clock{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--text-dim);
+    display:flex;align-items:center;gap:7px}
+  .clock .pulse{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+  .clock.live .pulse{background:var(--ok);animation:blink 1.1s infinite}
+  @keyframes blink{50%{opacity:.25}}
+
+  .btn{appearance:none;cursor:pointer;font-family:"Unbounded";font-weight:600;font-size:15px;
+    border:none;border-radius:12px;padding:13px 22px;
+    background:linear-gradient(180deg,#E6B453,var(--gold));color:#1a1305;
+    transition:transform .12s var(--ease),filter .18s}
+  .btn:hover{filter:brightness(1.06)} .btn:active{transform:scale(.98)}
+  .btn:disabled{opacity:.5;cursor:not-allowed;filter:grayscale(.3)}
+  .btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(217,164,65,.4)}
+
+  /* status line */
+  .status{display:flex;align-items:center;gap:11px;font-size:14px;color:var(--text-dim);
+    min-height:22px;margin-bottom:16px}
+  .status .orb{width:16px;height:16px;border-radius:50%;flex:none;
+    background:radial-gradient(circle at 35% 35%,var(--gold-soft),var(--gold) 45%,var(--gold-dim));
+    opacity:.25;transition:opacity .3s}
+  .status.work .orb{opacity:1;animation:throb 1s var(--ease) infinite}
+  @keyframes throb{0%,100%{box-shadow:0 0 0 0 rgba(217,164,65,.5)}50%{box-shadow:0 0 0 7px rgba(217,164,65,0)}}
+
+  /* layout */
+  .grid{display:grid;grid-template-columns:1fr;gap:18px}
+  @media(min-width:760px){.grid{grid-template-columns:1.25fr 1fr}}
+
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+  .panel h3{font-family:"Unbounded";font-weight:500;font-size:12px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--text-dim);margin-bottom:14px}
+
+  /* creative cards */
+  .cre{border:1px solid var(--line);border-radius:12px;padding:12px 13px;margin-bottom:10px;
+    background:var(--surface-2);transition:border-color .4s,opacity .4s,transform .3s var(--ease);
+    position:relative;overflow:hidden}
+  .cre:last-child{margin-bottom:0}
+  .cre .top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .cre .nm{font-weight:600;font-size:14px}
+  .cre .badge{font-size:11px;font-weight:600;padding:4px 9px;border-radius:99px;white-space:nowrap;
+    opacity:0;transform:translateX(6px);transition:opacity .35s,transform .35s;
+    font-family:"Unbounded";letter-spacing:.02em}
+  .cre.judged .badge{opacity:1;transform:none}
+  .cre .mets{display:flex;gap:14px;margin-top:9px;font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--text-dim)}
+  .cre .mets b{color:var(--text);font-weight:500}
+  .cre .act{font-size:12.5px;color:var(--text-dim);margin-top:9px;opacity:0;max-height:0;
+    transition:opacity .4s,max-height .4s}
+  .cre.judged .act{opacity:1;max-height:40px}
+
+  .cre.v-keep{border-color:rgba(134,179,117,.45)}
+  .cre.v-keep .badge{background:rgba(134,179,117,.14);color:var(--ok)}
+  .cre.v-scale{border-color:var(--gold)}
+  .cre.v-scale .badge{background:rgba(217,164,65,.16);color:var(--gold-soft)}
+  .cre.v-degrade{border-color:rgba(224,164,54,.45)}
+  .cre.v-degrade .badge{background:rgba(224,164,54,.12);color:var(--warn)}
+  .cre.v-vampire{border-color:rgba(204,106,92,.45);opacity:.62}
+  .cre.v-vampire .badge{background:rgba(204,106,92,.14);color:var(--bad)}
+  .cre.v-new{border-style:dashed;border-color:var(--gold);background:rgba(217,164,65,.05);
+    animation:slideIn .5s var(--ease) both}
+  .cre.v-new .badge{background:rgba(217,164,65,.16);color:var(--gold-soft)}
+  @keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+
+  /* AI log */
+  .log{font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.7;color:var(--text-dim)}
+  .log div{opacity:0;animation:fade .35s var(--ease) forwards}
+  .log .tm{color:var(--gold-dim)}
+  .log .hl{color:var(--gold-soft)}
+  @keyframes fade{to{opacity:1}}
+
+  /* phone / telegram */
+  .phone{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:10px;
+    max-width:340px;margin:0 auto}
+  .tgbar{display:flex;align-items:center;gap:9px;padding:8px 8px 12px;border-bottom:1px solid var(--line)}
+  .tgbar .ic{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#2a2218,#3a2e1c);
+    border:1px solid var(--gold-dim);display:flex;align-items:center;justify-content:center;color:var(--gold-soft);font-size:16px}
+  .tgbar b{font-size:13px;display:block;font-family:"Unbounded";font-weight:500}
+  .tgbar small{font-size:11px;color:var(--ok)}
+  .tgbody{padding:14px 6px 6px;min-height:120px}
+  .bubble{background:var(--surface-2);border:1px solid var(--line);border-radius:4px 14px 14px 14px;
+    padding:13px 14px;font-size:13px;line-height:1.62;white-space:pre-wrap;
+    opacity:0;transform:translateY(8px);transition:opacity .45s,transform .45s}
+  .bubble.show{opacity:1;transform:none}
+  .bubble .rh{font-family:"Unbounded";font-weight:600;color:var(--gold-soft);font-size:13px}
+  .bubble .tm{display:block;text-align:right;font-size:10px;color:var(--muted);margin-top:7px}
+
+  /* summary */
+  .sum{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:18px;
+    opacity:0;transition:opacity .5s}
+  .sum.show{opacity:1}
+  @media(max-width:560px){.sum{grid-template-columns:repeat(2,1fr)}}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px}
+  .kpi small{display:block;font-size:11px;color:var(--text-dim);margin-bottom:5px}
+  .kpi b{font-family:"Unbounded";font-weight:600;font-size:20px;display:block}
+  .kpi .d{font-size:11.5px;color:var(--ok);font-weight:600;margin-top:3px}
+  .kpi .d.bad{color:var(--bad)}
+
+  .note{text-align:center;color:var(--muted);font-size:12px;margin-top:20px}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><span class="dot"></span>@smarttarget.ai</div>
+  <h1>AI-таргетолог: один день работы</h1>
+  <p class="sub">Каждое утро система собирает данные за 24 часа, проверяет каждую рекламную связку и сама принимает решения. Нажмите «Запустить день» и посмотрите, как это происходит.</p>
+
+  <div class="legend">
+    <span><i style="background:var(--ok)"></i>Оставить</span>
+    <span><i style="background:var(--gold)"></i>Масштабировать</span>
+    <span><i style="background:var(--warn)"></i>Снизить бюджет</span>
+    <span><i style="background:var(--bad)"></i>Отключить вампира</span>
+    <span><i style="background:var(--gold);border:1px dashed var(--gold)"></i>Новый креатив</span>
+  </div>
+
+  <div class="bar">
+    <div class="acct">
+      <div class="ava">ЖС</div>
+      <div><b>Жан Сұлу</b><small>Бьюти-клиника · Астана</small></div>
+    </div>
+    <div class="clock" id="clock"><span class="pulse"></span><span id="clocktxt">08:00 · 23 июня</span></div>
+    <button class="btn" id="run" style="margin-left:auto">Запустить день</button>
+  </div>
+
+  <div class="status" id="status"><span class="orb"></span><span id="statustxt">Готов к запуску оптимизации</span></div>
+
+  <div class="grid">
+    <div class="panel">
+      <h3>Рекламный кабинет · 5 связок</h3>
+      <div id="cards"></div>
+    </div>
+    <div>
+      <div class="panel" style="margin-bottom:18px">
+        <h3>Решения AI</h3>
+        <div class="log" id="log"><div style="opacity:1;color:var(--muted)">Лог появится во время запуска…</div></div>
+      </div>
+      <div class="phone">
+        <div class="tgbar">
+          <div class="ic">🤖</div>
+          <div><b>SmartTarget Bot</b><small id="tgstatus">bot</small></div>
+        </div>
+        <div class="tgbody"><div class="bubble" id="report"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sum" id="sum">
+    <div class="kpi"><small>Потрачено</small><b id="k-spend">$0</b></div>
+    <div class="kpi"><small>Заявок</small><b id="k-leads">0</b><div class="d" id="k-leadsd"></div></div>
+    <div class="kpi"><small>CPL</small><b id="k-cpl">—</b><div class="d" id="k-cpld"></div></div>
+    <div class="kpi"><small>Действий AI</small><b id="k-acts">0</b></div>
+  </div>
+
+  <p class="note">Демо · данные приведены для примера. На реальном аккаунте система работает с Meta Ads через официальный API.</p>
+</div>
+
+<script>
+const CREATIVES = [
+  {nm:"Лазерная эпиляция −40%", spend:48, leads:32, cpl:1.50, ctr:"2.1%",
+   verdict:"scale", badge:"Масштабирую +30%", act:"Лучшая связка. Поднимаю бюджет — CPL держится низким."},
+  {nm:"Уход за лицом «Коллаген»", spend:30, leads:18, cpl:1.66, ctr:"1.9%",
+   verdict:"keep", badge:"Оставляю", act:"Стабильно. Оставляю без изменений."},
+  {nm:"Ботокс · акция", spend:35, leads:14, cpl:2.50, cplNow:4.20, ctr:"1.1%",
+   verdict:"degrade", badge:"Снижаю бюджет", act:"CPL вырос $2.50 → $4.20. Снижаю бюджет, ставлю на наблюдение."},
+  {nm:"Чистка лица", spend:40, leads:4, cpl:10.0, ctr:"0.6%",
+   verdict:"vampire", badge:"Отключаю", act:"Тратит бюджет почти без заявок. CPL $10 — отключаю."},
+  {nm:"Карбоновый пилинг", spend:22, leads:3, cpl:7.33, ctr:"0.7%",
+   verdict:"vampire", badge:"Отключаю", act:"CPL $7.33, заявки не идут. Отключаю."}
+];
+const NEW_CRE = {nm:"Лазер · летний пакет", verdict:"new", badge:"Запущен", act:"Сгенерирован на основе лучшей связки. Уходит на тест."};
+
+const VCLASS = {scale:"v-scale",keep:"v-keep",degrade:"v-degrade",vampire:"v-vampire",new:"v-new"};
+const $=id=>document.getElementById(id);
+const reduce = matchMedia("(prefers-reduced-motion:reduce)").matches;
+const sleep = ms => new Promise(r=>setTimeout(r, reduce?0:ms));
+let running=false, done=false;
+
+function cardHTML(c,i){
+  const cplLine = c.cplNow
+    ? `CPL <b style="color:var(--bad)">$${c.cplNow.toFixed(2)}</b>`
+    : `CPL <b>$${c.cpl.toFixed(2)}</b>`;
+  return `<div class="cre" id="cre${i}">
+    <div class="top"><span class="nm">${c.nm}</span><span class="badge">${c.badge}</span></div>
+    <div class="mets"><span>Расход <b>$${c.spend}</b></span><span>Заявок <b>${c.leads}</b></span>
+      <span>${cplLine}</span><span>CTR <b>${c.ctr}</b></span></div>
+    <div class="act">${c.act}</div></div>`;
+}
+function renderCards(){ $("cards").innerHTML = CREATIVES.map(cardHTML).join(""); }
+function setStatus(t,work){ $("statustxt").textContent=t; $("status").classList.toggle("work",!!work); }
+function logLine(tm,html){
+  const d=document.createElement("div");
+  d.innerHTML=`<span class="tm">${tm}</span> ${html}`;
+  $("log").appendChild(d);
+  $("log").scrollTop=$("log").scrollHeight;
+}
+
+async function runDay(){
+  if(running) return;
+  running=true; done=false;
+  $("run").disabled=true; $("run").textContent="Идёт оптимизация…";
+  $("log").innerHTML=""; $("sum").classList.remove("show");
+  $("report").classList.remove("show"); $("tgstatus").textContent="печатает…";
+  renderCards();
+  $("clock").classList.add("live");
+
+  setStatus("Собираю данные за последние 24 часа…",true);
+  logLine("08:00","Старт ежедневной оптимизации");
+  await sleep(900);
+  logLine("08:00",`Получено <span class="hl">5 связок</span> из Meta Ads`);
+  await sleep(700);
+
+  setStatus("Анализирую каждую связку по 4 сценариям…",true);
+  await sleep(600);
+
+  let spend=0, leads=0, acts=0;
+  for(let i=0;i<CREATIVES.length;i++){
+    const c=CREATIVES[i], el=$("cre"+i);
+    el.scrollIntoView({block:"nearest",behavior:reduce?"auto":"smooth"});
+    setStatus(`Проверяю: ${c.nm}`,true);
+    await sleep(820);
+    el.classList.add("judged",VCLASS[c.verdict]);
+    spend+=c.spend; leads+=c.leads;
+    const map={scale:["📈","Масштабирую"],keep:["✅","Оставляю"],
+      degrade:["📉","Снижаю бюджет"],vampire:["⏸","Отключаю (вампир)"]};
+    const [ic,txt]=map[c.verdict];
+    logLine("08:0"+(i+1),`${ic} ${c.nm} — <span class="hl">${txt}</span>`);
+    if(c.verdict!=="keep") acts++;
+    await sleep(420);
+  }
+
+  setStatus("Создаю новый креатив на основе лучшей связки…",true);
+  await sleep(900);
+  const nd=document.createElement("div");
+  nd.innerHTML=cardHTML(NEW_CRE,"new");
+  $("cards").insertAdjacentHTML("beforeend",
+    `<div class="cre v-new judged" id="creNew">
+      <div class="top"><span class="nm">${NEW_CRE.nm}</span><span class="badge">${NEW_CRE.badge}</span></div>
+      <div class="mets"><span style="color:var(--gold-soft)">🔄 регенерация из лучшей связки</span></div>
+      <div class="act">${NEW_CRE.act}</div></div>`);
+  acts++;
+  logLine("08:06",`🔄 Новый креатив <span class="hl">«${NEW_CRE.nm}»</span> — запущен на тест`);
+  await sleep(700);
+
+  // summary
+  const cplBefore=3.80, cpl=(spend/leads);
+  $("k-spend").textContent="$"+spend;
+  $("k-leads").textContent=leads; $("k-leadsd").textContent="+18% к вчера";
+  $("k-cpl").textContent="$"+cpl.toFixed(2);
+  $("k-cpld").innerHTML=`▼ с $${cplBefore.toFixed(2)}`;
+  $("k-acts").textContent=acts;
+  $("sum").classList.add("show");
+
+  setStatus("Формирую отчёт в Telegram…",true);
+  await sleep(800);
+
+  const report =
+`📊 Отчёт за 23 июня · Жан Сұлу
+
+Потрачено: $${spend} · Заявок: ${leads}
+CPL: $${cpl.toFixed(2)} (▼ с $${cplBefore.toFixed(2)}, −${Math.round((1-cpl/cplBefore)*100)}%)
+
+✅ Масштабировал: Лазер −40%
+✅ Оставил: Коллаген-уход
+📉 Снизил бюджет: Ботокс (CPL вырос до $4.20)
+⏸ Отключил вампиров: Чистка лица, Карбон-пилинг
+🔄 Запустил новый креатив: Лазер · летний пакет
+
+💰 Экономия на отключениях: ~$62/нед`;
+  $("report").innerHTML=`<span class="rh">SmartTarget Bot</span>\n${report}<span class="tm">08:07 ✓✓</span>`;
+  $("report").classList.add("show");
+  $("tgstatus").textContent="отчёт отправлен";
+  await sleep(300);
+
+  setStatus("Готово. Отчёт отправлен в Telegram. Следующая проверка — завтра в 08:00.",false);
+  $("clock").classList.remove("live"); $("clocktxt").textContent="08:07 · готово";
+  running=false; done=true;
+  $("run").disabled=false; $("run").textContent="Запустить заново";
+}
+
+renderCards();
+$("run").onclick=()=>{ if(done){ $("clocktxt").textContent="08:00 · 23 июня"; } runDay(); };
+</script>
+</body>
+</html>

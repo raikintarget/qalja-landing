@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SmartTarget AI — Вход и регистрация</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0E0D0B;--surface:#181613;--surface-2:#221F19;--line:#2F2A22;
+  --gold:#D9A441;--gold-soft:#EBD7A6;--gold-dim:#8A6E36;
+  --text:#F2ECDD;--text-dim:#9A9384;--muted:#6E685C;
+  --ok:#86B375;--bad:#CC6A5C;--warn:#E0A436;
+  --r:14px;--ease:cubic-bezier(.22,.61,.36,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100vh}
+body{background:var(--bg);color:var(--text);font-family:"Manrope",sans-serif;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column}
+a{text-decoration:none;color:inherit}
+
+/* ── NOISE ── */
+body::before{content:"";position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.5}
+
+/* ── TOP BAR ── */
+.topbar{position:fixed;top:0;left:0;right:0;height:56px;display:flex;align-items:center;padding:0 24px;background:rgba(14,13,11,.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--line);z-index:100}
+.brand{display:flex;align-items:center;gap:8px;font-family:"Unbounded";font-weight:700;font-size:14px;color:var(--gold-soft)}
+.brand .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px rgba(217,164,65,.2)}
+.back-link{margin-left:auto;font-size:13px;color:var(--text-dim);display:flex;align-items:center;gap:5px;transition:.15s}
+.back-link:hover{color:var(--gold-soft)}
+
+/* ── LAYOUT ── */
+.auth-wrap{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:80px 16px 48px;position:relative;z-index:1}
+.auth-card{width:100%;max-width:480px;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:clamp(24px,5vw,36px);animation:cardIn .35s var(--ease)}
+@keyframes cardIn{from{opacity:0;transform:translateY(16px) scale(.98)}}
+
+/* ── SCREENS ── */
+.screen{display:none}
+.screen.active{display:block}
+
+/* ── STEP INDICATOR ── */
+.step-indicator{display:flex;align-items:center;gap:0;margin-bottom:28px}
+.step-dot{width:28px;height:28px;border-radius:50%;background:var(--surface-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:"JetBrains Mono";font-size:11px;color:var(--muted);flex:none;transition:.3s}
+.step-dot.active{background:rgba(217,164,65,.15);border-color:var(--gold);color:var(--gold-soft)}
+.step-dot.done{background:rgba(134,179,117,.12);border-color:var(--ok);color:var(--ok)}
+.step-line{flex:1;height:1px;background:var(--line);margin:0 6px;transition:.3s}
+.step-line.done{background:var(--ok)}
+.step-labels{display:flex;justify-content:space-between;margin-top:6px;margin-bottom:24px}
+.step-label{font-size:10.5px;color:var(--muted);text-align:center;flex:1;font-weight:500}
+.step-label.active{color:var(--gold-soft)}
+.step-label.done{color:var(--ok)}
+
+/* ── PLAN CARDS ── */
+.plan-cards{display:flex;flex-direction:column;gap:10px;margin-bottom:22px}
+.plan-card{border:1px solid var(--line);border-radius:14px;padding:16px 18px;cursor:pointer;transition:.2s;display:flex;align-items:center;gap:14px;position:relative}
+.plan-card:hover{border-color:var(--gold-dim);background:rgba(217,164,65,.03)}
+.plan-card.selected{border-color:var(--gold);background:rgba(217,164,65,.07)}
+.plan-card .plan-radio{width:18px;height:18px;border-radius:50%;border:2px solid var(--line);flex:none;transition:.2s;display:flex;align-items:center;justify-content:center}
+.plan-card.selected .plan-radio{border-color:var(--gold);background:var(--gold)}
+.plan-card.selected .plan-radio::after{content:"";width:6px;height:6px;border-radius:50%;background:#1a1104}
+.plan-card .plan-info{flex:1;min-width:0}
+.plan-card .plan-info .pname{font-family:"Unbounded";font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:8px;margin-bottom:3px}
+.plan-card .plan-info .pdesc{font-size:12px;color:var(--text-dim)}
+.plan-card .plan-price-tag{font-family:"JetBrains Mono";font-weight:500;font-size:14px;color:var(--gold-soft);flex:none;text-align:right}
+.plan-card .plan-price-tag small{display:block;font-size:10px;color:var(--muted);font-weight:400}
+.plan-recommend-badge{font-family:"Unbounded";font-size:9px;font-weight:700;background:var(--gold);color:#1a1104;padding:2px 7px;border-radius:99px}
+
+/* ── FORM ── */
+.form-title{font-family:"Unbounded";font-weight:700;font-size:20px;margin-bottom:6px}
+.form-sub{font-size:13.5px;color:var(--text-dim);margin-bottom:24px;line-height:1.55}
+.fl{margin-bottom:14px}
+.fl label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:5px;font-weight:600}
+.fl input,.fl select{width:100%;font-family:"Manrope";font-size:14px;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:11px 14px;transition:border-color .18s,box-shadow .18s;-webkit-appearance:none;appearance:none}
+.fl input:focus,.fl select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(217,164,65,.12)}
+.fl input::placeholder{color:var(--muted)}
+.fl input.error{border-color:var(--bad)}
+.fl .err-msg{font-size:11.5px;color:var(--bad);margin-top:4px;display:none}
+.fl input.error + .err-msg{display:block}
+.fl select option{background:var(--surface-2)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:400px){.row2{grid-template-columns:1fr}}
+.password-wrap{position:relative}
+.password-wrap input{padding-right:40px}
+.toggle-pw{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;transition:.15s;padding:4px}
+.toggle-pw:hover{color:var(--text)}
+.checkbox-row{display:flex;align-items:flex-start;gap:10px;margin:14px 0 20px;font-size:13px;color:var(--text-dim);cursor:pointer;line-height:1.5}
+.checkbox-row input[type=checkbox]{width:17px;height:17px;border-radius:4px;flex:none;cursor:pointer;accent-color:var(--gold);margin-top:1px}
+.checkbox-row a{color:var(--gold-soft);border-bottom:1px solid rgba(217,164,65,.3)}
+
+/* ── BUTTONS ── */
+.btn-full{appearance:none;cursor:pointer;width:100%;padding:14px;border-radius:11px;font-family:"Unbounded";font-weight:700;font-size:13px;background:linear-gradient(135deg,#EBC155,var(--gold),#C4892A);border:none;color:#1a1104;transition:filter .15s,transform .1s;box-shadow:0 4px 20px rgba(217,164,65,.3)}
+.btn-full:hover{filter:brightness(1.06);transform:translateY(-1px)}
+.btn-full:active{transform:translateY(0)}
+.btn-full:disabled{opacity:.45;cursor:default;transform:none;filter:none}
+.btn-ghost-full{appearance:none;cursor:pointer;width:100%;padding:13px;border-radius:11px;font-family:"Manrope";font-weight:600;font-size:14px;background:transparent;border:1px solid var(--line);color:var(--text-dim);transition:.15s;margin-top:8px}
+.btn-ghost-full:hover{border-color:var(--gold-dim);color:var(--text)}
+.divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;margin:16px 0}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
+
+/* ── PAYMENT ── */
+.payment-tabs{display:flex;gap:0;border:1px solid var(--line);border-radius:11px;overflow:hidden;margin-bottom:20px}
+.pay-tab{flex:1;padding:11px;text-align:center;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--text-dim);background:var(--surface-2);transition:.2s;border:none;font-family:"Manrope"}
+.pay-tab.active{background:rgba(217,164,65,.1);color:var(--gold-soft);border-bottom:2px solid var(--gold)}
+.pay-pane{display:none}
+.pay-pane.active{display:block}
+
+/* ── ORDER SUMMARY ── */
+.order-box{background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:20px}
+.order-row{display:flex;justify-content:space-between;align-items:center;font-size:13.5px;padding:4px 0}
+.order-row.total{border-top:1px solid var(--line);margin-top:10px;padding-top:12px;font-weight:700;font-size:15px}
+.order-row.total .val{color:var(--gold-soft);font-family:"JetBrains Mono"}
+.trial-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(134,179,117,.1);border:1px solid rgba(134,179,117,.25);border-radius:99px;padding:5px 12px;font-size:11.5px;color:var(--ok);font-weight:600;margin-bottom:14px}
+
+/* ── QR CODE (CSS Art) ── */
+.qr-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;padding:20px 0}
+.qr-code{width:160px;height:160px;background:white;border-radius:12px;padding:10px;position:relative}
+.qr-inner{width:100%;height:100%;display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:white}
+.qr-cell{background:white;border-radius:1px}
+.qr-cell.b{background:#0E0D0B}
+.qr-label{font-size:12px;color:var(--text-dim);text-align:center;line-height:1.5}
+.phone-input-wrap{display:flex;align-items:center;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:14px;background:var(--surface-2)}
+.phone-prefix{padding:11px 12px;font-family:"JetBrains Mono";font-size:14px;color:var(--text-dim);border-right:1px solid var(--line);white-space:nowrap}
+.phone-input-wrap input{border:none;background:transparent;flex:1;padding:11px 12px;font-family:"Manrope";font-size:14px;color:var(--text)}
+.phone-input-wrap input:focus{outline:none}
+
+/* ── CARD INPUT ── */
+.card-number-wrap{position:relative}
+.card-number-wrap input{padding-right:80px;font-family:"JetBrains Mono";letter-spacing:.08em}
+.card-icons{position:absolute;right:12px;top:50%;transform:translateY(-50%);display:flex;gap:4px}
+.card-icon{width:28px;height:18px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700}
+.visa{background:#1A1F71;color:#fff}
+.mc{background:#EB001B;color:#fff;position:relative;overflow:hidden}
+.mc::after{content:"MC";position:absolute;color:white;font-size:7px;font-weight:800}
+
+/* ── SECURITY BADGES ── */
+.security-badges{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:18px}
+.sec-badge{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);background:var(--surface-2);border:1px solid var(--line);border-radius:99px;padding:4px 10px}
+
+/* ── SUCCESS ── */
+.success-screen{text-align:center;padding:20px 0}
+.checkmark{width:80px;height:80px;border-radius:50%;background:rgba(134,179,117,.12);border:2px solid var(--ok);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:38px;animation:popIn .5s var(--ease) .1s both}
+@keyframes popIn{from{transform:scale(0);opacity:0}60%{transform:scale(1.1)}to{transform:scale(1);opacity:1}}
+.success-name{font-family:"Unbounded";font-weight:700;font-size:22px;margin-bottom:8px}
+.success-sub{font-size:14px;color:var(--text-dim);line-height:1.6;margin-bottom:28px}
+.success-items{display:flex;flex-direction:column;gap:8px;text-align:left;margin-bottom:28px;background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:16px}
+.success-item{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--text-dim)}
+.success-item .ic{font-size:16px;flex:none}
+.confetti{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1000}
+
+/* ── LINK ROWS ── */
+.link-row{text-align:center;margin-top:16px;font-size:13px;color:var(--text-dim)}
+.link-row a{color:var(--gold-soft);font-weight:600;cursor:pointer}
+.link-row a:hover{text-decoration:underline}
+
+/* ── LOADING SPINNER ── */
+.spinner{width:18px;height:18px;border:2px solid rgba(26,17,4,.3);border-top-color:#1a1104;border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── ANIMATIONS ── */
+.fade-in{animation:fadeIn .3s var(--ease)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}}
+
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <a href="landing.html" class="brand"><span class="dot"></span>SmartTarget AI</a>
+  <a href="landing.html" class="back-link">← Вернуться на главную</a>
+</div>
+
+<!-- MAIN WRAP -->
+<div class="auth-wrap">
+  <div class="auth-card">
+
+    <!-- ══════════════ SCREEN: LOGIN ══════════════ -->
+    <div class="screen" id="screen-login">
+      <div class="form-title">Добро пожаловать</div>
+      <div class="form-sub">Войдите в ваш аккаунт SmartTarget AI</div>
+
+      <div class="fl">
+        <label>Email</label>
+        <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="fl">
+        <label>Пароль</label>
+        <div class="password-wrap">
+          <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+          <button class="toggle-pw" onclick="togglePassword('loginPassword', this)" tabindex="-1">👁</button>
+        </div>
+      </div>
+
+      <div style="text-align:right;margin-bottom:20px">
+        <a href="#" style="font-size:12.5px;color:var(--text-dim)" onclick="showScreen('screen-forgot')">Забыли пароль?</a>
+      </div>
+
+      <button class="btn-full" onclick="doLogin()">Войти</button>
+
+      <div class="divider">или</div>
+
+      <div class="link-row">
+        Нет аккаунта? <a onclick="showScreen('screen-plans')">Зарегистрироваться</a>
+      </div>
+    </div>
+
+    <!-- ══════════════ SCREEN: FORGOT ══════════════ -->
+    <div class="screen" id="screen-forgot">
+      <div class="form-title">Восстановление</div>
+      <div class="form-sub">Введите email — пришлём ссылку для сброса пароля.</div>
+      <div class="fl">
+        <label>Email</label>
+        <input type="email" id="forgotEmail" placeholder="you@example.com">
+      </div>
+      <button class="btn-full" onclick="doForgot()">Отправить ссылку</button>
+      <div class="link-row" style="margin-top:12px"><a onclick="showScreen('screen-login')">← Назад к входу</a></div>
+    </div>
+
+    <!-- ══════════════ SCREEN: PLANS ══════════════ -->
+    <div class="screen" id="screen-plans">
+      <div class="step-indicator">
+        <div class="step-dot active" id="sd1">1</div>
+        <div class="step-line" id="sl1"></div>
+        <div class="step-dot" id="sd2">2</div>
+        <div class="step-line" id="sl2"></div>
+        <div class="step-dot" id="sd3">3</div>
+        <div class="step-line" id="sl3"></div>
+        <div class="step-dot" id="sd4">4</div>
+      </div>
+      <div class="step-labels">
+        <span class="step-label active" id="sl-label-1">Тариф</span>
+        <span class="step-label" id="sl-label-2">Данные</span>
+        <span class="step-label" id="sl-label-3">Оплата</span>
+        <span class="step-label" id="sl-label-4">Готово!</span>
+      </div>
+
+      <div class="form-title">Выберите тариф</div>
+      <div class="form-sub">2 дня бесплатно на любом тарифе. Без скрытых платежей.</div>
+
+      <div class="plan-cards">
+        <div class="plan-card selected" data-plan="ai" onclick="selectPlan('ai')" style="border-color:var(--gold);background:rgba(217,164,65,.06)">
+          <div class="plan-radio" style="border-color:var(--gold);background:var(--gold)"></div>
+          <div class="plan-info">
+            <div class="pname">AI-таргетолог <span class="plan-recommend-badge" style="background:var(--gold);color:#1a1104">🔥 Хит</span></div>
+            <div class="pdesc">До 15 кампаний · AI полностью автономно · Telegram</div>
+          </div>
+          <div class="plan-price-tag" style="color:var(--gold-soft)">49 990 ₸<small>/мес</small></div>
+        </div>
+        <div class="plan-card" data-plan="expert" onclick="selectPlan('expert')">
+          <div class="plan-radio"></div>
+          <div class="plan-info">
+            <div class="pname">Expert-тариф</div>
+            <div class="pdesc">До 30 кампаний · AI + Стратег · 4 креатива/мес</div>
+          </div>
+          <div class="plan-price-tag">149 990 ₸<small>/мес</small></div>
+        </div>
+        <div class="plan-card" data-plan="agency" onclick="selectPlan('agency')">
+          <div class="plan-radio"></div>
+          <div class="plan-info">
+            <div class="pname">Agency</div>
+            <div class="pdesc">До 100 кампаний · White Label · 10 креативов/мес</div>
+          </div>
+          <div class="plan-price-tag">249 990 ₸<small>/мес</small></div>
+        </div>
+      </div>
+
+      <button class="btn-full" id="planNextBtn" onclick="goToRegister()">Выбрать план →</button>
+      <div class="link-row">Уже есть аккаунт? <a onclick="showScreen('screen-login')">Войти</a></div>
+    </div>
+
+    <!-- ══════════════ SCREEN: REGISTER ══════════════ -->
+    <div class="screen" id="screen-register">
+      <div class="step-indicator">
+        <div class="step-dot done" id="rd1">✓</div>
+        <div class="step-line done" id="rl1"></div>
+        <div class="step-dot active" id="rd2">2</div>
+        <div class="step-line" id="rl2"></div>
+        <div class="step-dot" id="rd3">3</div>
+        <div class="step-line" id="rl3"></div>
+        <div class="step-dot" id="rd4">4</div>
+      </div>
+      <div class="step-labels">
+        <span class="step-label done">Тариф</span>
+        <span class="step-label active">Данные</span>
+        <span class="step-label">Оплата</span>
+        <span class="step-label">Готово!</span>
+      </div>
+
+      <div class="form-title">Ваши данные</div>
+      <div class="form-sub">Создайте аккаунт — займёт 2 минуты.</div>
+
+      <div class="fl">
+        <label>Полное имя</label>
+        <input type="text" id="regName" placeholder="Айгерим Садыкова" autocomplete="name">
+      </div>
+      <div class="row2">
+        <div class="fl">
+          <label>Номер телефона</label>
+          <input type="tel" id="regPhone" placeholder="+7 777 000 00 00" autocomplete="tel">
+        </div>
+        <div class="fl">
+          <label>Email</label>
+          <input type="email" id="regEmail" placeholder="you@email.com" autocomplete="email">
+        </div>
+      </div>
+      <div class="fl">
+        <label>Название бизнеса</label>
+        <input type="text" id="regBiz" placeholder="Клиника Aura / My Store KZ">
+      </div>
+      <div class="row2">
+        <div class="fl">
+          <label>Пароль</label>
+          <div class="password-wrap">
+            <input type="password" id="regPass" placeholder="Минимум 8 символов">
+            <button class="toggle-pw" onclick="togglePassword('regPass', this)" tabindex="-1">👁</button>
+          </div>
+        </div>
+        <div class="fl">
+          <label>Повторите пароль</label>
+          <div class="password-wrap">
+            <input type="password" id="regPass2" placeholder="••••••••">
+            <button class="toggle-pw" onclick="togglePassword('regPass2', this)" tabindex="-1">👁</button>
+          </div>
+        </div>
+      </div>
+
+      <label class="checkbox-row">
+        <input type="checkbox" id="agreeTerms">
+        <span>Я принимаю <a href="#">Условия использования</a> и <a href="#">Политику конфиденциальности</a> SmartTarget AI</span>
+      </label>
+
+      <button class="btn-full" onclick="goToPayment()">Далее → Оплата</button>
+      <button class="btn-ghost-full" onclick="showScreen('screen-plans')">← Назад к тарифам</button>
+    </div>
+
+    <!-- ══════════════ SCREEN: PAYMENT ══════════════ -->
+    <div class="screen" id="screen-payment">
+      <div class="step-indicator">
+        <div class="step-dot done">✓</div>
+        <div class="step-line done"></div>
+        <div class="step-dot done">✓</div>
+        <div class="step-line done"></div>
+        <div class="step-dot active">3</div>
+        <div class="step-line"></div>
+        <div class="step-dot">4</div>
+      </div>
+      <div class="step-labels">
+        <span class="step-label done">Тариф</span>
+        <span class="step-label done">Данные</span>
+        <span class="step-label active">Оплата</span>
+        <span class="step-label">Готово!</span>
+      </div>
+
+      <div class="form-title">Оплата</div>
+
+      <!-- Trial badge -->
+      <div class="trial-badge">✅ 2 дня бесплатно · списание после пробного периода</div>
+
+      <!-- Order Summary -->
+      <div class="order-box">
+        <div class="order-row">
+          <span id="payPlanName" style="font-weight:600">Expert-тариф</span>
+          <span id="payPlanPeriod" style="color:var(--text-dim);font-size:12px">в месяц</span>
+        </div>
+        <div class="order-row">
+          <span style="color:var(--text-dim)">Пробный период</span>
+          <span style="color:var(--ok);font-weight:600">2 дня — бесплатно</span>
+        </div>
+        <div class="order-row total">
+          <span>Сейчас к оплате</span>
+          <span class="val" id="payAmount">0 ₸</span>
+        </div>
+      </div>
+
+      <!-- FREE TRIAL block — показывается если сейчас к оплате = 0 -->
+      <div id="trialBlock" style="display:none;text-align:center;padding:20px 0 10px">
+        <div style="font-size:40px;margin-bottom:12px">🎁</div>
+        <div style="font-family:'Unbounded',sans-serif;font-weight:700;font-size:17px;margin-bottom:8px;color:var(--gold-soft)">Сейчас платить не нужно</div>
+        <div style="font-size:13.5px;color:var(--text-dim);line-height:1.6;margin-bottom:20px">Первые 2 дня — бесплатно.<br>Способ оплаты добавите после пробного периода.</div>
+        <button class="btn-full" onclick="startFreeTrial()" style="font-size:15px;padding:16px">Начать 2 дня бесплатно →</button>
+        <div style="font-size:12px;color:var(--muted);margin-top:10px">После пробного периода — автоматическое списание.<br>Отменить можно в любой момент без штрафов.</div>
+      </div>
+
+      <!-- Payment Tabs — показываются только если к оплате > 0 -->
+      <div id="paymentBlock">
+      <div class="payment-tabs">
+        <button class="pay-tab active" onclick="switchPayTab('kaspi')">💚 Kaspi Pay</button>
+        <button class="pay-tab" onclick="switchPayTab('card')">💳 Банковская карта</button>
+      </div>
+
+      <!-- KASPI PAY -->
+      <div class="pay-pane active" id="pane-kaspi">
+        <p style="font-size:13px;color:var(--text-dim);text-align:center;margin-bottom:16px;line-height:1.55">Отсканируйте QR-код в приложении Kaspi.kz или введите номер телефона ниже</p>
+
+        <div class="qr-wrap">
+          <!-- CSS QR art simulation -->
+          <div class="qr-code">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">
+              <!-- Corner squares -->
+              <rect x="5" y="5" width="30" height="30" fill="none" stroke="#0E0D0B" stroke-width="3"/>
+              <rect x="11" y="11" width="18" height="18" fill="#0E0D0B"/>
+              <rect x="65" y="5" width="30" height="30" fill="none" stroke="#0E0D0B" stroke-width="3"/>
+              <rect x="71" y="11" width="18" height="18" fill="#0E0D0B"/>
+              <rect x="5" y="65" width="30" height="30" fill="none" stroke="#0E0D0B" stroke-width="3"/>
+              <rect x="11" y="71" width="18" height="18" fill="#0E0D0B"/>
+              <!-- Data modules (simplified) -->
+              <rect x="40" y="5" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="50" y="5" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="60" y="5" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="40" y="15" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="55" y="15" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="40" y="25" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="50" y="25" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="5" y="40" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="15" y="40" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="25" y="40" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="40" y="40" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="50" y="40" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="60" y="40" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="70" y="40" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="80" y="40" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="90" y="40" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="5" y="50" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="20" y="50" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="35" y="50" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="45" y="50" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="55" y="50" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="70" y="50" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="85" y="50" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="10" y="60" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="25" y="60" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="40" y="60" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="55" y="60" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="65" y="60" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="80" y="60" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="90" y="60" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="40" y="70" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="55" y="70" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="70" y="70" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="85" y="70" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="40" y="80" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="50" y="80" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="65" y="80" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="80" y="80" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="40" y="90" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="55" y="90" width="5" height="5" fill="#0E0D0B"/>
+              <rect x="70" y="90" width="5" height="5" fill="#0E0D0B"/>
+            </svg>
+          </div>
+          <div class="qr-label">
+            <strong style="color:var(--text)">Откройте Kaspi.kz</strong><br>
+            Главная → Оплатить → QR
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;margin:0 0 10px;color:var(--muted);font-size:12px">
+          <div style="flex:1;height:1px;background:var(--line)"></div>
+          или по номеру телефона
+          <div style="flex:1;height:1px;background:var(--line)"></div>
+        </div>
+
+        <div class="phone-input-wrap">
+          <span class="phone-prefix">+7</span>
+          <input type="tel" id="kaspiPhone" placeholder="777 000 00 00" maxlength="13">
+        </div>
+
+        <button class="btn-full" onclick="doKaspiPay()">Я оплатил в Kaspi ✓</button>
+      </div>
+
+      <!-- CARD -->
+      <div class="pay-pane" id="pane-card">
+        <div class="fl">
+          <label>Номер карты</label>
+          <div class="card-number-wrap">
+            <input type="text" id="cardNum" placeholder="0000 0000 0000 0000" maxlength="19" oninput="formatCard(this)" style="font-family:'JetBrains Mono';letter-spacing:.05em">
+            <div class="card-icons">
+              <div class="card-icon visa">VISA</div>
+              <div class="card-icon mc">MC</div>
+            </div>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="fl">
+            <label>Срок действия</label>
+            <input type="text" id="cardExp" placeholder="ММ/ГГ" maxlength="5" oninput="formatExpiry(this)" style="font-family:'JetBrains Mono'">
+          </div>
+          <div class="fl">
+            <label>CVV</label>
+            <input type="password" id="cardCvv" placeholder="•••" maxlength="4" style="font-family:'JetBrains Mono';letter-spacing:.2em">
+          </div>
+        </div>
+        <div class="fl">
+          <label>Имя держателя карты</label>
+          <input type="text" id="cardName" placeholder="AIGERIM SADYKOVA" style="text-transform:uppercase;font-family:'JetBrains Mono'">
+        </div>
+
+        <button class="btn-full" id="payCardBtn" onclick="doCardPay()">
+          Оплатить <span id="payAmountCard">0 ₸</span>
+        </button>
+      </div>
+
+      <!-- Security -->
+      <div class="security-badges">
+        <span class="sec-badge">🔒 SSL 256-bit</span>
+        <span class="sec-badge">🛡 PCI DSS</span>
+        <span class="sec-badge">✅ Kaspi Bank</span>
+      </div>
+      </div><!-- /paymentBlock -->
+    </div>
+
+    <!-- ══════════════ SCREEN: PROCESSING ══════════════ -->
+    <div class="screen" id="screen-processing">
+      <div style="text-align:center;padding:40px 20px">
+        <div style="width:64px;height:64px;border-radius:50%;background:rgba(217,164,65,.1);border:2px solid rgba(217,164,65,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;animation:spin .8s linear infinite">
+          <span style="font-size:28px">⚙️</span>
+        </div>
+        <div style="font-family:'Unbounded';font-weight:700;font-size:17px;margin-bottom:8px">Обрабатываем оплату</div>
+        <div style="font-size:13.5px;color:var(--text-dim);line-height:1.55">Пожалуйста, не закрывайте страницу.<br>Это займёт несколько секунд...</div>
+      </div>
+    </div>
+
+    <!-- ══════════════ SCREEN: SUCCESS ══════════════ -->
+    <div class="screen" id="screen-success">
+      <div class="success-screen">
+        <div class="checkmark">✅</div>
+        <div class="success-name">Добро пожаловать, <span id="successName">!</span></div>
+        <div class="success-sub">Оплата прошла успешно. Ваш аккаунт активирован.<br>AI-таргетолог готов к работе.</div>
+
+        <div class="success-items">
+          <div class="success-item"><span class="ic">📩</span>Отчёт в Telegram начнёт приходить с завтрашнего утра</div>
+          <div class="success-item"><span class="ic">🤖</span>Первый анализ кампаний — сегодня после подключения</div>
+          <div class="success-item"><span class="ic">🎁</span>2 дня бесплатного пробного периода активированы</div>
+          <div class="success-item"><span class="ic">📋</span>Инструкция по подключению Meta Ads отправлена на email</div>
+        </div>
+
+        <button class="btn-full" onclick="goToDashboard()">
+          Начать настройку AI-таргетолога →
+        </button>
+        <div style="margin-top:12px;font-size:12px;color:var(--muted);text-align:center">Вы будете перенаправлены в личный кабинет</div>
+      </div>
+    </div>
+
+  </div><!-- /auth-card -->
+</div><!-- /auth-wrap -->
+
+<canvas class="confetti" id="confettiCanvas" style="display:none"></canvas>
+
+<script>
+// ══════════════════════════
+// STATE
+// ══════════════════════════
+const PLANS = {
+  free:   { name: 'AI-тариф (бесплатно)', price: 0,      label: '0 ₸', fullName: 'AI-тариф' },
+  ai:     { name: 'AI-тариф',             price: 49990,  label: '49 990 ₸', fullName: 'AI-тариф' },
+  expert: { name: 'Expert-тариф',         price: 149990, label: '149 990 ₸', fullName: 'Expert-тариф' },
+  agency: { name: 'Agency',               price: 249990, label: '249 990 ₸', fullName: 'Agency' },
+};
+
+let state = {
+  plan: 'ai',
+  name: '',
+  email: '',
+  paymentMethod: 'kaspi',
+};
+
+// ══════════════════════════
+// INIT
+// ══════════════════════════
+(function init() {
+  const params = new URLSearchParams(window.location.search);
+  const planParam = params.get('plan');
+  const modeParam = params.get('mode');
+
+  if (modeParam === 'login') {
+    showScreen('screen-login');
+    return;
+  }
+
+  if (planParam && PLANS[planParam]) {
+    state.plan = planParam;
+    showScreen('screen-plans');
+    setTimeout(() => selectPlan(planParam), 50);
+  } else {
+    showScreen('screen-plans');
+    setTimeout(() => selectPlan('ai'), 50);
+  }
+})();
+
+// ══════════════════════════
+// SCREEN MANAGEMENT
+// ══════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) {
+    el.classList.add('active');
+    el.classList.add('fade-in');
+    el.addEventListener('animationend', () => el.classList.remove('fade-in'), {once:true});
+  }
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+// ══════════════════════════
+// PLAN SELECTION
+// ══════════════════════════
+function selectPlan(planKey) {
+  state.plan = planKey;
+  document.querySelectorAll('.plan-card').forEach(c => {
+    c.classList.toggle('selected', c.dataset.plan === planKey);
+  });
+}
+
+function goToRegister() {
+  if (!state.plan) {
+    alert('Пожалуйста, выберите тариф.');
+    return;
+  }
+  showScreen('screen-register');
+}
+
+// ══════════════════════════
+// REGISTRATION
+// ══════════════════════════
+function goToPayment() {
+  const name = document.getElementById('regName').value.trim();
+  const phone = document.getElementById('regPhone').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const biz = document.getElementById('regBiz').value.trim();
+  const pass = document.getElementById('regPass').value;
+  const pass2 = document.getElementById('regPass2').value;
+  const agree = document.getElementById('agreeTerms').checked;
+
+  if (!name) { alert('Введите полное имя'); document.getElementById('regName').focus(); return; }
+  if (!phone) { alert('Введите номер телефона'); document.getElementById('regPhone').focus(); return; }
+  if (!email || !email.includes('@')) { alert('Введите корректный email'); document.getElementById('regEmail').focus(); return; }
+  if (!biz) { alert('Введите название бизнеса'); document.getElementById('regBiz').focus(); return; }
+  if (pass.length < 8) { alert('Пароль должен быть не менее 8 символов'); document.getElementById('regPass').focus(); return; }
+  if (pass !== pass2) { alert('Пароли не совпадают'); document.getElementById('regPass2').focus(); return; }
+  if (!agree) { alert('Необходимо принять условия использования'); return; }
+
+  state.name = name;
+  state.email = email;
+
+  // Update payment screen
+  const plan = PLANS[state.plan];
+  document.getElementById('payPlanName').textContent = plan.fullName;
+  document.getElementById('payAmount').textContent = 'Бесплатно';
+  document.getElementById('payAmountCard').textContent = 'Бесплатно';
+
+  // Пробный период — скрыть форму оплаты, показать триал-блок
+  const isTrial = true; // первые 2 дня всегда бесплатно
+  document.getElementById('trialBlock').style.display = isTrial ? 'block' : 'none';
+  document.getElementById('paymentBlock').style.display = isTrial ? 'none' : 'block';
+
+  showScreen('screen-payment');
+}
+
+function startFreeTrial() {
+  // Пробный период — сразу активируем без оплаты
+  showScreen('screen-processing');
+  setTimeout(() => {
+    document.getElementById('successName').textContent = state.name.split(' ')[0] + '!';
+    showScreen('screen-success');
+    launchConfetti();
+  }, 1800);
+}
+
+// ══════════════════════════
+// PAYMENT TABS
+// ══════════════════════════
+function switchPayTab(tab) {
+  state.paymentMethod = tab;
+  document.querySelectorAll('.pay-tab').forEach((t, i) => {
+    const tabs = ['kaspi','card'];
+    t.classList.toggle('active', tabs[i] === tab);
+  });
+  document.getElementById('pane-kaspi').classList.toggle('active', tab === 'kaspi');
+  document.getElementById('pane-card').classList.toggle('active', tab === 'card');
+}
+
+// ══════════════════════════
+// KASPI PAY
+// ══════════════════════════
+function doKaspiPay() {
+  const phone = document.getElementById('kaspiPhone').value.trim();
+  if (!phone && document.getElementById('kaspiPhone').value.length < 5) {
+    // Allow proceed even without phone (they might have scanned QR)
+  }
+  processPayment();
+}
+
+// ══════════════════════════
+// CARD PAY
+// ══════════════════════════
+function doCardPay() {
+  const num = document.getElementById('cardNum').value.replace(/\s/g,'');
+  const exp = document.getElementById('cardExp').value;
+  const cvv = document.getElementById('cardCvv').value;
+  const name = document.getElementById('cardName').value.trim();
+
+  if (num.length < 16) { alert('Введите полный номер карты (16 цифр)'); return; }
+  if (!exp || exp.length < 5) { alert('Введите срок действия карты (ММ/ГГ)'); return; }
+  if (cvv.length < 3) { alert('Введите CVV/CVC код'); return; }
+  if (!name) { alert('Введите имя держателя карты'); return; }
+
+  processPayment();
+}
+
+function processPayment() {
+  showScreen('screen-processing');
+  setTimeout(() => {
+    showScreen('screen-success');
+    document.getElementById('successName').textContent = state.name.split(' ')[0] + '!';
+    launchConfetti();
+  }, 2500);
+}
+
+// ══════════════════════════
+// LOGIN
+// ══════════════════════════
+function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPassword').value;
+  if (!email) { alert('Введите email'); return; }
+  if (!pass) { alert('Введите пароль'); return; }
+
+  // Simulate login
+  const btn = document.querySelector('#screen-login .btn-full');
+  btn.innerHTML = '<span class="spinner"></span> Входим...';
+  btn.disabled = true;
+
+  setTimeout(() => {
+    window.location.href = 'ai-targetolog-app.html';
+  }, 1500);
+}
+
+function doForgot() {
+  const email = document.getElementById('forgotEmail').value.trim();
+  if (!email) { alert('Введите email'); return; }
+  alert(`Ссылка для сброса пароля отправлена на ${email}`);
+  showScreen('screen-login');
+}
+
+// ══════════════════════════
+// DASHBOARD
+// ══════════════════════════
+function goToDashboard() {
+  window.location.href = 'ai-targetolog-onboarding.html';
+}
+
+// ══════════════════════════
+// UTILS
+// ══════════════════════════
+function togglePassword(id, btn) {
+  const input = document.getElementById(id);
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.textContent = '🙈';
+  } else {
+    input.type = 'password';
+    btn.textContent = '👁';
+  }
+}
+
+function formatCard(input) {
+  let v = input.value.replace(/\D/g,'').substring(0,16);
+  input.value = v.replace(/(.{4})/g,'$1 ').trim();
+}
+
+function formatExpiry(input) {
+  let v = input.value.replace(/\D/g,'').substring(0,4);
+  if (v.length >= 2) v = v.substring(0,2) + '/' + v.substring(2);
+  input.value = v;
+}
+
+// ══════════════════════════
+// CONFETTI
+// ══════════════════════════
+function launchConfetti() {
+  const canvas = document.getElementById('confettiCanvas');
+  canvas.style.display = 'block';
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const colors = ['#D9A441','#EBD7A6','#86B375','#F2ECDD','#E0A436','#7BA7C9'];
+  const pieces = [];
+
+  for (let i = 0; i < 120; i++) {
+    pieces.push({
+      x: Math.random() * canvas.width,
+      y: -10 - Math.random() * 200,
+      r: 4 + Math.random() * 6,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      vx: (Math.random() - 0.5) * 3,
+      vy: 2 + Math.random() * 4,
+      angle: Math.random() * Math.PI * 2,
+      spin: (Math.random() - 0.5) * 0.2,
+      opacity: 1,
+    });
+  }
+
+  let frame = 0;
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pieces.forEach(p => {
+      ctx.save();
+      ctx.globalAlpha = p.opacity;
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.angle);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.r/2, -p.r/2, p.r, p.r * 0.5);
+      ctx.restore();
+      p.x += p.vx;
+      p.y += p.vy;
+      p.angle += p.spin;
+      p.vy += 0.05;
+      if (p.y > canvas.height) p.opacity -= 0.02;
+    });
+    frame++;
+    if (frame < 200) requestAnimationFrame(draw);
+    else canvas.style.display = 'none';
+  }
+  draw();
+}
+
+// ══════════════════════════
+// KEYBOARD SHORTCUTS
+// ══════════════════════════
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    const active = document.querySelector('.screen.active');
+    if (!active) return;
+    const id = active.id;
+    if (id === 'screen-login') doLogin();
+    else if (id === 'screen-register') goToPayment();
+  }
+});
+</script>
+</body>
+</html>

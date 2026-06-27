@@ -1,8 +1,10 @@
 {
-  "name": "qalja-landing",
+  "name": "smarttarget-ai",
   "version": "1.0.0",
+  "description": "SmartTarget AI — AI-таргетолог для Meta Ads",
   "scripts": {
-    "start": "npx serve -s . -l ${PORT:-3000}"
+    "start": "serve . -p ${PORT:-3000} -s",
+    "dev": "serve . -p 3000"
   },
   "dependencies": {
     "serve": "^14.2.4"

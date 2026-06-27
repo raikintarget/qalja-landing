@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SmartTarget AI — AI ведёт рекламу. Вы видите результат.</title>
+<meta name="description" content="AI-таргетолог для Meta Ads. Автоматическая оптимизация, ежедневные отчёты, масштабирование победителей. Без ручной работы.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0E0D0B;--surface:#181613;--surface-2:#221F19;--line:#2F2A22;
+  --gold:#D9A441;--gold-soft:#EBD7A6;--gold-dim:#8A6E36;
+  --text:#F2ECDD;--text-dim:#9A9384;--muted:#6E685C;
+  --ok:#86B375;--bad:#CC6A5C;--warn:#E0A436;
+  --r:14px;--ease:cubic-bezier(.22,.61,.36,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:"Manrope",system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{text-decoration:none;color:inherit}
+img{display:block;max-width:100%}
+
+/* ── NOISE TEXTURE OVERLAY ── */
+body::before{content:"";position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.6}
+
+/* ── NAV ── */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;height:64px;display:flex;align-items:center;padding:0 clamp(16px,4vw,48px);background:rgba(14,13,11,.85);backdrop-filter:blur(20px);border-bottom:1px solid transparent;transition:border-color .3s}
+.nav.scrolled{border-bottom-color:var(--line)}
+.nav-brand{display:flex;align-items:center;gap:9px;font-family:"Unbounded";font-weight:700;font-size:15px;color:var(--gold-soft);flex:none}
+.nav-brand .dot{width:9px;height:9px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px rgba(217,164,65,.2),0 0 12px rgba(217,164,65,.4);animation:pulse-dot 2s infinite}
+@keyframes pulse-dot{0%,100%{box-shadow:0 0 0 4px rgba(217,164,65,.2),0 0 12px rgba(217,164,65,.4)}50%{box-shadow:0 0 0 8px rgba(217,164,65,.08),0 0 20px rgba(217,164,65,.25)}}
+.nav-links{display:flex;align-items:center;gap:4px;margin-left:32px;flex:1}
+.nav-links a{font-size:14px;color:var(--text-dim);padding:7px 13px;border-radius:8px;transition:.15s}
+.nav-links a:hover{color:var(--text);background:var(--surface)}
+@media(max-width:680px){.nav-links{display:none}}
+.nav-actions{display:flex;align-items:center;gap:8px;margin-left:auto;flex:none}
+.btn-ghost{appearance:none;cursor:pointer;background:transparent;border:1px solid var(--line);border-radius:9px;padding:8px 16px;font-family:"Manrope";font-size:13.5px;color:var(--text-dim);transition:.15s}
+.btn-ghost:hover{color:var(--text);border-color:var(--gold-dim)}
+.btn-primary{appearance:none;cursor:pointer;background:linear-gradient(135deg,#E8B84B,var(--gold),#C4892A);border:none;border-radius:9px;padding:9px 18px;font-family:"Unbounded";font-weight:600;font-size:12px;color:#1a1104;transition:filter .15s,transform .1s;box-shadow:0 4px 20px rgba(217,164,65,.3)}
+.btn-primary:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.btn-primary:active{transform:translateY(0)}
+
+/* ── HERO ── */
+.hero{position:relative;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:100px clamp(16px,5vw,64px) 60px;text-align:center;overflow:hidden}
+.hero-glow{position:absolute;top:-10%;left:50%;transform:translateX(-50%);width:800px;height:600px;background:radial-gradient(ellipse at center,rgba(217,164,65,.12) 0%,rgba(217,164,65,.04) 40%,transparent 70%);pointer-events:none}
+.hero-glow-2{position:absolute;bottom:-5%;left:20%;width:400px;height:400px;background:radial-gradient(ellipse,rgba(134,179,117,.06) 0%,transparent 60%);pointer-events:none}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(217,164,65,.08);border:1px solid rgba(217,164,65,.25);border-radius:99px;padding:7px 14px;font-size:12px;color:var(--gold-soft);margin-bottom:28px;font-weight:600}
+.hero-badge .live-dot{width:6px;height:6px;border-radius:50%;background:var(--ok);animation:blink 1.5s infinite}
+@keyframes blink{50%{opacity:.2}}
+.hero h1{font-family:"Unbounded";font-weight:800;font-size:clamp(36px,7vw,80px);line-height:1.0;letter-spacing:-.03em;margin-bottom:12px}
+.hero h1 .line2{display:block;color:var(--gold-soft);background:linear-gradient(90deg,var(--gold),var(--gold-soft),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{font-size:clamp(15px,2vw,19px);color:var(--text-dim);line-height:1.65;max-width:58ch;margin:0 auto 36px;font-weight:500}
+.hero-sub b{color:var(--text)}
+.hero-ctas{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:52px}
+.btn-hero-main{appearance:none;cursor:pointer;background:linear-gradient(135deg,#EBC155,var(--gold),#B8821F);border:none;border-radius:12px;padding:16px 28px;font-family:"Unbounded";font-weight:700;font-size:14px;color:#130e01;transition:filter .15s,transform .12s,box-shadow .15s;box-shadow:0 6px 30px rgba(217,164,65,.4)}
+.btn-hero-main:hover{filter:brightness(1.06);transform:translateY(-2px);box-shadow:0 10px 40px rgba(217,164,65,.5)}
+.btn-hero-secondary{appearance:none;cursor:pointer;background:transparent;border:1px solid rgba(242,236,221,.2);border-radius:12px;padding:15px 26px;font-family:"Manrope";font-weight:600;font-size:15px;color:var(--text);transition:.15s}
+.btn-hero-secondary:hover{border-color:var(--gold-dim);background:rgba(217,164,65,.04)}
+.hero-stats{display:flex;align-items:center;gap:clamp(16px,4vw,40px);flex-wrap:wrap;justify-content:center;padding:22px clamp(20px,4vw,40px);background:var(--surface);border:1px solid var(--line);border-radius:16px;backdrop-filter:blur(10px)}
+.hero-stat{text-align:center}
+.hero-stat .val{font-family:"Unbounded";font-weight:700;font-size:clamp(18px,3vw,26px);color:var(--gold-soft);display:block}
+.hero-stat .lbl{font-size:11.5px;color:var(--text-dim);margin-top:3px}
+.hero-stat-sep{width:1px;height:36px;background:var(--line)}
+@media(max-width:480px){.hero-stat-sep{display:none}.hero-stats{gap:20px}}
+
+/* ── SECTION BASE ── */
+section{position:relative;padding:clamp(60px,10vw,110px) clamp(16px,5vw,64px)}
+.container{max-width:1140px;margin:0 auto}
+.section-eyebrow{font-family:"Unbounded";font-weight:500;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:14px}
+.section-title{font-family:"Unbounded";font-weight:700;font-size:clamp(26px,4.5vw,46px);line-height:1.1;letter-spacing:-.02em;margin-bottom:16px}
+.section-sub{font-size:clamp(14px,1.8vw,17px);color:var(--text-dim);line-height:1.65;max-width:54ch}
+.section-header{margin-bottom:clamp(36px,6vw,60px)}
+.text-center{text-align:center}
+.text-center .section-sub{margin:0 auto}
+
+/* ── HOW IT WORKS ── */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;position:relative}
+@media(max-width:720px){.steps{grid-template-columns:1fr;gap:12px}}
+.step-connector{display:none}
+@media(min-width:721px){
+  .steps::before{content:"";position:absolute;top:52px;left:calc(33.33% + 20px);right:calc(33.33% + 20px);height:1px;background:linear-gradient(90deg,var(--gold-dim),var(--gold),var(--gold-dim));opacity:.4}
+}
+.step{padding:32px 28px;position:relative;background:var(--surface);border:1px solid var(--line);border-radius:18px;transition:border-color .3s,transform .3s}
+.step:nth-child(2){margin-top:0}
+.step.reveal-up:not(.visible){transform:translateY(30px);opacity:0}
+.step .step-num{font-family:"Unbounded";font-weight:700;font-size:11px;letter-spacing:.15em;color:var(--gold-dim);margin-bottom:16px;text-transform:uppercase}
+.step .step-icon{width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,rgba(217,164,65,.12),rgba(217,164,65,.04));border:1px solid rgba(217,164,65,.2);display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:18px}
+.step h3{font-family:"Unbounded";font-weight:600;font-size:18px;margin-bottom:8px;line-height:1.2}
+.step p{font-size:14px;color:var(--text-dim);line-height:1.65}
+.step:hover{border-color:var(--gold-dim);transform:translateY(-4px)}
+
+/* ── FEATURES ── */
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:860px){.features-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.features-grid{grid-template-columns:1fr}}
+.feat{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:26px;transition:border-color .3s,transform .25s}
+.feat:hover{border-color:var(--gold-dim);transform:translateY(-3px)}
+.feat.reveal-up:not(.visible){transform:translateY(24px);opacity:0}
+.feat-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px}
+.feat-icon.gold{background:rgba(217,164,65,.1);border:1px solid rgba(217,164,65,.2)}
+.feat-icon.ok{background:rgba(134,179,117,.1);border:1px solid rgba(134,179,117,.2)}
+.feat-icon.bad{background:rgba(204,106,92,.1);border:1px solid rgba(204,106,92,.2)}
+.feat-icon.info{background:rgba(123,167,201,.1);border:1px solid rgba(123,167,201,.2)}
+.feat-icon.warn{background:rgba(224,164,54,.1);border:1px solid rgba(224,164,54,.2)}
+.feat h4{font-family:"Unbounded";font-weight:600;font-size:15px;margin-bottom:8px;line-height:1.25}
+.feat p{font-size:13.5px;color:var(--text-dim);line-height:1.65}
+
+/* ── PRICING ── */
+.pricing-section{background:linear-gradient(180deg,transparent,rgba(217,164,65,.03) 50%,transparent)}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:start}
+@media(max-width:860px){.pricing-grid{grid-template-columns:1fr;max-width:440px;margin:0 auto}}
+.plan{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:28px;position:relative;transition:.3s}
+.plan.recommended{border-color:var(--gold);background:linear-gradient(180deg,rgba(217,164,65,.06),var(--surface));transform:scale(1.02)}
+@media(max-width:860px){.plan.recommended{transform:none}}
+.plan.reveal-up:not(.visible){transform:translateY(28px);opacity:0}
+.plan.recommended.reveal-up:not(.visible){transform:scale(1.02) translateY(28px)}
+.plan-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--gold);color:#1a1104;font-family:"Unbounded";font-weight:700;font-size:10px;padding:5px 14px;border-radius:99px;white-space:nowrap}
+.plan-name{font-family:"Unbounded";font-weight:700;font-size:17px;margin-bottom:6px}
+.plan-desc{font-size:13px;color:var(--text-dim);margin-bottom:24px;line-height:1.55}
+.plan-price{display:flex;align-items:baseline;gap:5px;margin-bottom:6px}
+.plan-price .amount{font-family:"Unbounded";font-weight:800;font-size:32px;color:var(--gold-soft)}
+.plan-price .cur{font-family:"JetBrains Mono";font-size:14px;color:var(--text-dim)}
+.plan-price .per{font-size:12px;color:var(--muted);margin-left:2px}
+.plan-note{font-size:11.5px;color:var(--muted);margin-bottom:22px}
+.plan-divider{height:1px;background:var(--line);margin-bottom:20px}
+.plan-features{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:26px}
+.plan-features li{display:flex;align-items:flex-start;gap:9px;font-size:13.5px;color:var(--text-dim);line-height:1.45}
+.plan-features li::before{content:"✓";color:var(--ok);font-weight:700;flex:none;margin-top:1px}
+.plan-features li.neg{color:var(--muted)}
+.plan-features li.neg::before{content:"—";color:var(--muted)}
+.btn-plan{appearance:none;cursor:pointer;width:100%;padding:13px;border-radius:11px;font-family:"Unbounded";font-weight:600;font-size:13px;transition:.15s;text-align:center;display:block}
+.btn-plan.primary{background:linear-gradient(135deg,#EBC155,var(--gold));border:none;color:#1a1104;box-shadow:0 4px 16px rgba(217,164,65,.3)}
+.btn-plan.primary:hover{filter:brightness(1.06);transform:translateY(-1px)}
+.btn-plan.ghost{background:transparent;border:1px solid var(--line);color:var(--text)}
+.btn-plan.ghost:hover{border-color:var(--gold-dim);background:rgba(217,164,65,.04)}
+.pricing-note{text-align:center;margin-top:24px;font-size:13px;color:var(--text-dim)}
+.pricing-note span{color:var(--ok);font-weight:600}
+
+/* ── SOCIAL PROOF ── */
+.testimonials-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:860px){.testimonials-grid{grid-template-columns:1fr}}
+.testi{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:26px;transition:.3s}
+.testi:hover{border-color:var(--gold-dim)}
+.testi.reveal-up:not(.visible){transform:translateY(24px);opacity:0}
+.testi-quote{font-size:14px;color:var(--text);line-height:1.7;margin-bottom:20px;font-style:italic}
+.testi-quote::before{content:"\201C";font-size:28px;color:var(--gold);line-height:0;vertical-align:-.3em;margin-right:4px;font-style:normal}
+.testi-result{display:inline-flex;align-items:center;gap:6px;background:rgba(134,179,117,.1);border:1px solid rgba(134,179,117,.25);border-radius:99px;padding:5px 12px;font-family:"JetBrains Mono";font-size:11.5px;color:var(--ok);margin-bottom:18px;font-weight:500}
+.testi-author{display:flex;align-items:center;gap:12px}
+.testi-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--surface-2),var(--line));border:2px solid var(--gold-dim);display:flex;align-items:center;justify-content:center;font-size:18px;flex:none}
+.testi-name{font-weight:700;font-size:14px;display:block}
+.testi-biz{font-size:12px;color:var(--text-dim);display:block;margin-top:2px}
+
+/* ── FAQ ── */
+.faq-list{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+.faq-item{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;transition:border-color .2s}
+.faq-item.open{border-color:var(--gold-dim)}
+.faq-q{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px;cursor:pointer;font-weight:600;font-size:15px;line-height:1.4;-webkit-user-select:none;user-select:none}
+.faq-q .ico{width:28px;height:28px;border-radius:8px;background:var(--surface-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:16px;flex:none;transition:transform .25s var(--ease)}
+.faq-item.open .faq-q .ico{transform:rotate(45deg);background:rgba(217,164,65,.1);border-color:rgba(217,164,65,.3)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .35s var(--ease)}
+.faq-item.open .faq-a{max-height:400px}
+.faq-a-inner{padding:0 20px 18px;font-size:14px;color:var(--text-dim);line-height:1.7;border-top:1px solid var(--line)}
+
+/* ── CTA BANNER ── */
+.cta-section{padding:clamp(60px,10vw,100px) clamp(16px,5vw,64px)}
+.cta-box{background:linear-gradient(135deg,rgba(217,164,65,.1) 0%,rgba(217,164,65,.04) 50%,rgba(134,179,117,.06) 100%);border:1px solid rgba(217,164,65,.3);border-radius:24px;padding:clamp(40px,6vw,72px);text-align:center;position:relative;overflow:hidden}
+.cta-box::before{content:"";position:absolute;top:-50%;left:-20%;width:60%;height:200%;background:radial-gradient(ellipse,rgba(217,164,65,.08) 0%,transparent 60%);pointer-events:none}
+.cta-box h2{font-family:"Unbounded";font-weight:800;font-size:clamp(24px,4vw,42px);line-height:1.1;margin-bottom:14px}
+.cta-box p{font-size:16px;color:var(--text-dim);margin-bottom:32px;max-width:48ch;margin-left:auto;margin-right:auto}
+.cta-badges{display:flex;align-items:center;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:20px}
+.cta-badge{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-dim)}
+.cta-badge svg,.cta-badge span.ic{font-size:14px}
+
+/* ── FOOTER ── */
+footer{background:var(--surface);border-top:1px solid var(--line);padding:48px clamp(16px,5vw,64px) 32px}
+.footer-grid{display:grid;grid-template-columns:1.8fr 1fr 1fr 1fr;gap:32px;margin-bottom:40px}
+@media(max-width:720px){.footer-grid{grid-template-columns:1fr 1fr;gap:24px}}
+@media(max-width:440px){.footer-grid{grid-template-columns:1fr}}
+.footer-brand{font-family:"Unbounded";font-weight:700;font-size:15px;color:var(--gold-soft);display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.footer-brand .dot{width:8px;height:8px;border-radius:50%;background:var(--gold)}
+.footer-desc{font-size:13px;color:var(--text-dim);line-height:1.65;max-width:28ch}
+.footer-heading{font-family:"Unbounded";font-weight:600;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-dim);margin-bottom:14px}
+.footer-links{list-style:none;display:flex;flex-direction:column;gap:8px}
+.footer-links a{font-size:13.5px;color:var(--text-dim);transition:.15s}
+.footer-links a:hover{color:var(--gold-soft)}
+.footer-bottom{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:24px}
+.footer-copy{font-size:12.5px;color:var(--muted)}
+.footer-socials{display:flex;gap:8px}
+.footer-social{width:34px;height:34px;border-radius:9px;background:var(--surface-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--text-dim);transition:.15s}
+.footer-social:hover{border-color:var(--gold-dim);color:var(--gold-soft)}
+
+/* ── REVEAL ANIMATIONS ── */
+.reveal-up{transition:opacity .6s var(--ease),transform .6s var(--ease)}
+.reveal-up:not(.visible){opacity:0}
+.reveal-up.visible{opacity:1;transform:translateY(0)!important}
+.reveal-delay-1{transition-delay:.1s}
+.reveal-delay-2{transition-delay:.2s}
+.reveal-delay-3{transition-delay:.3s}
+.reveal-delay-4{transition-delay:.4s}
+
+/* ── MOBILE NAV TOGGLE ── */
+.nav-mobile-btn{display:none;background:transparent;border:1px solid var(--line);border-radius:8px;width:38px;height:38px;align-items:center;justify-content:center;cursor:pointer;color:var(--text);font-size:18px;margin-left:8px}
+@media(max-width:680px){.nav-mobile-btn{display:flex}}
+.mobile-menu{display:none;position:fixed;top:64px;left:0;right:0;background:rgba(14,13,11,.97);backdrop-filter:blur(20px);border-bottom:1px solid var(--line);padding:16px;z-index:99;flex-direction:column;gap:4px}
+.mobile-menu.open{display:flex}
+.mobile-menu a{font-size:15px;color:var(--text-dim);padding:12px 14px;border-radius:9px;transition:.15s;font-weight:500}
+.mobile-menu a:hover{background:var(--surface);color:var(--text)}
+.mobile-menu .sep{height:1px;background:var(--line);margin:8px 0}
+
+/* ── LIVE COUNTER ── */
+@keyframes count-up{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.count-animated{animation:count-up .5s var(--ease) both}
+
+/* ── SECTION BACKGROUNDS ── */
+.bg-surface{background:var(--surface)}
+.bg-gradient{background:linear-gradient(180deg,var(--bg) 0%,var(--surface) 50%,var(--bg) 100%)}
+
+/* ── MEDIA (reduces motion) ── */
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  .reveal-up:not(.visible){opacity:1;transform:none!important}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ NAV ══════════════ -->
+<nav class="nav" id="mainNav">
+  <a href="landing.html" class="nav-brand">
+    <span class="dot"></span>SmartTarget AI
+  </a>
+  <div class="nav-links">
+    <a href="#features">Возможности</a>
+    <a href="#pricing">Тарифы</a>
+    <a href="#demo">Demo</a>
+    <a href="#faq">FAQ</a>
+  </div>
+  <div class="nav-actions">
+    <a href="auth.html?mode=login" class="btn-ghost" style="display:none" id="loginBtn">Войти</a>
+    <a href="auth.html?mode=login" class="btn-ghost">Войти</a>
+    <a href="auth.html?plan=free" class="btn-primary">Начать бесплатно</a>
+  </div>
+  <button class="nav-mobile-btn" id="mobileToggle" onclick="toggleMobile()">☰</button>
+</nav>
+
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#features" onclick="closeMobile()">Возможности</a>
+  <a href="#pricing" onclick="closeMobile()">Тарифы</a>
+  <a href="#demo" onclick="closeMobile()">Demo</a>
+  <a href="#faq" onclick="closeMobile()">FAQ</a>
+  <div class="sep"></div>
+  <a href="auth.html?mode=login">Войти</a>
+  <a href="auth.html?plan=free" style="color:var(--gold-soft);font-weight:700">→ Начать бесплатно</a>
+</div>
+
+<!-- ══════════════ HERO ══════════════ -->
+<section class="hero" id="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-glow-2"></div>
+
+  <div class="hero-badge">
+    <span class="live-dot"></span>
+    Работает прямо сейчас для бизнесов КЗ и РФ
+  </div>
+
+  <h1>
+    AI ведёт рекламу.<br>
+    <span class="line2">Вы видите результат.</span>
+  </h1>
+
+  <p class="hero-sub">
+    <b>Автоматическая оптимизация Meta Ads</b> каждое утро — без вас. AI отключает вампиров, масштабирует победителей и присылает <b>ежедневный отчёт в Telegram.</b>
+  </p>
+
+  <div class="hero-ctas">
+    <a href="auth.html?plan=ai">
+      <button class="btn-hero-main">🤖 Подключить AI-таргетолога — 49 990 ₸</button>
+    </a>
+    <a href="#demo">
+      <button class="btn-hero-secondary">▶ Смотреть как работает AI</button>
+    </a>
+  </div>
+  <p style="font-size:12.5px;color:var(--muted);margin-top:-16px;margin-bottom:0">2 дня бесплатно · потом 49 990 ₸/мес · отмена в любой момент</p>
+
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <span class="val" id="statCampaigns">47</span>
+      <span class="lbl">кампаний оптимизировано сегодня</span>
+    </div>
+    <div class="hero-stat-sep"></div>
+    <div class="hero-stat">
+      <span class="val" id="statCpl">38%</span>
+      <span class="lbl">среднее снижение CPL</span>
+    </div>
+    <div class="hero-stat-sep"></div>
+    <div class="hero-stat">
+      <span class="val" id="statClients">12</span>
+      <span class="lbl">клиентов онлайн</span>
+    </div>
+    <div class="hero-stat-sep"></div>
+    <div class="hero-stat">
+      <span class="val">$1.90</span>
+      <span class="lbl">средний CPL по всем нишам</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ HOW IT WORKS ══════════════ -->
+<section id="demo" class="bg-surface">
+  <div class="container">
+    <div class="section-header text-center">
+      <div class="section-eyebrow reveal-up">Как это работает</div>
+      <h2 class="section-title reveal-up reveal-delay-1">Три шага — и реклама<br>работает без вас</h2>
+      <p class="section-sub reveal-up reveal-delay-2">Не нужен таргетолог. Не нужно следить за кабинетом. AI делает всё сам — вы только получаете заявки.</p>
+    </div>
+
+    <div class="steps">
+      <div class="step reveal-up reveal-delay-1">
+        <div class="step-num">Шаг 01</div>
+        <div class="step-icon">🔗</div>
+        <h3>Подключите Meta Ads кабинет</h3>
+        <p>Выдаёте доступ за 5 минут по нашей инструкции. Никакие пароли нам не нужны — только токен рекламного кабинета.</p>
+      </div>
+      <div class="step reveal-up reveal-delay-2">
+        <div class="step-num">Шаг 02</div>
+        <div class="step-icon">🤖</div>
+        <h3>AI анализирует кампании каждое утро</h3>
+        <p>Ровно в 08:00 AI проверяет все рекламные связки — CPL, ROAS, фазу обучения. Принимает решения и применяет их автоматически.</p>
+      </div>
+      <div class="step reveal-up reveal-delay-3">
+        <div class="step-num">Шаг 03</div>
+        <div class="step-icon">📩</div>
+        <h3>Получаете отчёт в Telegram</h3>
+        <p>Ежедневно — что сделал AI, какие кампании победители, что отключено и почему. Понятно, как новости.</p>
+      </div>
+    </div>
+
+    <!-- Telegram preview -->
+    <div id="demo" style="margin-top:52px;display:flex;justify-content:center">
+      <div style="background:var(--surface-2);border:1px solid var(--line);border-radius:20px;padding:16px;max-width:380px;width:100%">
+        <div style="display:flex;align-items:center;gap:10px;padding-bottom:12px;border-bottom:1px solid var(--line);margin-bottom:14px">
+          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#1a3a5c,#0d6efd22);border:2px solid #0d6efd55;display:flex;align-items:center;justify-content:center;font-size:18px">🤖</div>
+          <div>
+            <div style="font-family:'Unbounded';font-size:12px;font-weight:700;color:var(--gold-soft)">SmartTarget AI</div>
+            <div style="font-size:11px;color:var(--ok)">● онлайн</div>
+          </div>
+          <div style="margin-left:auto;font-size:10px;color:var(--muted);font-family:'JetBrains Mono'">08:03</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:6px 14px 14px 14px;padding:13px 14px;font-size:12.5px;line-height:1.7;color:var(--text);white-space:pre-wrap">📊 <b>Отчёт за 25 июня</b>
+
+✅ Масштабировал: <b>Ботокс Алматы</b>
+   +30% бюджет → CPL был $2.40
+
+❌ Отключил: <b>Контурная пластика</b>
+   0 заявок за 3 дня, $180 потрачено
+
+🔄 Тест запущен: <b>Лазер 25-34</b>
+   Новая аудитория, жду 3 дня
+
+💰 Итого: <b>$340 → 18 заявок</b>
+   CPL: <span style="color:var(--ok)">$18.90</span> (↓ на 22% vs прошлая нед.)
+
+<span style="color:var(--muted)">Следующий анализ: завтра 08:00</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ FEATURES ══════════════ -->
+<section id="features">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-eyebrow reveal-up">Возможности</div>
+      <h2 class="section-title reveal-up reveal-delay-1">Всё что делает таргетолог —<br>только без выходных</h2>
+      <p class="section-sub reveal-up reveal-delay-2">AI работает 24/7, не болеет, не уходит в отпуск и не просит повышения.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feat reveal-up reveal-delay-1">
+        <div class="feat-icon gold">🌅</div>
+        <h4>Анализ каждое утро в 08:00</h4>
+        <p>AI проверяет все рекламные связки каждое утро. Никаких пропусков — даже в праздники и выходные дни.</p>
+      </div>
+      <div class="feat reveal-up reveal-delay-2">
+        <div class="feat-icon bad">🧛</div>
+        <h4>Отключает вампиров</h4>
+        <p>Кампании с высоким CPL и нулём заявок? AI их находит и отключает автоматически. Деньги перестают утекать.</p>
+      </div>
+      <div class="feat reveal-up reveal-delay-3">
+        <div class="feat-icon ok">🚀</div>
+        <h4>Масштабирует победителей</h4>
+        <p>Если кампания показывает отличный CPL — AI автоматически увеличивает бюджет на 20–30%, сохраняя фазу обучения.</p>
+      </div>
+      <div class="feat reveal-up reveal-delay-1">
+        <div class="feat-icon info">📩</div>
+        <h4>Telegram-отчёты каждый день</h4>
+        <p>Ежедневный отчёт: что сделал AI, сколько потрачено, сколько заявок. Читается за 30 секунд.</p>
+      </div>
+      <div class="feat reveal-up reveal-delay-2">
+        <div class="feat-icon warn">🧪</div>
+        <h4>Автоматические A/B тесты</h4>
+        <p>AI самостоятельно тестирует новые аудитории и форматы. Всегда есть резерв роста — следующий победитель уже тестируется.</p>
+      </div>
+      <div class="feat reveal-up reveal-delay-3">
+        <div class="feat-icon gold">🧠</div>
+        <h4>Уважает фазу обучения Meta</h4>
+        <p>Самая частая ошибка — ломать алгоритм ежедневными правками. AI знает это и действует аккуратно, без сброса обучения.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ PRICING ══════════════ -->
+<section id="pricing" class="pricing-section bg-gradient">
+  <div class="container">
+    <div class="section-header text-center">
+      <div class="section-eyebrow reveal-up">Тарифы</div>
+      <h2 class="section-title reveal-up reveal-delay-1">Прозрачные цены,<br>без скрытых доплат</h2>
+      <p class="section-sub reveal-up reveal-delay-2">Первые 2 дня бесплатно на любом тарифе. Потом — автоматическое продление. Отменить можно в любой момент.</p>
+    </div>
+
+    <div class="pricing-grid">
+
+      <!-- AI Plan — ХИТ ПРОДАЖ -->
+      <div class="plan recommended reveal-up reveal-delay-1">
+        <div class="plan-badge">🔥 Хит продаж</div>
+        <div class="plan-name" style="color:var(--gold-soft)">AI-таргетолог</div>
+        <div class="plan-desc">AI сам ведёт рекламу. Вы только наблюдаете за результатом.</div>
+        <div class="plan-price">
+          <span class="amount">49 990</span>
+          <span class="cur">₸</span>
+          <span class="per">/мес</span>
+        </div>
+        <div class="plan-note">≈ $110 · 2 дня бесплатно</div>
+        <div class="plan-divider"></div>
+        <ul class="plan-features">
+          <li>До 15 активных кампаний</li>
+          <li>Анализ и оптимизация каждое утро в 08:00</li>
+          <li>Автоматическое отключение вампиров</li>
+          <li>Масштабирование победителей +30%</li>
+          <li>Telegram-отчёт каждый день</li>
+          <li>A/B тестирование аудиторий</li>
+          <li>Защита фазы обучения Meta</li>
+          <li>Без ручной работы — AI делает всё сам</li>
+        </ul>
+        <a href="auth.html?plan=ai" class="btn-plan primary" style="font-size:14px;padding:16px">Подключить AI-таргетолога →</a>
+      </div>
+
+      <!-- Expert Plan -->
+      <div class="plan reveal-up reveal-delay-2">
+        <div class="plan-name">Expert-тариф</div>
+        <div class="plan-desc">AI + стратег-эксперт + готовые креативы от команды.</div>
+        <div class="plan-price">
+          <span class="amount">149 990</span>
+          <span class="cur">₸</span>
+          <span class="per">/мес</span>
+        </div>
+        <div class="plan-note">≈ $330 · 2 дня бесплатно</div>
+        <div class="plan-divider"></div>
+        <ul class="plan-features">
+          <li>До 30 активных кампаний</li>
+          <li>Всё из AI-тарифа</li>
+          <li>Стратег-эксперт на связи</li>
+          <li>Еженедельный разбор кампаний</li>
+          <li>4 готовых креатива в месяц от команды</li>
+          <li>Приоритетная поддержка 24/7</li>
+        </ul>
+        <a href="auth.html?plan=expert" class="btn-plan ghost">Начать бесплатно →</a>
+      </div>
+
+      <!-- Agency Plan -->
+      <div class="plan reveal-up reveal-delay-3">
+        <div class="plan-name">Agency</div>
+        <div class="plan-desc">Для агентств и крупного бизнеса с несколькими кабинетами.</div>
+        <div class="plan-price">
+          <span class="amount">249 990</span>
+          <span class="cur">₸</span>
+          <span class="per">/мес</span>
+        </div>
+        <div class="plan-note">≈ $550 · 2 дня бесплатно</div>
+        <div class="plan-divider"></div>
+        <ul class="plan-features">
+          <li>До 100 активных кампаний</li>
+          <li>Несколько рекламных аккаунтов</li>
+          <li>10 готовых креативов в месяц от команды</li>
+          <li>Белая метка (White Label)</li>
+          <li>Командный доступ (до 5 человек)</li>
+          <li>Всё из Expert-тарифа</li>
+          <li>Выделенный аккаунт-менеджер</li>
+          <li>Кастомные интеграции по запросу</li>
+        </ul>
+        <a href="auth.html?plan=agency" class="btn-plan ghost">Начать бесплатно →</a>
+      </div>
+
+    </div>
+
+    <p class="pricing-note">
+      <span>2 дня бесплатно</span> · потом автоматическое списание · отменить можно в любой момент без штрафов
+    </p>
+  </div>
+</section>
+
+<!-- ══════════════ SOCIAL PROOF ══════════════ -->
+<section class="bg-surface">
+  <div class="container">
+    <div class="section-header text-center">
+      <div class="section-eyebrow reveal-up">Результаты клиентов</div>
+      <h2 class="section-title reveal-up reveal-delay-1">Реальные бизнесы.<br>Реальные цифры.</h2>
+      <p class="section-sub reveal-up reveal-delay-2">Наши клиенты — малый и средний бизнес Казахстана и России, которые тратили время на рекламу. Теперь они тратят только деньги.</p>
+    </div>
+
+    <div class="testimonials-grid">
+
+      <div class="testi reveal-up reveal-delay-1">
+        <p class="testi-quote">Раньше сама следила за рекламой каждый день, меняла бюджеты, писала таргетологу. Теперь просто читаю отчёт в телефоне за завтраком. Заявок стало больше, трачу меньше.</p>
+        <div class="testi-result">↓ CPL с $4.20 → $1.80</div>
+        <div class="testi-author">
+          <div class="testi-avatar">💆</div>
+          <div>
+            <span class="testi-name">Айгерим Садыкова</span>
+            <span class="testi-biz">Клиника красоты Aura, Алматы</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="testi reveal-up reveal-delay-2">
+        <p class="testi-quote">Мы интернет-магазин детских товаров. Запускали рекламу сами, каждая заявка стоила 2 500 тенге. После SmartTarget AI — меньше 900 тенге. AI сам нашёл аудиторию, которую мы никогда бы не попробовали.</p>
+        <div class="testi-result">↓ Стоимость заявки в 2.8 раза</div>
+        <div class="testi-author">
+          <div class="testi-avatar">🛒</div>
+          <div>
+            <span class="testi-name">Данияр Ергалиев</span>
+            <span class="testi-biz">KidStore.kz, Нур-Султан</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="testi reveal-up reveal-delay-3">
+        <p class="testi-quote">У нас юридические услуги — конкурентная ниша. Пробовали разных таргетологов, каждый говорил "дайте время". AI за первые 2 недели уже показал результат, и никаких отговорок — всё прозрачно в отчёте.</p>
+        <div class="testi-result">+240% заявок за месяц</div>
+        <div class="testi-author">
+          <div class="testi-avatar">⚖️</div>
+          <div>
+            <span class="testi-name">Марат Ахметов</span>
+            <span class="testi-biz">LexGroup, Алматы</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ FAQ ══════════════ -->
+<section id="faq">
+  <div class="container">
+    <div class="section-header text-center">
+      <div class="section-eyebrow reveal-up">Вопросы и ответы</div>
+      <h2 class="section-title reveal-up reveal-delay-1">Частые вопросы</h2>
+    </div>
+
+    <div class="faq-list reveal-up">
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Нужен ли мне доступ к Meta Ads Business Manager?
+          <div class="ico">+</div>
+        </div>
+        <div class="faq-a">
+          <div class="faq-a-inner">
+            Да, вам нужен действующий рекламный кабинет Meta Ads. После регистрации мы отправим подробную инструкцию, как выдать нам доступ — это занимает 5 минут. Никакие пароли нам не нужны: только токен рекламного кабинета.
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Что если AI примет неверное решение?
+          <div class="ico">+</div>
+        </div>
+        <div class="faq-a">
+          <div class="faq-a-inner">
+            Перед каждым действием с бюджетом вы получаете уведомление в Telegram с возможностью отменить. Кроме того, в личном кабинете вся история действий AI — вы всегда видите, что и почему было сделано. У нас 94% решений подтверждаются клиентами без изменений.
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Как быстро видны результаты?
+          <div class="ico">+</div>
+        </div>
+        <div class="faq-a">
+          <div class="faq-a-inner">
+            Первые заметные результаты — снижение CPL и оптимизация структуры кампаний — обычно видны через 7–14 дней. Это связано с тем, что Meta требует время для фазы обучения при изменении бюджетов. AI уважает этот процесс и не торопит алгоритм.
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Можно ли отменить подписку в любой момент?
+          <div class="ico">+</div>
+        </div>
+        <div class="faq-a">
+          <div class="faq-a-inner">
+            Да, без штрафов и без звонков "а почему уходите". Отмена — одна кнопка в личном кабинете. Подписка продолжает действовать до конца оплаченного периода, после этого всё автоматически останавливается.
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Какой минимальный рекламный бюджет?
+          <div class="ico">+</div>
+        </div>
+        <div class="faq-a">
+          <div class="faq-a-inner">
+            Рекомендуем от $10/день на рекламный кабинет. При меньших бюджетах Meta не может нормально обучить алгоритм, и эффективность будет ограниченной. Это ограничение Meta, не наше — мы работаем с любым бюджетом, но рекомендуем реалистично смотреть на результаты.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ CTA ══════════════ -->
+<section class="cta-section">
+  <div class="container">
+    <div class="cta-box reveal-up">
+      <div class="section-eyebrow" style="margin-bottom:18px">Начните сегодня</div>
+      <h2>2 дня бесплатно.<br>Без карты — просто попробуйте.</h2>
+      <p>Подключите кабинет, и AI начнёт анализировать уже с завтрашнего утра. За 2 дня вы увидите, как это работает.</p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <a href="auth.html?plan=free">
+          <button class="btn-hero-main">Начать бесплатно →</button>
+        </a>
+        <a href="ai-targetolog-demo-day.html">
+          <button class="btn-hero-secondary">Посмотреть демо-день</button>
+        </a>
+      </div>
+      <div class="cta-badges">
+        <span class="cta-badge">🔒 SSL защита</span>
+        <span class="cta-badge">✅ Без скрытых платежей</span>
+        <span class="cta-badge">💳 Kaspi Pay · Карта</span>
+        <span class="cta-badge">🇰🇿 Поддержка на казахском и русском</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ FOOTER ══════════════ -->
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand"><span class="dot"></span>SmartTarget AI</div>
+        <p class="footer-desc">AI-таргетолог для Meta Ads. Автоматическая оптимизация, ежедневные отчёты, реальные результаты.</p>
+        <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+          <span style="font-size:11.5px;background:var(--surface-2);border:1px solid var(--line);border-radius:99px;padding:4px 10px;color:var(--text-dim)">🇰🇿 Казахстан</span>
+          <span style="font-size:11.5px;background:var(--surface-2);border:1px solid var(--line);border-radius:99px;padding:4px 10px;color:var(--text-dim)">🇷🇺 Россия</span>
+        </div>
+      </div>
+      <div>
+        <div class="footer-heading">Продукт</div>
+        <ul class="footer-links">
+          <li><a href="#features">Возможности</a></li>
+          <li><a href="#pricing">Тарифы</a></li>
+          <li><a href="ai-targetolog-demo-day.html">Демо-день</a></li>
+          <li><a href="ai-targetolog-app.html">Личный кабинет</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-heading">Компания</div>
+        <ul class="footer-links">
+          <li><a href="#">О нас</a></li>
+          <li><a href="#">Блог</a></li>
+          <li><a href="#">Партнёрам</a></li>
+          <li><a href="#">Вакансии</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-heading">Поддержка</div>
+        <ul class="footer-links">
+          <li><a href="#faq">FAQ</a></li>
+          <li><a href="#">Telegram</a></li>
+          <li><a href="#">WhatsApp</a></li>
+          <li><a href="#">info@smarttarget.ai</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span class="footer-copy">© 2026 SmartTarget AI · ТОО «СмартТаргет» · ИИН 260625901234</span>
+      <div class="footer-socials">
+        <a href="#" class="footer-social">📱</a>
+        <a href="#" class="footer-social">✈️</a>
+        <a href="#" class="footer-social">▶</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ── NAV SCROLL ──
+const nav = document.getElementById('mainNav');
+window.addEventListener('scroll', () => {
+  nav.classList.toggle('scrolled', window.scrollY > 20);
+}, {passive: true});
+
+// ── MOBILE MENU ──
+function toggleMobile() {
+  document.getElementById('mobileMenu').classList.toggle('open');
+}
+function closeMobile() {
+  document.getElementById('mobileMenu').classList.remove('open');
+}
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.mobile-menu') && !e.target.closest('.nav-mobile-btn')) {
+    closeMobile();
+  }
+});
+
+// ── FAQ ACCORDION ──
+function toggleFaq(el) {
+  const item = el.closest('.faq-item');
+  const isOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+  if (!isOpen) item.classList.add('open');
+}
+
+// ── INTERSECTION OBSERVER (scroll reveal) ──
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+document.querySelectorAll('.reveal-up').forEach(el => observer.observe(el));
+
+// ── LIVE STATS COUNTER ──
+function animateCount(el, target, suffix = '', duration = 1800) {
+  let start = 0;
+  const step = target / (duration / 16);
+  const update = () => {
+    start = Math.min(start + step, target);
+    el.textContent = Math.floor(start) + suffix;
+    if (start < target) requestAnimationFrame(update);
+  };
+  requestAnimationFrame(update);
+}
+
+// Animate stats when hero is visible
+const heroObs = new IntersectionObserver((entries) => {
+  if (entries[0].isIntersecting) {
+    setTimeout(() => {
+      animateCount(document.getElementById('statCampaigns'), 47);
+      animateCount(document.getElementById('statCpl'), 38, '%');
+      animateCount(document.getElementById('statClients'), 12);
+    }, 400);
+    heroObs.disconnect();
+  }
+}, { threshold: 0.3 });
+heroObs.observe(document.querySelector('.hero-stats'));
+
+// ── LIVE COUNTER (simulate real-time) ──
+let campaigns = 47;
+let clients = 12;
+setInterval(() => {
+  const rnd = Math.random();
+  if (rnd < 0.3) {
+    campaigns++;
+    const el = document.getElementById('statCampaigns');
+    el.style.transform = 'scale(1.15)';
+    el.textContent = campaigns;
+    setTimeout(() => el.style.transform = '', 200);
+  } else if (rnd < 0.45 && clients < 18) {
+    clients++;
+    const el = document.getElementById('statClients');
+    el.style.transform = 'scale(1.15)';
+    el.textContent = clients;
+    setTimeout(() => el.style.transform = '', 200);
+  }
+}, 4000);
+</script>
+</body>
+</html>

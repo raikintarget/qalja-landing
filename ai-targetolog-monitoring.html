@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI-таргетолог — мониторинг в реальном времени</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0E0D0B;--surface:#181613;--surface-2:#221F19;--line:#2F2A22;
+    --gold:#D9A441;--gold-soft:#EBD7A6;--gold-dim:#8A6E36;
+    --text:#F2ECDD;--text-dim:#9A9384;--muted:#6E685C;
+    --ok:#86B375;--bad:#CC6A5C;--warn:#E0A436;
+    --r:14px;--ease:cubic-bezier(.22,.61,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:radial-gradient(1000px 600px at 50% -15%,#1c1813 0,transparent 60%),var(--bg);
+    color:var(--text);font-family:"Manrope",system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;
+    padding:max(18px,env(safe-area-inset-top)) 16px max(24px,env(safe-area-inset-bottom))}
+  .wrap{max-width:940px;margin:0 auto}
+
+  .top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+  .brand{display:flex;align-items:center;gap:8px;font-family:"Unbounded";font-weight:600;font-size:13px;letter-spacing:.02em;color:var(--gold-soft)}
+  .brand .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px rgba(217,164,65,.16)}
+  .watcher{margin-left:auto;display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text-dim);
+    border:1px solid var(--line);border-radius:99px;padding:6px 12px}
+  .watcher .e{width:6px;height:6px;border-radius:50%;background:var(--gold)}
+
+  .banner{display:flex;align-items:center;gap:13px;flex-wrap:wrap;
+    background:linear-gradient(135deg,rgba(134,179,117,.1),rgba(217,164,65,.07));
+    border:1px solid rgba(134,179,117,.32);border-radius:var(--r);padding:14px 16px;margin-bottom:16px}
+  .banner .live{width:11px;height:11px;border-radius:50%;background:var(--ok);flex:none;animation:blink 1.2s infinite}
+  @keyframes blink{50%{opacity:.3}}
+  .banner b{font-family:"Unbounded";font-weight:600;font-size:14.5px;display:block}
+  .banner small{color:var(--text-dim);font-size:12.5px}
+  .ctrls{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .cbtn{appearance:none;cursor:pointer;font-family:inherit;font-size:13px;color:var(--gold-soft);
+    background:transparent;border:1px solid var(--gold-dim);border-radius:9px;padding:8px 12px;
+    display:inline-flex;align-items:center;gap:6px;transition:.15s}
+  .cbtn:hover{background:rgba(217,164,65,.08)}
+  .cbtn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(217,164,65,.3)}
+  .speed{display:flex;gap:3px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:3px}
+  .speed button{appearance:none;border:none;background:none;cursor:pointer;font-family:"JetBrains Mono",monospace;
+    font-size:12px;color:var(--text-dim);padding:6px 9px;border-radius:6px}
+  .speed button.on{background:var(--gold);color:#1a1305;font-weight:500}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px}
+  @media(max-width:600px){.kpis{grid-template-columns:repeat(2,1fr)}}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px}
+  .kpi small{display:block;font-size:11px;color:var(--text-dim);margin-bottom:5px}
+  .kpi b{font-family:"Unbounded";font-weight:600;font-size:21px;display:block;transition:color .3s}
+  .kpi .d{font-size:11.5px;font-weight:600;margin-top:3px;min-height:15px}
+  .kpi .d.up{color:var(--ok)} .kpi .d.dn{color:var(--ok)}
+  .st-learn{color:var(--warn)} .st-active{color:var(--ok)}
+
+  .grid{display:grid;grid-template-columns:1fr;gap:14px}
+  @media(min-width:780px){.grid{grid-template-columns:1.15fr .85fr}}
+  .pan{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+  .pan h3{font-family:"Unbounded";font-weight:500;font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--text-dim);margin-bottom:13px;display:flex;align-items:center;justify-content:space-between}
+  .pan h3 .tag{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--gold-dim);letter-spacing:0;text-transform:none}
+
+  /* chart */
+  .chart{width:100%;height:150px;display:block}
+  .clbl{font-family:"JetBrains Mono",monospace;font-size:10px;fill:var(--muted)}
+  .cgrid{stroke:var(--line)} .cline{stroke:var(--gold);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .carea{fill:rgba(217,164,65,.07)} .cdot{fill:var(--gold)} .ctarget{stroke:var(--gold-dim);stroke-width:1;stroke-dasharray:3 3}
+  .cfoot{display:flex;justify-content:space-between;font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--muted);margin-top:6px}
+
+  /* learning + A/B */
+  .mini{margin-top:16px}
+  .mrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .mrow:last-child{border-bottom:none}
+  .mrow .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .chiplrn{font-family:"Unbounded";font-weight:500;font-size:10.5px;padding:4px 9px;border-radius:99px;white-space:nowrap}
+  .chiplrn.learn{background:rgba(224,164,54,.12);color:var(--warn)}
+  .chiplrn.active{background:rgba(134,179,117,.14);color:var(--ok)}
+  .chiplrn.off{background:rgba(204,106,92,.14);color:var(--bad)}
+
+  .abt{margin-top:16px;border:1px solid var(--line);border-radius:11px;padding:13px;background:var(--surface-2);
+    opacity:.45;transition:opacity .4s,border-color .4s}
+  .abt.on{opacity:1;border-color:var(--gold-dim)}
+  .abt .h{display:flex;align-items:center;justify-content:space-between;font-size:13px;margin-bottom:9px}
+  .abt .h b{font-family:"Unbounded";font-weight:500;font-size:13px}
+  .abt .h small{font-family:"JetBrains Mono",monospace;color:var(--gold-soft);font-size:12px}
+  .abar{height:7px;background:var(--surface);border-radius:99px;overflow:hidden}
+  .abar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold-dim),var(--gold));transition:width .6s var(--ease)}
+  .abt .win{font-size:12px;color:var(--ok);margin-top:9px;display:none}
+  .abt.done .win{display:block}
+
+  /* feeds */
+  .feed{max-height:240px;overflow:auto;font-family:"JetBrains Mono",monospace;font-size:12px;line-height:1.7;color:var(--text-dim)}
+  .feed div{opacity:0;animation:fade .4s forwards} .feed .tm{color:var(--gold-dim)} .feed .hl{color:var(--gold-soft)}
+  .feed .act{color:var(--ok)} .feed .off{color:var(--bad)}
+  @keyframes fade{to{opacity:1}}
+
+  .reports{display:flex;flex-direction:column;gap:10px;max-height:300px;overflow:auto}
+  .rep{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:12px 13px;
+    animation:slidein .4s var(--ease) both}
+  @keyframes slidein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .rep .rh{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .rep .rh b{font-family:"Unbounded";font-weight:500;font-size:12.5px;color:var(--gold-soft)}
+  .rep .rh small{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--muted)}
+  .rep p{font-size:12.5px;line-height:1.6;color:var(--text-dim);white-space:pre-wrap}
+
+  .note{text-align:center;color:var(--muted);font-size:12px;margin-top:18px}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  .feed::-webkit-scrollbar,.reports::-webkit-scrollbar{width:5px}
+  .feed::-webkit-scrollbar-thumb,.reports::-webkit-scrollbar-thumb{background:var(--line);border-radius:9px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand"><span class="dot"></span>@smarttarget.ai</div>
+    <span class="watcher"><span class="e"></span>Вы: наблюдатель</span>
+  </div>
+
+  <div class="banner">
+    <span class="live"></span>
+    <div><b id="bTitle">Автопилот активен — система работает сама</b>
+      <small id="bSub">Жан Сұлу · Бьюти-клиника · день 1 из 7</small></div>
+    <div class="ctrls">
+      <div class="speed" id="speed">
+        <button data-s="1" class="on">1×</button><button data-s="2">2×</button><button data-s="4">4×</button>
+      </div>
+      <button class="cbtn" id="pp"><span id="ppic">❚❚</span> <span id="pptx">Пауза</span></button>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><small>Расход</small><b id="kSpend">$0</b><div class="d" id="kSpendD"></div></div>
+    <div class="kpi"><small>Заявок</small><b id="kLeads">0</b><div class="d up" id="kLeadsD"></div></div>
+    <div class="kpi"><small>CPL сейчас</small><b id="kCpl">—</b><div class="d dn" id="kCplD"></div></div>
+    <div class="kpi"><small>Статус кампаний</small><b id="kStatus" class="st-learn" style="font-size:16px;padding-top:3px">Обучение</b><div class="d" id="kStatusD" style="color:var(--text-dim)"></div></div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="pan">
+        <h3>Динамика CPL <span class="tag" id="cTag">цель ≤ $2.00</span></h3>
+        <svg class="chart" id="chart" viewBox="0 0 330 150" preserveAspectRatio="none" role="img" aria-label="График снижения стоимости заявки по дням"></svg>
+        <div class="cfoot"><span>день 1</span><span id="cNow">сейчас</span></div>
+      </div>
+      <div class="pan mini">
+        <h3>Кампании · фаза обучения Meta</h3>
+        <div id="camps"></div>
+        <div class="abt" id="abt">
+          <div class="h"><b>A/B-тест аудитории</b><small id="abtPct">ожидает</small></div>
+          <div class="abar"><i id="abtBar"></i></div>
+          <div class="win" id="abtWin">✓ Победитель: широкая + Advantage+ Audience</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="pan" style="margin-bottom:14px">
+        <h3>Что делает AI <span class="tag">live</span></h3>
+        <div class="feed" id="feed" aria-live="polite"></div>
+      </div>
+      <div class="pan">
+        <h3>Отчёты в Telegram</h3>
+        <div class="reports" id="reports"></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">Демо · симуляция недели работы. На реальном аккаунте система действует через Meta API, уважая фазу обучения и Advantage+.</p>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const reduce=matchMedia("(prefers-reduced-motion:reduce)").matches;
+
+const DAYS=[
+  { cpl:4.20, spend:42, leads:10, status:"learn", statusD:"обучение 1/3 дн",
+    camps:[["Лазерная эпиляция −40%","learn"],["Уход «Коллаген»","learn"],["Ботокс · акция","learn"],["Чистка лица","learn"]],
+    abt:null,
+    acts:[["08:00",'Старт. Кампании в обучении — <span class="hl">наблюдаю, не редактирую</span>'],
+          ["12:30",'Advantage+ Creative собрал 6 комбинаций из 2 ассетов']],
+    report:["День 1 · Запуск","Кампании в фазе обучения Meta — не вмешиваюсь, даю алгоритму откалиброваться (~7 дн).\nРасход $42 · Заявок 10 · CPL $4.20"] },
+
+  { cpl:3.90, spend:82, leads:22, status:"learn", statusD:"обучение 2/3 дн",
+    camps:[["Лазерная эпиляция −40%","learn"],["Уход «Коллаген»","learn"],["Ботокс · акция","learn"],["Чистка лица","learn"]],
+    abt:null,
+    acts:[["08:00",'Обучение продолжается. Метрики стабилизируются'],
+          ["16:40",'Не трогаю связки в обучении — преждевременная правка сбросит калибровку']],
+    report:["День 2 · Обучение","Идёт фаза обучения. Advantage+ Creative тестирует комбинации.\nCPL $3.90 — тренд вниз ✓"] },
+
+  { cpl:3.40, spend:127, leads:38, status:"learn", statusD:"обучение 3/3 дн",
+    camps:[["Лазерная эпиляция −40%","active"],["Уход «Коллаген»","learn"],["Ботокс · акция","learn"],["Чистка лица","learn"]],
+    abt:null,
+    acts:[["08:00",'«Лазер −40%» <span class="hl">вышла из обучения</span> — CPL ниже целевого'],
+          ["15:10",'«Чистка лица» — кандидат на отключение, <span class="hl">жду значимости</span>']],
+    report:["День 3 · Почти готово","Первая связка завершила обучение. CPL $3.40.\nЗавтра принимаю первые решения."] },
+
+  { cpl:2.90, spend:177, leads:58, status:"active", statusD:"обучение завершено",
+    camps:[["Лазерная эпиляция −40%","active"],["Уход «Коллаген»","active"],["Ботокс · акция","active"],["Чистка лица","off"]],
+    abt:{pct:15,label:"широкая vs Lookalike 1%"},
+    acts:[["08:00",'Обучение завершено. <span class="hl">Принимаю решения</span>'],
+          ["08:01",'<span class="off">⏸ Отключил «Чистка лица»</span> — CPL $10, 4 дня без заявок'],
+          ["08:02",'<span class="act">📈 «Лазер −40%» +30% бюджета</span> — лучшая связка'],
+          ["08:05",'<span class="act">🧪 Запустил A/B-тест аудитории</span>: широкая vs Lookalike 1%']],
+    report:["День 4 · Действия","Обучение завершено. Действия:\n⏸ отключил «Чистка лица» (вампир)\n📈 масштабировал «Лазер −40%»\n🧪 запустил A/B-тест аудитории\nCPL $2.90"] },
+
+  { cpl:2.60, spend:229, leads:82, status:"active", statusD:"всё активно",
+    camps:[["Лазерная эпиляция −40%","active"],["Уход «Коллаген»","active"],["Ботокс · акция","active"],["Лазер · летний пакет","active"]],
+    abt:{pct:60,label:"широкая vs Lookalike 1%"},
+    acts:[["08:00",'A/B-тест: <span class="hl">сбор данных (60%)</span>'],
+          ["11:20",'Advantage+ продвинул комбинацию «летний пакет» в лидеры']],
+    report:["День 5 · Тест идёт","A/B-тест собирает данные. Advantage+ нашёл сильную комбинацию.\nCPL $2.60"] },
+
+  { cpl:2.30, spend:284, leads:110, status:"active", statusD:"всё активно",
+    camps:[["Лазерная эпиляция −40%","active"],["Уход «Коллаген»","active"],["Лазер · летний пакет","active"],["Широкая + Adv. Audience","active"]],
+    abt:{pct:95,label:"широкая vs Lookalike 1%",done:true},
+    acts:[["08:00",'A/B-тест: <span class="hl">95% значимость достигнута</span>'],
+          ["08:03",'<span class="act">✓ Победитель: широкая + Advantage+ Audience</span> — закрепил'],
+          ["08:06",'<span class="act">🔄 Новый креатив из пула</span> — на тест']],
+    report:["День 6 · Победитель","A/B-тест завершён (95%). Победила широкая + Advantage+ Audience — закрепил.\nCPL $2.30"] },
+
+  { cpl:2.10, spend:342, leads:142, status:"active", statusD:"стратегия закреплена",
+    camps:[["Широкая + Adv. Audience","active"],["Лазер · летний пакет","active"],["Уход «Коллаген»","active"],["Лазер −40%","active"]],
+    abt:{pct:100,label:"завершён",done:true},
+    acts:[["08:00",'Недельный отчёт сформирован'],
+          ["08:01",'<span class="act">Стратегия закреплена. CPL за неделю −50%</span>'],
+          ["08:02",'Следующий тест запланирован: <span class="hl">креатив</span>']],
+    report:["📈 Итог недели","CPL $4.20 → $2.10 (−50%) · Заявок 142/нед\nОтключено 1 вампир · масштаб 2 связки · 1 A/B-тест\nСтратегия закреплена. Вы только наблюдали."] },
+];
+
+const TARGET=2.0, YMIN=1.6, YMAX=4.6;
+const PADL=30, PADR=8, PADT=10, PADB=22, W=330, H=150;
+function xAt(i){ return PADL + (W-PADL-PADR) * (DAYS.length>1? i/(DAYS.length-1):0); }
+function yAt(v){ return PADT + (H-PADT-PADB) * (1-(v-YMIN)/(YMAX-YMIN)); }
+
+function drawChart(pts){
+  const svg=$("#chart");
+  let g="";
+  for(let v=2;v<=4;v++){ const y=yAt(v);
+    g+=`<line class="cgrid" x1="${PADL}" y1="${y}" x2="${W-PADR}" y2="${y}"/>`;
+    g+=`<text class="clbl" x="4" y="${y+3}">$${v}</text>`; }
+  const ty=yAt(TARGET);
+  g+=`<line class="ctarget" x1="${PADL}" y1="${ty}" x2="${W-PADR}" y2="${ty}"/>`;
+  if(pts.length){
+    const line=pts.map((v,i)=>`${i?'L':'M'}${xAt(i).toFixed(1)} ${yAt(v).toFixed(1)}`).join(" ");
+    const area=`M${xAt(0).toFixed(1)} ${(H-PADB)} `+pts.map((v,i)=>`L${xAt(i).toFixed(1)} ${yAt(v).toFixed(1)}`).join(" ")+` L${xAt(pts.length-1).toFixed(1)} ${(H-PADB)} Z`;
+    g+=`<path class="carea" d="${area}"/><path class="cline" d="${line}"/>`;
+    pts.forEach((v,i)=>{ g+=`<circle class="cdot" cx="${xAt(i).toFixed(1)}" cy="${yAt(v).toFixed(1)}" r="${i===pts.length-1?3.5:2.5}"/>`; });
+  }
+  svg.innerHTML=g;
+}
+
+function setText(id,t){ $(id).textContent=t; }
+let day=-1, timer=null, speed=1, playing=true;
+const pts=[];
+
+function renderDay(d){
+  const D=DAYS[d];
+  pts.push(D.cpl); drawChart(pts);
+  setText("#kSpend","$"+D.spend);
+  setText("#kSpendD","накопл.");
+  setText("#kLeads",D.leads);
+  $("#kLeadsD").textContent = d>0? "+"+(D.leads-DAYS[d-1].leads)+" за день":"старт";
+  setText("#kCpl","$"+D.cpl.toFixed(2));
+  $("#kCplD").innerHTML = d>0? "▼ с $"+DAYS[d-1].cpl.toFixed(2):"&nbsp;";
+  const stEl=$("#kStatus");
+  stEl.textContent = D.status==="learn"?"Обучение":"Активно";
+  stEl.className = D.status==="learn"?"st-learn":"st-active";
+  setText("#kStatusD",D.statusD);
+  setText("#cNow","день "+(d+1));
+  setText("#bSub","Жан Сұлу · Бьюти-клиника · день "+(d+1)+" из 7");
+
+  $("#camps").innerHTML=D.camps.map(([nm,st])=>{
+    const lbl={learn:"Обучение",active:"Активна",off:"Отключена"}[st];
+    return `<div class="mrow"><span class="nm">${nm}</span><span class="chiplrn ${st}">${lbl}</span></div>`;
+  }).join("");
+
+  const abt=$("#abt");
+  if(D.abt){ abt.classList.add("on");
+    $("#abtBar").style.width=D.abt.pct+"%";
+    $("#abtPct").textContent=D.abt.done?(D.abt.pct>=100?"завершён":"95% ✓"):D.abt.pct+"%";
+    abt.classList.toggle("done",!!D.abt.done);
+    $("#abt .h b").textContent= D.abt.done&&D.abt.pct>=100? "A/B-тест завершён":"A/B-тест аудитории";
+  } else { abt.classList.remove("on","done"); $("#abtPct").textContent="ожидает"; $("#abtBar").style.width="0"; }
+
+  const feed=$("#feed");
+  D.acts.forEach(([t,h],i)=>{
+    const el=document.createElement("div");
+    el.style.animationDelay=(i*0.25)+"s";
+    el.innerHTML=`<span class="tm">${t}</span> ${h}`;
+    feed.appendChild(el);
+  });
+  feed.scrollTop=feed.scrollHeight;
+
+  const rep=document.createElement("div");
+  rep.className="rep";
+  rep.innerHTML=`<div class="rh"><b>${D.report[0]}</b><small>08:0${d} ✓✓</small></div><p>${D.report[1]}</p>`;
+  $("#reports").appendChild(rep);
+  $("#reports").scrollTop=$("#reports").scrollHeight;
+}
+
+function tick(){
+  day++;
+  if(day>=DAYS.length){
+    playing=false; updatePP();
+    $("#bTitle").textContent="Неделя завершена — система работала сама";
+    $("#cTag").textContent="результат: −50%";
+    return;
+  }
+  renderDay(day);
+  if(playing) schedule();
+}
+function schedule(){ clearTimeout(timer); timer=setTimeout(tick, (reduce?400:2300)/speed); }
+function updatePP(){ $("#ppic").textContent=playing?"❚❚":"▶"; $("#pptx").textContent=playing?"Пауза":"Продолжить"; }
+
+$("#pp").onclick=()=>{
+  if(day>=DAYS.length-1 && !playing){
+    day=-1; pts.length=0; $("#feed").innerHTML=""; $("#reports").innerHTML="";
+    $("#bTitle").textContent="Автопилот активен — система работает сама";
+    $("#cTag").textContent="цель ≤ $2.00";
+    playing=true; updatePP(); tick(); return;
+  }
+  playing=!playing; updatePP();
+  if(playing) schedule(); else clearTimeout(timer);
+};
+$("#speed").querySelectorAll("button").forEach(b=>b.onclick=()=>{
+  speed=+b.dataset.s;
+  $("#speed").querySelectorAll("button").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on");
+  if(playing) schedule();
+});
+
+drawChart([]);
+setTimeout(()=>{ tick(); }, reduce?0:600);
+</script>
+</body>
+</html>
