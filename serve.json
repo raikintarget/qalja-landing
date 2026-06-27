@@ -2,6 +2,14 @@
   "cleanUrls": false,
   "trailingSlash": false,
   "directoryListing": false,
+  "headers": [
+    {
+      "source": "**/*.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    }
+  ],
   "rewrites": [
     { "source": "/", "destination": "/index.html" }
   ]
