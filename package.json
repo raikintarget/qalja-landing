@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "SmartTarget AI — AI-таргетолог для Meta Ads",
   "scripts": {
-    "start": "serve . -p ${PORT:-3000} -s",
+    "start": "serve . -p ${PORT:-3000}",
     "dev": "serve . -p 3000"
   },
   "dependencies": {
