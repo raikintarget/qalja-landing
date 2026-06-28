@@ -719,42 +719,86 @@ function vAutopilot(){
   const a=S.ap;
   app.innerHTML=`
   <div class="eyebrow">Шаг 4 · Автопилот</div>
-  <h1>Правила оптимизации</h1>
-  <p class="sub">Решите, что система может делать сама каждое утро. Эти правила применяются ко всем направлениям.</p>
-  <div class="card">
-    <div class="field"><label>Режим работы</label>
-      <div class="seg" id="mode">
-        <button data-v="auto" class="${a.mode==='auto'?'on':''}">Автопилот</button>
-        <button data-v="semi" class="${a.mode==='semi'?'on':''}">С подтверждением</button>
-        <button data-v="manual" class="${a.mode==='manual'?'on':''}">Ручной</button>
+  <h1>Как AI управляет рекламой</h1>
+  <p class="sub">Каждое утро AI анализирует результаты и принимает решения по вашим правилам ниже.</p>
+
+  <!-- Режим -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="field" style="margin-bottom:0">
+      <label>Что AI делает с изменениями</label>
+      <div class="seg" id="mode" style="margin-top:9px">
+        <button data-v="auto" class="${a.mode==='auto'?'on':''}">Сам меняет</button>
+        <button data-v="semi" class="${a.mode==='semi'?'on':''}">Спрашивает</button>
+        <button data-v="manual" class="${a.mode==='manual'?'on':''}">Только советует</button>
       </div>
-      <p style="color:var(--muted);font-size:12.5px;margin-top:9px">${
-        a.mode==='auto'?'AI действует сам и присылает отчёт постфактум.':
-        a.mode==='semi'?'AI предлагает действия — вы подтверждаете в Telegram.':
-        'AI только присылает рекомендации, ничего не меняет.'}</p>
+      <div style="background:var(--surface-2);border-radius:9px;padding:11px 13px;margin-top:10px;font-size:13px;color:var(--text-dim);line-height:1.6">
+        ${a.mode==='auto'
+          ? '🤖 AI сам останавливает слабые объявления и увеличивает бюджет на сильных — без вашего участия. Отчёт придёт в Telegram.'
+          : a.mode==='semi'
+          ? '💬 Перед любым изменением AI пишет вам в Telegram: «Объявление X тратит без результата — остановить?». Вы отвечаете Да/Нет.'
+          : '📊 AI только присылает утренний отчёт с рекомендациями. Все изменения делаете вы вручную в Ads Manager.'}
+      </div>
     </div>
-    <div class="tog"><div class="t"><b>Отключать «вампиров»</b><small>Тратят бюджет почти без заявок</small></div>
-      <input type="checkbox" class="sw" id="t-vamp" ${a.vampire?'checked':''}></div>
-    <div class="tog"><div class="t"><b>Масштабировать победителей</b><small>Поднимать бюджет на +${a.scaleStep}% лучшим связкам</small></div>
-      <input type="checkbox" class="sw" id="t-scale" ${a.scale?'checked':''}></div>
-    <div class="tog"><div class="t"><b>Регенерировать креативы</b><small>Создавать новые на основе лучших</small></div>
-      <input type="checkbox" class="sw" id="t-regen" ${a.regen?'checked':''}></div>
   </div>
+
+  <!-- Правила -->
+  <div class="card" style="margin-bottom:14px">
+    <div style="font-family:'Unbounded',sans-serif;font-weight:500;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:14px">Что именно делает AI</div>
+
+    <div class="tog">
+      <div class="t">
+        <b>Останавливать убыточные объявления</b>
+        <small>Если объявление потратило больше 2× целевой цены заявки и не дало результата — AI его выключает</small>
+      </div>
+      <input type="checkbox" class="sw" id="t-vamp" ${a.vampire?'checked':''}>
+    </div>
+
+    <div class="tog">
+      <div class="t">
+        <b>Увеличивать бюджет на лучших</b>
+        <small>Объявление даёт дешёвые заявки? AI поднимает его бюджет на +${a.scaleStep}% — чтобы получать больше клиентов</small>
+      </div>
+      <input type="checkbox" class="sw" id="t-scale" ${a.scale?'checked':''}>
+    </div>
+
+    <div class="tog">
+      <div class="t">
+        <b>Обновлять уставшие креативы</b>
+        <small>Когда объявление теряет эффективность (CTR падает) — AI предложит новый текст или замену картинки</small>
+      </div>
+      <input type="checkbox" class="sw" id="t-regen" ${a.regen?'checked':''}>
+    </div>
+  </div>
+
+  <!-- Отчёт и лимит -->
   <div class="card">
+    <div style="font-family:'Unbounded',sans-serif;font-weight:500;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:14px">Отчёт и защита бюджета</div>
     <div class="row">
-      <div class="field"><label>Время отчёта</label><input id="apTime" type="time" value="${a.time}"></div>
-      <div class="field"><label>Частота</label><select id="apFreq">
-        <option value="daily" ${a.freq==='daily'?'selected':''}>Каждый день</option>
-        <option value="2day" ${a.freq==='2day'?'selected':''}>Раз в 2 дня</option>
-        <option value="weekly" ${a.freq==='weekly'?'selected':''}>Раз в неделю</option></select></div>
+      <div class="field">
+        <label>Время отчёта в Telegram</label>
+        <input id="apTime" type="time" value="${a.time}">
+      </div>
+      <div class="field">
+        <label>Частота отчётов</label>
+        <select id="apFreq">
+          <option value="daily" ${a.freq==='daily'?'selected':''}>Каждый день</option>
+          <option value="2day" ${a.freq==='2day'?'selected':''}>Раз в 2 дня</option>
+          <option value="weekly" ${a.freq==='weekly'?'selected':''}>Раз в неделю</option>
+        </select>
+      </div>
     </div>
-    <div class="field"><label>Дневной лимит расхода <span class="hint">стоп-кран на весь аккаунт</span></label>
-      <div class="suffix"><input id="apCap" type="number" value="${a.cap}"><span class="sfx">₸</span></div></div>
+    <div class="field" style="margin-bottom:0">
+      <label>Дневной стоп-лимит <span class="hint">— AI остановит всё, если потрачено больше</span></label>
+      <div class="suffix"><input id="apCap" type="number" value="${a.cap}"><span class="sfx">₸</span></div>
+      <div style="font-size:12px;color:var(--muted);margin-top:5px">Защита от случайных перерасходов — рекомендуем 2× дневного бюджета</div>
+    </div>
   </div>
+
   <div class="nav">
     <button class="back" id="back">← Назад</button>
-    <button class="btn" id="next" style="width:auto;padding:14px 24px">Дальше — креативы</button>
+    <button class="btn" id="next" style="width:auto;padding:14px 24px">Дальше →</button>
   </div>`;
+
   $("#mode").querySelectorAll("button").forEach(b=>b.onclick=()=>{S.ap.mode=b.dataset.v;vAutopilot();});
   $("#t-vamp").onchange=e=>S.ap.vampire=e.target.checked;
   $("#t-scale").onchange=e=>S.ap.scale=e.target.checked;
