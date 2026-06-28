@@ -525,7 +525,7 @@ function vDirection(){
     <!-- 1. Название и продукт -->
     <div class="field">
       <label>Название услуги / продукта</label>
-      <input id="dName" placeholder="Напр.: Лазерная эпиляция, Доставка еды, Детский сад" value="${d.name||''}">
+      <input id="dName" placeholder="Напр.: Лазерная эпиляция, Доставка еды, Детский сад" value="${d.name||''}" oninput="S.draft.name=this.value">
     </div>
 
     <div class="field">
@@ -573,9 +573,9 @@ function vDirection(){
       <div class="field">
         <label>Возраст</label>
         <div style="display:flex;align-items:center;gap:8px">
-          <input id="dAgeFrom" type="number" min="18" max="65" value="${d.ageFrom||'18'}" style="width:64px;font-family:'JetBrains Mono',monospace;font-size:15px;text-align:center">
+          <input id="dAgeFrom" type="number" min="18" max="65" value="${d.ageFrom||'18'}" style="width:64px;font-family:'JetBrains Mono',monospace;font-size:15px;text-align:center" oninput="S.draft.ageFrom=this.value">
           <span style="color:var(--muted)">—</span>
-          <input id="dAgeTo" type="number" min="18" max="65" value="${d.ageTo||'65'}" style="width:64px;font-family:'JetBrains Mono',monospace;font-size:15px;text-align:center">
+          <input id="dAgeTo" type="number" min="18" max="65" value="${d.ageTo||'65'}" style="width:64px;font-family:'JetBrains Mono',monospace;font-size:15px;text-align:center" oninput="S.draft.ageTo=this.value">
           <span style="color:var(--muted);font-size:13px">лет</span>
         </div>
       </div>
@@ -593,11 +593,11 @@ function vDirection(){
       <div class="row">
         <div class="field" style="margin-bottom:0">
           <label>В день</label>
-          <div class="suffix"><input id="dBudget" type="number" value="${d.budget||5000}"><span class="sfx">₸</span></div>
+          <div class="suffix"><input id="dBudget" type="number" value="${d.budget||5000}" oninput="S.draft.budget=+this.value||5000"><span class="sfx">₸</span></div>
         </div>
         <div class="field" style="margin-bottom:0">
           <label>WhatsApp <span class="hint">для заявок</span></label>
-          <input id="dWa" placeholder="+7 777…" value="${d.wa||''}">
+          <input id="dWa" placeholder="+7 777…" value="${d.wa||''}" oninput="S.draft.wa=this.value.trim()">
         </div>
       </div>
     </div>
