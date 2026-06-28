@@ -175,6 +175,126 @@ app.get('/api/meta-data', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+// ── TELEGRAM БОТ ──
+const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const chatIds = new Set(); // байланысқан chat_id-лар
+
+async function tgSend(chatId, text) {
+  if (!TG_TOKEN) return;
+  try {
+    await axios.post(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+      chat_id: chatId,
+      text,
+      parse_mode: 'HTML'
+    });
+  } catch(e) { console.error('TG send error:', e.message); }
+}
+
+async function sendDailyReport(chatId) {
+  const token = process.env.META_ACCESS_TOKEN;
+  const account_id = process.env.META_AD_ACCOUNT_ID;
+  if (!token || !account_id) {
+    return tgSend(chatId, '⚠️ Meta Ads әлі байланыстырылмаған.');
+  }
+  try {
+    const [camps, ins] = await Promise.all([
+      axios.get(`https://graph.facebook.com/v19.0/act_${account_id}/campaigns`, {
+        params: { access_token: token, fields: 'id,name,status', limit: 10 }
+      }),
+      axios.get(`https://graph.facebook.com/v19.0/act_${account_id}/insights`, {
+        params: { access_token: token, fields: 'impressions,clicks,spend,cpc,ctr', date_preset: 'today', level: 'account' }
+      })
+    ]);
+
+    const i = ins.data.data?.[0] || {};
+    const campaigns = camps.data.data || [];
+    const active = campaigns.filter(c => c.status === 'ACTIVE').length;
+
+    const msg = `📊 <b>SmartTarget AI — Күнделікті есеп</b>\n\n` +
+      `📅 Бүгін: ${new Date().toLocaleDateString('ru-RU')}\n\n` +
+      `💰 Шығын: <b>$${parseFloat(i.spend||0).toFixed(2)}</b>\n` +
+      `👆 Клик: <b>${i.clicks||0}</b>\n` +
+      `👁 Көрсету: <b>${parseInt(i.impressions||0).toLocaleString()}</b>\n` +
+      `💵 CPC: <b>$${parseFloat(i.cpc||0).toFixed(2)}</b>\n` +
+      `📈 CTR: <b>${parseFloat(i.ctr||0).toFixed(2)}%</b>\n\n` +
+      `📋 Кампаниялар: ${campaigns.length} (${active} активті)\n\n` +
+      `🔗 <a href="https://innovative-friendship-production-0449.up.railway.app/ai-targetolog-app.html">Дашбордты ашу →</a>`;
+
+    await tgSend(chatId, msg);
+  } catch(e) {
+    await tgSend(chatId, '❌ Деректерді алу қатесі: ' + e.message);
+  }
+}
+
+// Telegram webhook
+app.post(`/tg/${TG_TOKEN}`, async (req, res) => {
+  const msg = req.body?.message;
+  if (!msg) return res.sendStatus(200);
+
+  const chatId = msg.chat.id;
+  const text = msg.text || '';
+
+  chatIds.add(chatId);
+
+  if (text === '/start') {
+    await tgSend(chatId,
+      `👋 <b>SmartTarget AI ботына қош келдіңіз!</b>\n\n` +
+      `Мен сіздің Facebook рекламаңыздың нәтижелерін күн сайын жіберіп тұрамын.\n\n` +
+      `📊 /report — қазіргі статистика\n` +
+      `ℹ️ /status — жүйе күйі\n` +
+      `❓ /help — барлық командалар`
+    );
+  } else if (text === '/report') {
+    await tgSend(chatId, '⏳ Деректер жүктелуде...');
+    await sendDailyReport(chatId);
+  } else if (text === '/status') {
+    const token = process.env.META_ACCESS_TOKEN;
+    await tgSend(chatId,
+      `🟢 <b>SmartTarget AI жұмыс істеп тұр</b>\n\n` +
+      `Meta Ads: ${token ? '✅ Байланысты' : '❌ Байланыстырылмаған'}\n` +
+      `Сервер: ✅ Онлайн`
+    );
+  } else if (text === '/help') {
+    await tgSend(chatId,
+      `📋 <b>Командалар:</b>\n\n` +
+      `/start — бастау\n` +
+      `/report — бүгінгі статистика\n` +
+      `/status — жүйе күйі\n` +
+      `/help — көмек`
+    );
+  } else {
+    await tgSend(chatId, `❓ Білмедім. /help деп жазыңыз.`);
+  }
+
+  res.sendStatus(200);
+});
+
+// Webhook орнату
+async function setupWebhook() {
+  if (!TG_TOKEN) return;
+  try {
+    await axios.post(`https://api.telegram.org/bot${TG_TOKEN}/setWebhook`, {
+      url: `${BASE_URL}/tg/${TG_TOKEN}`
+    });
+    console.log('✅ Telegram webhook орнатылды');
+  } catch(e) { console.error('Webhook error:', e.message); }
+}
+
+// Күн сайын сағат 09:00-де есеп жіберу
+function scheduleDailyReport() {
+  const now = new Date();
+  const next = new Date();
+  next.setHours(9, 0, 0, 0);
+  if (next <= now) next.setDate(next.getDate() + 1);
+  const delay = next - now;
+  setTimeout(() => {
+    chatIds.forEach(id => sendDailyReport(id));
+    setInterval(() => chatIds.forEach(id => sendDailyReport(id)), 24*60*60*1000);
+  }, delay);
+}
+
+app.listen(PORT, async () => {
   console.log(`SmartTarget AI server running on port ${PORT}`);
+  await setupWebhook();
+  scheduleDailyReport();
 });
