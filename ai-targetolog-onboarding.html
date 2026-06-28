@@ -158,7 +158,7 @@ const $=s=>document.querySelector(s);
 const app=$("#app");
 const S={
   screen:"connect", step:0,
-  conn:{meta:false,tg:false,wa:"",metaMode:"",bmId:"",accountId:"",accountName:"",ig:"",fb:"",fbMode:"",igLogin:"",igPass:"",igStep:null,waPhone:"",waStep:null},
+  conn:{meta:false,tg:false,tgCode:"",wa:"",metaMode:"",bmId:"",accountId:"",accountName:"",ig:"",fb:"",fbMode:"",igLogin:"",igPass:"",igStep:null,waPhone:"",waStep:null},
   dirs:[],
   draft:{name:"",budget:5000,target:2,max:5,wa:"",dest:"",cities:"",geoWide:false,ageFrom:"18",ageTo:"45",gender:"all",audience:"",url:""},
   ap:{mode:"auto",vampire:true,scale:true,scaleStep:30,regen:true,time:"08:00",freq:"daily",cap:50000,on:false},
@@ -274,12 +274,13 @@ function vConnect(){
           ✓ Telegram подключён
           <button onclick="S.conn.tg=false;vConnect()" style="appearance:none;background:none;border:none;color:var(--muted);font-family:inherit;font-size:12px;cursor:pointer">Изменить</button>
         </div>` : `
-        <div style="margin-top:12px">
-          <a href="https://t.me/smarttargetAI_bot" target="_blank" style="display:inline-flex;align-items:center;gap:7px;background:rgba(123,167,201,.1);border:1px solid rgba(123,167,201,.3);border-radius:8px;padding:10px 15px;font-size:13px;color:#7BA7C9;text-decoration:none;font-weight:600">
+        <div style="margin-top:12px" id="tgLinkBlock">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Нажмите кнопку — бот автоматически свяжет аккаунт:</div>
+          <a id="tgDeepLink" href="https://t.me/smarttargetAI_bot" target="_blank" style="display:inline-flex;align-items:center;gap:7px;background:rgba(123,167,201,.1);border:1px solid rgba(123,167,201,.3);border-radius:8px;padding:10px 15px;font-size:13px;color:#7BA7C9;text-decoration:none;font-weight:600">
             ✈️ Открыть @smarttargetAI_bot
           </a>
-          <div style="font-size:12px;color:var(--muted);margin-top:8px;line-height:1.6">Напишите <b>/start</b> — бот свяжет аккаунт автоматически.</div>
-          <button onclick="S.conn.tg=true;vConnect()" style="appearance:none;margin-top:10px;background:transparent;border:1px solid var(--ok);border-radius:8px;padding:9px 15px;color:var(--ok);font-family:inherit;font-size:13px;cursor:pointer;font-weight:500">✓ Написал, готово</button>
+          <div style="font-size:12px;color:var(--muted);margin-top:10px;line-height:1.6">После открытия нажмите <b>START</b> в боте — он автоматически свяжет ваш аккаунт.</div>
+          <button onclick="S.conn.tg=true;vConnect()" style="appearance:none;margin-top:10px;background:transparent;border:1px solid var(--ok);border-radius:8px;padding:9px 15px;color:var(--ok);font-family:inherit;font-size:13px;cursor:pointer;font-weight:500">✓ Открыл бота, готово</button>
         </div>`}
       </div>
     </div>
@@ -316,6 +317,31 @@ function vConnect(){
   if(mode==='nofb'){
     if($("#connNext")) $("#connNext").onclick=submitNofb;
   }
+
+  // Telegram deep link — код автоматты жасалады
+  if($("#tgDeepLink") && !S.conn.tg) setupTgDeepLink();
+}
+
+async function setupTgDeepLink(){
+  if(S.conn.tgCode) {
+    const link = `https://t.me/smarttargetAI_bot?start=${S.conn.tgCode}`;
+    if($("#tgDeepLink")) $("#tgDeepLink").href = link;
+    return;
+  }
+  const token = localStorage.getItem('st_token')||'';
+  if(!token) return;
+  try {
+    const r = await fetch('/api/tg-link-code', {
+      method:'POST',
+      headers:{'Authorization':'Bearer '+token}
+    });
+    const data = await r.json();
+    if(data.code){
+      S.conn.tgCode = data.code;
+      const link = `https://t.me/smarttargetAI_bot?start=${data.code}`;
+      if($("#tgDeepLink")) $("#tgDeepLink").href = link;
+    }
+  } catch(e){ console.log('TG link error:', e); }
 }
 
 function checkConnReady(){ vConnect(); }

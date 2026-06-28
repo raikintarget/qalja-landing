@@ -262,14 +262,35 @@ app.post(`/tg/${TG_TOKEN}`, async (req, res) => {
   const userRow = await pool.query('SELECT * FROM users WHERE tg_chat_id = $1', [chatId]);
   const user = userRow.rows[0] || null;
 
-  if (text === '/start') {
+  if (text.startsWith('/start')) {
+    const startCode = text.split(' ')[1]?.trim().toUpperCase();
+
+    if (startCode) {
+      // Deep link арқылы келді — кодты автоматты тексер
+      const linkRow = await pool.query('SELECT * FROM tg_link_tokens WHERE token = $1', [startCode]);
+      if (linkRow.rows.length) {
+        const userId = linkRow.rows[0].user_id;
+        await pool.query('UPDATE users SET tg_chat_id = $1 WHERE id = $2', [chatId, userId]);
+        await pool.query('DELETE FROM tg_link_tokens WHERE token = $1', [startCode]);
+        const linkedUser = await pool.query('SELECT name FROM users WHERE id = $1', [userId]);
+        await tgSend(chatId,
+          `✅ <b>Байланысты!</b>\n\n` +
+          `👤 ${linkedUser.rows[0]?.name || 'Клиент'}\n\n` +
+          `Енді күн сайын рекламаңыздың нәтижесін жіберіп тұрамын.\n\n` +
+          `📊 /report — статистика\n` +
+          `ℹ️ /status — күй тексеру`
+        );
+        return res.sendStatus(200);
+      }
+    }
+
+    // Жай /start — қош келдің хабары
     await tgSend(chatId,
       `👋 <b>SmartTarget AI</b>\n\n` +
       `Мен сіздің AI-таргетологыңызбын.\n\n` +
       `📊 Күн сайын рекламаңыздың нәтижесін жіберіп тұрамын.\n\n` +
-      `Бастау үшін платформаға кіріп, Telegram-ды байланыстырыңыз:\n` +
-      `👉 <a href="${BASE_URL}/ai-targetolog-app.html">SmartTarget AI →</a>\n\n` +
-      `Немесе кодыңызды жіберіңіз: /link XXXX`
+      `Платформаға кіріп, Telegram-ды байланыстырыңыз:\n` +
+      `👉 <a href="${BASE_URL}/ai-targetolog-onboarding.html">SmartTarget AI →</a>`
     );
 
   } else if (text.startsWith('/link ')) {
