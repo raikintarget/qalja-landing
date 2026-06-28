@@ -158,7 +158,7 @@ const $=s=>document.querySelector(s);
 const app=$("#app");
 const S={
   screen:"connect", step:0,
-  conn:{meta:false,tg:false,wa:"",metaMode:"",bmId:"",ig:"",fb:"",fbMode:"",igLogin:"",igPass:"",igStep:null,waPhone:"",waStep:null},
+  conn:{meta:false,tg:false,wa:"",metaMode:"",bmId:"",accountId:"",accountName:"",ig:"",fb:"",fbMode:"",igLogin:"",igPass:"",igStep:null,waPhone:"",waStep:null},
   dirs:[],
   draft:{name:"",budget:5000,target:2,max:5,wa:"",dest:"",cities:"",geoWide:false,ageFrom:"18",ageTo:"45",gender:"all",audience:"",url:""},
   ap:{mode:"auto",vampire:true,scale:true,scaleStep:30,regen:true,time:"08:00",freq:"daily",cap:50000,on:false},
@@ -177,142 +177,98 @@ function steps(){
 function go(scr){ S.screen=scr; render(); window.scrollTo({top:0,behavior:"smooth"}); }
 
 /* ---------- 1. CONNECT ---------- */
+const OUR_BM_ID = '2704422019909146'; // SmartTarget AI Business Portfolio ID
+
 function vConnect(){
-  const mode = S.conn.metaMode || ''; // 'own' | 'ours'
+  const mode = S.conn.metaMode; // 'partner' | 'nofb'
+  const connected = S.conn.meta; // true = аккаунт расталды
+
   app.innerHTML=`
   <div class="eyebrow">Шаг 1 · Подключение</div>
   <h1>Подключим вашу рекламу</h1>
-  <p class="sub">AI автоматически подключится к вашему Facebook Ads и начнёт управлять рекламой.</p>
+  <p class="sub">Выберите способ подключения рекламного аккаунта.</p>
 
-  <!-- Facebook OAuth кнопка -->
-  <div class="card" style="margin-bottom:14px;text-align:center;padding:28px 20px">
-    <div style="font-size:36px;margin-bottom:12px">🔗</div>
-    <div style="font-family:'Unbounded',sans-serif;font-weight:600;font-size:15px;margin-bottom:8px">Войти через Facebook</div>
-    <div style="font-size:13px;color:var(--text-dim);margin-bottom:20px;line-height:1.6">AI получит доступ к вашим рекламным кампаниям.<br>Ваш пароль нам не нужен — только безопасный OAuth токен.</div>
-    <a id="fbOauthBtn" href="#" onclick="startFbOAuth(event)" style="display:inline-flex;align-items:center;gap:10px;background:#1877F2;border-radius:10px;padding:13px 24px;font-family:'Unbounded',sans-serif;font-weight:600;font-size:13px;color:#fff;text-decoration:none">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-      Подключить Facebook Ads
-    </a>
-    <div style="font-size:11.5px;color:var(--muted);margin-top:14px">🔒 Безопасно. Мы не можем снимать деньги или менять платёжные данные.</div>
-  </div>
-
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
-    <div style="flex:1;height:1px;background:var(--line)"></div>
-    <span style="font-size:12px;color:var(--muted)">или вручную</span>
-    <div style="flex:1;height:1px;background:var(--line)"></div>
-  </div>
-
-  <!-- Выбор сценария (ручной) -->
+  <!-- Таңдау -->
   <div class="card" style="margin-bottom:14px;padding:6px">
-    <div class="conn" id="optOwn" style="cursor:pointer;border-radius:10px;padding:14px;${mode==='own'?'background:rgba(217,164,65,.07);border:1px solid var(--gold-dim)':'border:1px solid transparent'}">
+    <div id="optPartner" style="cursor:pointer;border-radius:10px;padding:14px;display:flex;align-items:center;gap:13px;${mode==='partner'?'background:rgba(217,164,65,.07);border:1px solid var(--gold-dim)':'border:1px solid transparent'}">
       <div class="ic">🤝</div>
-      <div class="t">
-        <b>Партнёрский доступ вручную</b>
-        <small>Добавите нас как партнёра в Business Manager — специалист настроит</small>
-      </div>
-      <div style="width:20px;height:20px;border-radius:50%;border:2px solid ${mode==='own'?'var(--gold)':'var(--muted)'};background:${mode==='own'?'var(--gold)':'transparent'};flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;color:#1a1104">${mode==='own'?'✓':''}</div>
+      <div class="t"><b>Есть Facebook Ads</b><br><small>Добавите нас как партнёра в Business Manager</small></div>
+      <div style="width:20px;height:20px;border-radius:50%;border:2px solid ${mode==='partner'?'var(--gold)':'var(--muted)'};background:${mode==='partner'?'var(--gold)':'transparent'};flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;color:#1a1104">${mode==='partner'?'✓':''}</div>
     </div>
-    <div class="conn" id="optOurs" style="cursor:pointer;border-radius:10px;padding:14px;margin-top:4px;${mode==='ours'?'background:rgba(217,164,65,.07);border:1px solid var(--gold-dim)':'border:1px solid transparent'}">
+    <div id="optNofb" style="cursor:pointer;border-radius:10px;padding:14px;display:flex;align-items:center;gap:13px;margin-top:4px;${mode==='nofb'?'background:rgba(217,164,65,.07);border:1px solid var(--gold-dim)':'border:1px solid transparent'}">
       <div class="ic">🆕</div>
-      <div class="t">
-        <b>Нет аккаунта Facebook/Meta</b>
-        <small>Оставьте данные — специалист свяжется и подключит всё сам</small>
-      </div>
-      <div style="width:20px;height:20px;border-radius:50%;border:2px solid ${mode==='ours'?'var(--gold)':'var(--muted)'};background:${mode==='ours'?'var(--gold)':'transparent'};flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;color:#1a1104">${mode==='ours'?'✓':''}</div>
+      <div class="t"><b>Facebook / Meta нет</b><br><small>Специалист создаст кабинет и подключит всё сам</small></div>
+      <div style="width:20px;height:20px;border-radius:50%;border:2px solid ${mode==='nofb'?'var(--gold)':'var(--muted)'};background:${mode==='nofb'?'var(--gold)':'transparent'};flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;color:#1a1104">${mode==='nofb'?'✓':''}</div>
     </div>
   </div>
 
-  ${mode==='own' ? `
-  <!-- ── СЦЕНАРИЙ 1: партнёрский доступ ── -->
-  <div class="card">
-    <div style="background:rgba(134,179,117,.07);border:1px solid rgba(134,179,117,.3);border-radius:10px;padding:12px 15px;margin-bottom:18px;font-size:13px;line-height:1.6">
-      🔒 <b style="color:var(--ok)">Безопасно.</b> Партнёрский доступ позволяет нам управлять рекламой — снять деньги или изменить платёжные данные мы не можем.
+  ${mode==='partner' ? `
+  <!-- ПАРТНЕР СЦЕНАРИЙІ -->
+  <div class="card" style="margin-bottom:14px">
+    <div style="background:rgba(134,179,117,.07);border:1px solid rgba(134,179,117,.25);border-radius:10px;padding:12px 15px;margin-bottom:18px;font-size:13px;line-height:1.6">
+      🔒 <b style="color:var(--ok)">Безопасно.</b> Партнёрский доступ — мы управляем рекламой, но не можем снимать деньги или менять платёжные данные.
     </div>
-
-    <div style="background:var(--surface-2);border-radius:10px;padding:15px;margin-bottom:6px">
-      <div style="font-family:'Unbounded',sans-serif;font-weight:500;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:14px">Как назначить SmartTarget AI партнёром</div>
-      <div style="display:flex;flex-direction:column;gap:14px;font-size:13px;line-height:1.6">
-
-        <div style="display:flex;gap:11px;align-items:flex-start">
-          <span style="font-family:'Unbounded',sans-serif;font-weight:700;color:var(--gold);min-width:22px;flex:none">1</span>
-          <span>Откройте <b>business.facebook.com</b> → Настройки → <b>Партнёры</b> → «Добавить партнёра»</span>
-        </div>
-
-        <div style="display:flex;gap:11px;align-items:flex-start">
-          <span style="font-family:'Unbounded',sans-serif;font-weight:700;color:var(--gold);min-width:22px;flex:none">2</span>
-          <div style="flex:1;min-width:0">
-            <div style="margin-bottom:9px">Введите наш <b>ID Business Manager:</b></div>
-            <div style="background:var(--bg);border:1px solid var(--gold-dim);border-radius:8px;padding:11px 15px;font-family:'JetBrains Mono',monospace;font-size:16px;color:var(--gold-soft);display:flex;align-items:center;justify-content:space-between;gap:10px">
-              <span>1234567890123456</span>
-              <button onclick="navigator.clipboard.writeText('1234567890123456');this.textContent='✓ Скопировано';setTimeout(()=>this.textContent='Копировать',2000)" style="appearance:none;background:transparent;border:1px solid var(--gold-dim);border-radius:6px;color:var(--gold-soft);font-family:inherit;font-size:11px;padding:5px 10px;cursor:pointer;white-space:nowrap">Копировать</button>
-            </div>
-          </div>
-        </div>
-
-        <div style="display:flex;gap:11px;align-items:flex-start">
-          <span style="font-family:'Unbounded',sans-serif;font-weight:700;color:var(--gold);min-width:22px;flex:none">3</span>
-          <span>Назначьте нас партнёром для: <b>рекламного аккаунта</b>, <b>Facebook Бизнес-страницы</b> и <b>Instagram аккаунта</b> — выдайте право <b>Manage campaigns</b></span>
-        </div>
-
-        <div style="display:flex;gap:11px;align-items:flex-start">
-          <span style="font-family:'Unbounded',sans-serif;font-weight:700;color:var(--gold);min-width:22px;flex:none">4</span>
-          <div style="flex:1;min-width:0">
-            <div style="margin-bottom:9px">Введите ваш <b>ID Business Portfolio</b> — мы проверим, что доступ выдан:</div>
-            <input id="ownBmId" type="text" placeholder="например: 2704422019909146" value="${S.conn.bmId||''}"
-              style="width:100%;font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:11px 13px"
-              oninput="S.conn.bmId=this.value.trim();checkConnReady()">
-            <div style="font-size:12px;color:var(--muted);margin-top:5px">Ваш ID: business.facebook.com → Настройки → Бизнес-портфолио</div>
+    <div style="display:flex;flex-direction:column;gap:16px;font-size:13px;line-height:1.65">
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <span style="font-family:'Unbounded',sans-serif;font-weight:700;color:var(--gold);min-width:24px">1</span>
+        <span>Откройте <a href="https://business.facebook.com" target="_blank" style="color:var(--gold)">business.facebook.com</a> → <b>Настройки</b> → <b>Партнёры</b> → «Добавить партнёра»</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <span style="font-family:'Unbounded',sans-serif;font-weight:700;color:var(--gold);min-width:24px">2</span>
+        <div style="flex:1;min-width:0">
+          <div style="margin-bottom:8px">Введите наш <b>ID Business Manager:</b></div>
+          <div style="background:var(--bg);border:1px solid var(--gold-dim);border-radius:8px;padding:11px 15px;font-family:'JetBrains Mono',monospace;font-size:15px;color:var(--gold-soft);display:flex;align-items:center;justify-content:space-between;gap:10px">
+            <span>${OUR_BM_ID}</span>
+            <button onclick="navigator.clipboard.writeText('${OUR_BM_ID}');this.textContent='✓';setTimeout(()=>this.textContent='Копировать',2000)" style="appearance:none;background:transparent;border:1px solid var(--gold-dim);border-radius:6px;color:var(--gold-soft);font-family:inherit;font-size:11px;padding:5px 10px;cursor:pointer;white-space:nowrap">Копировать</button>
           </div>
         </div>
       </div>
-    </div>
-
-    <div style="background:rgba(217,164,65,.05);border:1px solid var(--gold-dim);border-radius:10px;padding:13px 15px;margin-top:14px;font-size:12.5px;color:var(--text-dim);line-height:1.6">
-      ✈️ <b style="color:var(--gold-soft)">Подтверждение через Telegram:</b> после того как вы назначите партнёра, наш бот пришлёт уведомление о проверке доступа.
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <span style="font-family:'Unbounded',sans-serif;font-weight:700;color:var(--gold);min-width:24px">3</span>
+        <span>Назначьте нас партнёром для <b>рекламного аккаунта</b> → роль <b>«Manage campaigns»</b></span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <span style="font-family:'Unbounded',sans-serif;font-weight:700;color:var(--gold);min-width:24px">4</span>
+        <div style="flex:1;min-width:0">
+          <div style="margin-bottom:8px">Введите ваш <b>ID рекламного аккаунта</b> — проверим доступ:</div>
+          <div style="position:relative">
+            <input id="accIdInput" type="text" placeholder="например: 1234567890123456"
+              value="${S.conn.accountId||''}"
+              style="width:100%;font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--text);background:var(--bg);border:1px solid ${connected?'var(--ok)':'var(--line)'};border-radius:8px;padding:11px 13px;padding-right:${connected?'110px':'13px'}">
+            ${connected?`<span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--ok);font-size:12px;font-weight:600;pointer-events:none">✓ Доступ есть</span>`:''}
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-top:5px">Найдёте в URL Ads Manager: <code style="font-size:11px">act_XXXXXXXX</code> — скопируйте цифры</div>
+        </div>
+      </div>
     </div>
   </div>
-  ` : mode==='ours' ? `
-  <!-- ── СЦЕНАРИЙ 2: нет Facebook — специалист подключит ── -->
-  <div class="card">
+  ` : mode==='nofb' ? `
+  <!-- FACEBOOK ЖОҚ СЦЕНАРИЙІ -->
+  <div class="card" style="margin-bottom:14px">
     <div style="background:rgba(123,167,201,.07);border:1px solid rgba(123,167,201,.25);border-radius:10px;padding:13px 15px;margin-bottom:18px;font-size:13px;line-height:1.6">
-      👋 Оставьте данные Instagram и WhatsApp — <b style="color:#7BA7C9">специалист свяжется с вами</b> для уточнения деталей и подключит всё сам. Коды подтверждения, если потребуются, введёт специалист вместе с вами.
+      👋 Оставьте контакты — <b style="color:#7BA7C9">специалист свяжется</b>, создаст рекламный кабинет и подключит всё сам.
     </div>
-
     <div class="field">
-      <label>Логин Instagram <span style="color:var(--muted);font-weight:400">— имя пользователя или email аккаунта</span></label>
-      <input id="oursIgLogin" type="text" placeholder="@yourpage" value="${S.conn.igLogin||''}" oninput="S.conn.igLogin=this.value.trim();checkConnReady()">
-      <div style="font-size:12px;color:var(--muted);margin-top:5px">Реклама будет выходить от имени этой страницы</div>
+      <label>Логин Instagram <span style="color:var(--muted);font-weight:400">— страница, с которой будет выходить реклама</span></label>
+      <input id="nofbIg" type="text" placeholder="@yourpage" value="${S.conn.igLogin||''}"
+        oninput="S.conn.igLogin=this.value.trim()">
     </div>
-
-    <div class="field">
-      <label>Пароль Instagram</label>
-      <div style="position:relative">
-        <input id="oursIgPass" type="password" autocomplete="current-password" placeholder="••••••••" value="${S.conn.igPass||''}" oninput="S.conn.igPass=this.value;checkConnReady()" style="width:100%;font-family:inherit;font-size:15px;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:11px 44px 11px 12px">
-        <button onclick="var i=document.getElementById('oursIgPass');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;line-height:1">👁</button>
-      </div>
-      <div style="font-size:12px;color:var(--muted);margin-top:5px">🔒 Передаётся по защищённому каналу. Используется только для подключения через Meta — специалист не хранит ваш пароль.</div>
-    </div>
-
     <div class="field" style="margin-bottom:0">
-      <label>Бизнес WhatsApp <span style="color:var(--muted);font-weight:400">— номер, куда будут приходить заявки из рекламы</span></label>
-      <input id="oursWaPhone" type="tel" placeholder="+7 777 000 00 00" value="${S.conn.waPhone||''}" oninput="S.conn.waPhone=this.value.trim();checkConnReady()">
-      <div style="font-size:12px;color:var(--muted);margin-top:5px">Используйте WhatsApp Business — специалист поможет настроить, если нужно</div>
+      <label>WhatsApp / Телефон <span style="color:var(--muted);font-weight:400">— для связи со специалистом</span></label>
+      <input id="nofbWa" type="tel" placeholder="+7 777 000 00 00" value="${S.conn.waPhone||''}"
+        oninput="S.conn.waPhone=this.value.trim()">
     </div>
-  </div>
-
-  <div style="background:var(--surface-2);border-radius:10px;padding:13px 15px;margin-bottom:14px;font-size:12.5px;color:var(--text-dim);line-height:1.6">
-    💬 <b style="color:var(--gold-soft)">Что происходит дальше:</b> Специалист напишет вам в Telegram (или позвонит на WhatsApp), проведёт через все шаги подключения, введёт коды подтверждения вместе с вами, создаст рекламный кабинет и запустит первые кампании.
   </div>
   ` : ''}
 
-  <!-- Telegram (показываем когда выбран сценарий) -->
   ${mode ? `
+  <!-- TELEGRAM -->
   <div class="card" style="margin-bottom:14px">
     <div class="conn" style="align-items:flex-start">
       <div class="ic">✈️</div>
       <div class="t">
         <b>Telegram-бот SmartTarget AI</b>
-        <small>Отчёты каждый день · ответы на вопросы · уведомления · общение со специалистом</small>
+        <small>Ежедневные отчёты · уведомления · связь со специалистом</small>
         ${S.conn.tg ? `
         <div style="display:flex;align-items:center;gap:8px;margin-top:9px;color:var(--ok);font-size:13px;font-weight:600">
           ✓ Telegram подключён
@@ -322,11 +278,8 @@ function vConnect(){
           <a href="https://t.me/SmartTargetAIBot" target="_blank" style="display:inline-flex;align-items:center;gap:7px;background:rgba(123,167,201,.1);border:1px solid rgba(123,167,201,.3);border-radius:8px;padding:10px 15px;font-size:13px;color:#7BA7C9;text-decoration:none;font-weight:600">
             ✈️ Открыть @SmartTargetAIBot
           </a>
-          <div style="font-size:12px;color:var(--muted);margin-top:8px;line-height:1.6">
-            Напишите боту <b>/start</b> — он свяжет ваш аккаунт.<br>
-            Через бота вы будете получать: ежедневные отчёты по рекламе, уведомления о важных событиях, ответы на вопросы и общение с вашим специалистом. Креативы также отправляются на согласование через бот.
-          </div>
-          <button onclick="S.conn.tg=true;vConnect()" style="appearance:none;margin-top:10px;background:transparent;border:1px solid var(--ok);border-radius:8px;padding:9px 15px;color:var(--ok);font-family:inherit;font-size:13px;cursor:pointer;font-weight:500">✓ Написал боту, готово</button>
+          <div style="font-size:12px;color:var(--muted);margin-top:8px;line-height:1.6">Напишите <b>/start</b> — бот свяжет аккаунт автоматически.</div>
+          <button onclick="S.conn.tg=true;vConnect()" style="appearance:none;margin-top:10px;background:transparent;border:1px solid var(--ok);border-radius:8px;padding:9px 15px;color:var(--ok);font-family:inherit;font-size:13px;cursor:pointer;font-weight:500">✓ Написал, готово</button>
         </div>`}
       </div>
     </div>
@@ -334,88 +287,78 @@ function vConnect(){
   ` : ''}
 
   <div class="nav">
-    <button class="btn" id="connNext" ${connReady(mode)?'':'disabled'}>
-      ${mode==='ours'?'Отправить данные специалисту →':mode==='own'?'Готово, жду проверки →':''}
-    </button>
+    ${mode==='partner' ? `
+      <button class="btn" id="connVerify" style="width:auto;padding:14px 22px;${connected?'display:none':''}" ${S.conn.accountId?'':'disabled'}>
+        Проверить доступ
+      </button>
+      <button class="btn" id="connNext" style="${connected&&S.conn.tg?'':'display:none'}">
+        Продолжить →
+      </button>
+    ` : mode==='nofb' ? `
+      <button class="btn" id="connNext" ${S.conn.tg?'':'disabled'}>
+        Отправить специалисту →
+      </button>
+    ` : ''}
   </div>`;
 
-  $("#optOwn").onclick=()=>{ S.conn.metaMode='own'; vConnect(); };
-  $("#optOurs").onclick=()=>{ S.conn.metaMode='ours'; vConnect(); };
+  $("#optPartner").onclick=()=>{ S.conn.metaMode='partner'; S.conn.meta=false; vConnect(); };
+  $("#optNofb").onclick=()=>{ S.conn.metaMode='nofb'; S.conn.meta=false; vConnect(); };
 
-  if(mode==='own'){
-    if($("#ownBmId")) $("#ownBmId").oninput=e=>{S.conn.bmId=e.target.value.trim();checkConnReady();};
-    if($("#ownIg"))   $("#ownIg").oninput=e=>{S.conn.ig=e.target.value.trim();checkConnReady();};
+  if(mode==='partner'){
+    if($("#accIdInput")) $("#accIdInput").oninput=e=>{
+      S.conn.accountId=e.target.value.trim();
+      S.conn.meta=false;
+      if($("#connVerify")) $("#connVerify").disabled=!S.conn.accountId;
+    };
+    if($("#connVerify")) $("#connVerify").onclick=submitPartner;
+    if($("#connNext"))   $("#connNext").onclick=()=>go("direction");
   }
-  if(mode==='ours'){
-    if($("#oursIgLogin")) $("#oursIgLogin").oninput=e=>{S.conn.igLogin=e.target.value.trim();checkConnReady();};
-    if($("#oursIgPass"))  $("#oursIgPass").oninput=e=>{S.conn.igPass=e.target.value;checkConnReady();};
-    if($("#oursWaPhone")) $("#oursWaPhone").oninput=e=>{S.conn.waPhone=e.target.value.trim();checkConnReady();};
+  if(mode==='nofb'){
+    if($("#connNext")) $("#connNext").onclick=submitNofb;
   }
-  if($("#connNext")) $("#connNext").onclick=()=>{
-    if(S.conn.metaMode==='ours'){ submitOurs(); }
-    else if(S.conn.metaMode==='own'){ submitPartner(); }
-    else { go("direction"); }
-  };
 }
 
-function connReady(mode){
-  if(!mode||!S.conn.tg) return false;
-  if(mode==='own') return !!(S.conn.bmId && S.conn.tg); // BM ID + Telegram
-  if(mode==='ours') return !!(S.conn.igLogin&&S.conn.igPass&&S.conn.waPhone);
-  return false;
-}
-
-function checkConnReady(){
-  const btn=$("#connNext");
-  if(btn) btn.disabled=!connReady(S.conn.metaMode);
-}
-
-function startFbOAuth(e){
-  e.preventDefault();
-  const token = localStorage.getItem('st_token') || '';
-  window.location.href = '/auth/facebook?session=' + encodeURIComponent(token);
-}
+function checkConnReady(){ vConnect(); }
 
 async function submitPartner(){
-  const btn=$("#connNext");
-  if(btn){btn.textContent='Проверяем доступ…';btn.disabled=true;}
-  const token = localStorage.getItem('st_token') || '';
+  const btn=$("#connVerify");
+  if(btn){btn.textContent='Проверяем…';btn.disabled=true;}
+  const token = localStorage.getItem('st_token')||'';
   try {
-    const r = await fetch('/api/connect/partner', {
+    const r = await fetch('/api/connect/partner',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-      body: JSON.stringify({ bm_id: S.conn.bmId })
+      body: JSON.stringify({account_id: S.conn.accountId})
     });
     const data = await r.json();
     if(r.ok){
-      // Доступ подтверждён — идём дальше
-      go("direction");
+      S.conn.meta=true;
+      S.conn.accountName=data.account;
+      vConnect();
     } else {
-      // Доступ ещё не выдан — специалист проверит вручную
-      if(btn){btn.textContent='Готово, жду проверки →';btn.disabled=false;}
-      alert('⏳ Доступ пока не выдан. Назначьте партнёра в Business Manager и нажмите ещё раз. Если вы уже назначили — специалист проверит в течение 1–2 часов.');
+      if(btn){btn.textContent='Проверить доступ';btn.disabled=false;}
+      alert('❌ '+(data.error||'Доступ не найден. Добавьте нас партнёром и попробуйте снова.'));
     }
-  } catch(e) {
-    if(btn){btn.textContent='Готово, жду проверки →';btn.disabled=false;}
-    alert('⚠️ ' + e.message);
+  } catch(e){
+    if(btn){btn.textContent='Проверить доступ';btn.disabled=false;}
+    alert('⚠️ Ошибка соединения. Попробуйте ещё раз.');
   }
 }
 
-async function submitOurs(){
+async function submitNofb(){
   const btn=$("#connNext");
   if(btn){btn.textContent='Отправляем…';btn.disabled=true;}
-  const token = localStorage.getItem('st_token') || '';
+  const token = localStorage.getItem('st_token')||'';
   try {
-    const r = await fetch('/api/connect/manual', {
+    await fetch('/api/connect/nofb',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-      body: JSON.stringify({ ig_login: S.conn.igLogin, wa_phone: S.conn.waPhone })
+      body: JSON.stringify({ig_login:S.conn.igLogin, wa_phone:S.conn.waPhone})
     });
-    if(!r.ok) { const d=await r.json(); throw new Error(d.error||'Ошибка'); }
     go("direction");
-  } catch(e) {
-    if(btn){btn.textContent='Отправить данные специалисту →';btn.disabled=false;}
-    alert('⚠️ ' + e.message);
+  } catch(e){
+    if(btn){btn.textContent='Отправить специалисту →';btn.disabled=false;}
+    alert('⚠️ Ошибка. Попробуйте ещё раз.');
   }
 }
 
