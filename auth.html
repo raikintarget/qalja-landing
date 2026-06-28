@@ -720,20 +720,36 @@ function processPayment() {
 // ══════════════════════════
 // LOGIN
 // ══════════════════════════
-function doLogin() {
+async function doLogin() {
   const email = document.getElementById('loginEmail').value.trim();
   const pass = document.getElementById('loginPassword').value;
   if (!email) { alert('Введите email'); return; }
   if (!pass) { alert('Введите пароль'); return; }
 
-  // Simulate login
   const btn = document.querySelector('#screen-login .btn-full');
   btn.innerHTML = '<span class="spinner"></span> Входим...';
   btn.disabled = true;
 
-  setTimeout(() => {
+  try {
+    const r = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+    const data = await r.json();
+    if (!r.ok) {
+      btn.innerHTML = 'Войти';
+      btn.disabled = false;
+      return alert(data.error || 'Ошибка входа');
+    }
+    localStorage.setItem('st_token', data.token);
+    localStorage.setItem('st_user', JSON.stringify(data.user));
     window.location.href = 'ai-targetolog-app.html';
-  }, 1500);
+  } catch(e) {
+    btn.innerHTML = 'Войти';
+    btn.disabled = false;
+    alert('Ошибка соединения');
+  }
 }
 
 function doForgot() {
@@ -746,7 +762,27 @@ function doForgot() {
 // ══════════════════════════
 // DASHBOARD
 // ══════════════════════════
-function goToDashboard() {
+async function goToDashboard() {
+  // Тіркелу кезінде API-ға аккаунт жасаймыз
+  const name = state.name;
+  const email = state.email;
+  const pass = document.getElementById('regPass')?.value;
+  const plan = state.plan || 'free';
+
+  if (email && pass) {
+    try {
+      const r = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name, password: pass, plan })
+      });
+      const data = await r.json();
+      if (r.ok) {
+        localStorage.setItem('st_token', data.token);
+        localStorage.setItem('st_user', JSON.stringify(data.user));
+      }
+    } catch(e) { console.log('Register error:', e); }
+  }
   window.location.href = 'ai-targetolog-onboarding.html';
 }
 
