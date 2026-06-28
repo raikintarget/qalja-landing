@@ -182,22 +182,40 @@ function vConnect(){
   app.innerHTML=`
   <div class="eyebrow">Шаг 1 · Подключение</div>
   <h1>Подключим вашу рекламу</h1>
-  <p class="sub">Есть ли у вас рекламный кабинет Meta Ads (Facebook Ads Manager)?</p>
+  <p class="sub">AI автоматически подключится к вашему Facebook Ads и начнёт управлять рекламой.</p>
 
-  <!-- Выбор сценария -->
+  <!-- Facebook OAuth кнопка -->
+  <div class="card" style="margin-bottom:14px;text-align:center;padding:28px 20px">
+    <div style="font-size:36px;margin-bottom:12px">🔗</div>
+    <div style="font-family:'Unbounded',sans-serif;font-weight:600;font-size:15px;margin-bottom:8px">Войти через Facebook</div>
+    <div style="font-size:13px;color:var(--text-dim);margin-bottom:20px;line-height:1.6">AI получит доступ к вашим рекламным кампаниям.<br>Ваш пароль нам не нужен — только безопасный OAuth токен.</div>
+    <a href="/auth/facebook" style="display:inline-flex;align-items:center;gap:10px;background:#1877F2;border-radius:10px;padding:13px 24px;font-family:'Unbounded',sans-serif;font-weight:600;font-size:13px;color:#fff;text-decoration:none">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+      Подключить Facebook Ads
+    </a>
+    <div style="font-size:11.5px;color:var(--muted);margin-top:14px">🔒 Безопасно. Мы не можем снимать деньги или менять платёжные данные.</div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+    <div style="flex:1;height:1px;background:var(--line)"></div>
+    <span style="font-size:12px;color:var(--muted)">или вручную</span>
+    <div style="flex:1;height:1px;background:var(--line)"></div>
+  </div>
+
+  <!-- Выбор сценария (ручной) -->
   <div class="card" style="margin-bottom:14px;padding:6px">
     <div class="conn" id="optOwn" style="cursor:pointer;border-radius:10px;padding:14px;${mode==='own'?'background:rgba(217,164,65,.07);border:1px solid var(--gold-dim)':'border:1px solid transparent'}">
-      <div class="ic">✅</div>
+      <div class="ic">🤝</div>
       <div class="t">
-        <b>Да, есть Meta Ads кабинет</b>
-        <small>Выдадите партнёрский доступ — кабинет останется вашим</small>
+        <b>Партнёрский доступ вручную</b>
+        <small>Добавите нас как партнёра в Business Manager — специалист настроит</small>
       </div>
       <div style="width:20px;height:20px;border-radius:50%;border:2px solid ${mode==='own'?'var(--gold)':'var(--muted)'};background:${mode==='own'?'var(--gold)':'transparent'};flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;color:#1a1104">${mode==='own'?'✓':''}</div>
     </div>
     <div class="conn" id="optOurs" style="cursor:pointer;border-radius:10px;padding:14px;margin-top:4px;${mode==='ours'?'background:rgba(217,164,65,.07);border:1px solid var(--gold-dim)':'border:1px solid transparent'}">
       <div class="ic">🆕</div>
       <div class="t">
-        <b>Нет, Facebook/Meta нет</b>
+        <b>Нет аккаунта Facebook/Meta</b>
         <small>Оставьте данные — специалист свяжется и подключит всё сам</small>
       </div>
       <div style="width:20px;height:20px;border-radius:50%;border:2px solid ${mode==='ours'?'var(--gold)':'var(--muted)'};background:${mode==='ours'?'var(--gold)':'transparent'};flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;color:#1a1104">${mode==='ours'?'✓':''}</div>

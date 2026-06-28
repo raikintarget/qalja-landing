@@ -2,11 +2,13 @@
   "name": "smarttarget-ai",
   "version": "1.0.0",
   "description": "SmartTarget AI — AI-таргетолог для Meta Ads",
+  "main": "server.js",
   "scripts": {
-    "start": "serve . -p ${PORT:-3000}",
-    "dev": "serve . -p 3000"
+    "start": "node server.js",
+    "dev": "node server.js"
   },
   "dependencies": {
-    "serve": "^14.2.4"
+    "axios": "^1.7.2",
+    "express": "^4.19.2"
   }
 }
