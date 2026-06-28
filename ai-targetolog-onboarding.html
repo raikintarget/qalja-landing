@@ -512,6 +512,19 @@ function vBudget(){
 }
 
 /* ---------- 2. DIRECTION ---------- */
+function refreshDir(){
+  // Батырма басылмас бұрын барлық өрістерді сақтайыз
+  if($("#dName"))     S.draft.name    = $("#dName").value;
+  if($("#dProduct"))  S.draft.product = $("#dProduct").value;
+  if($("#dCities"))   S.draft.cities  = $("#dCities").value.trim();
+  if($("#dInterests"))S.draft.interests=$("#dInterests").value;
+  if($("#dBudget"))   S.draft.budget  = +$("#dBudget").value||5000;
+  if($("#dWa"))       S.draft.wa      = $("#dWa").value.trim();
+  if($("#dAgeFrom"))  S.draft.ageFrom = $("#dAgeFrom").value;
+  if($("#dAgeTo"))    S.draft.ageTo   = $("#dAgeTo").value;
+  if($("#dUrl"))      S.draft.url     = $("#dUrl").value.trim();
+  vDirection();
+}
 function vDirection(){
   const d=S.draft;
   const sel=(v,cur)=>`appearance:none;cursor:pointer;font-family:inherit;font-size:13px;padding:11px 10px;border-radius:10px;border:1px solid ${cur===v?'var(--gold)':'var(--line)'};background:${cur===v?'rgba(217,164,65,.08)':'var(--surface-2)'};color:${cur===v?'var(--gold-soft)':'var(--text-dim)'};text-align:center;transition:.15s;width:100%`;
@@ -538,9 +551,9 @@ function vDirection(){
     <div class="field">
       <label>Цель рекламы</label>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px">
-        <button onclick="S.draft.dest='wa';vDirection()" style="${sel('wa',d.dest)}">💬 Заявки<br><span style="font-size:11px;opacity:.7">в WhatsApp</span></button>
-        <button onclick="S.draft.dest='direct';vDirection()" style="${sel('direct',d.dest)}">✉️ Заявки<br><span style="font-size:11px;opacity:.7">в Direct</span></button>
-        <button onclick="S.draft.dest='traffic';vDirection()" style="${sel('traffic',d.dest)}">🌐 Трафик<br><span style="font-size:11px;opacity:.7">на сайт</span></button>
+        <button onclick="S.draft.dest='wa';refreshDir()" style="${sel('wa',d.dest)}">💬 Заявки<br><span style="font-size:11px;opacity:.7">в WhatsApp</span></button>
+        <button onclick="S.draft.dest='direct';refreshDir()" style="${sel('direct',d.dest)}">✉️ Заявки<br><span style="font-size:11px;opacity:.7">в Direct</span></button>
+        <button onclick="S.draft.dest='traffic';refreshDir()" style="${sel('traffic',d.dest)}">🌐 Трафик<br><span style="font-size:11px;opacity:.7">на сайт</span></button>
       </div>
       ${d.dest==='traffic'?`<input id="dUrl" placeholder="https://yoursite.com" value="${d.url||''}" style="margin-top:8px;width:100%;font-family:inherit;font-size:14px;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:9px 11px" oninput="S.draft.url=this.value.trim()">`:``}
     </div>
@@ -549,9 +562,9 @@ function vDirection(){
     <div class="field">
       <label>Как ищем аудиторию</label>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px">
-        <button onclick="S.draft.targeting='broad';vDirection()" style="${sel('broad',d.targeting)}">🎯 Широкая<br><span style="font-size:11px;opacity:.7">Advantage+</span></button>
-        <button onclick="S.draft.targeting='interests';vDirection()" style="${sel('interests',d.targeting)}">🔍 Интересы<br><span style="font-size:11px;opacity:.7">укажу сам</span></button>
-        <button onclick="S.draft.targeting='lookalike';vDirection()" style="${sel('lookalike',d.targeting)}">👥 Похожие<br><span style="font-size:11px;opacity:.7">по базе</span></button>
+        <button onclick="S.draft.targeting='broad';refreshDir()" style="${sel('broad',d.targeting)}">🎯 Широкая<br><span style="font-size:11px;opacity:.7">Advantage+</span></button>
+        <button onclick="S.draft.targeting='interests';refreshDir()" style="${sel('interests',d.targeting)}">🔍 Интересы<br><span style="font-size:11px;opacity:.7">укажу сам</span></button>
+        <button onclick="S.draft.targeting='lookalike';refreshDir()" style="${sel('lookalike',d.targeting)}">👥 Похожие<br><span style="font-size:11px;opacity:.7">по базе</span></button>
       </div>
       ${d.targeting==='broad'?`<div style="background:rgba(217,164,65,.06);border:1px solid var(--gold-dim);border-radius:9px;padding:10px 13px;font-size:12.5px;color:var(--text-dim);margin-top:8px">AI сам найдёт конвертирующие сегменты через Advantage+ — рекомендуем для старта</div>`:''}
       ${d.targeting==='interests'?`<textarea id="dInterests" placeholder="Напр.: красота и уход за собой, фитнес, молодые мамы, интернет-шопинг" style="margin-top:8px;width:100%;font-family:inherit;font-size:13px;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:9px 11px;resize:vertical;min-height:56px;line-height:1.5" oninput="S.draft.interests=this.value">${d.interests||''}</textarea>`:''}
@@ -562,8 +575,8 @@ function vDirection(){
     <div class="field">
       <label>География</label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px">
-        <button onclick="S.draft.geoWide=false;vDirection()" style="${sel(false,d.geoWide)}">📍 Конкретные города</button>
-        <button onclick="S.draft.geoWide=true;S.draft.cities='По всему Казахстану';vDirection()" style="${sel(true,d.geoWide)}">🇰🇿 Весь Казахстан</button>
+        <button onclick="S.draft.geoWide=false;refreshDir()" style="${sel(false,d.geoWide)}">📍 Конкретные города</button>
+        <button onclick="S.draft.geoWide=true;S.draft.cities='По всему Казахстану';refreshDir()" style="${sel(true,d.geoWide)}">🇰🇿 Весь Казахстан</button>
       </div>
       ${!d.geoWide?`<input id="dCities" placeholder="Астана, Алматы, Шымкент…" value="${d.cities!=='По всему Казахстану'?d.cities||'':''}" oninput="S.draft.cities=this.value.trim()"><div style="font-size:12px;color:var(--muted);margin-top:5px">Через запятую — AI настроит геотаргетинг по каждому</div>`:''}
     </div>
@@ -582,7 +595,7 @@ function vDirection(){
       <div class="field">
         <label>Пол</label>
         <div style="display:flex;gap:6px">
-          ${[['all','Все'],['f','Женщины'],['m','Мужчины']].map(([v,lbl])=>`<button onclick="S.draft.gender='${v}';vDirection()" style="${sel(v,d.gender||'all')};flex:1;padding:9px 4px;font-size:12px">${lbl}</button>`).join('')}
+          ${[['all','Все'],['f','Женщины'],['m','Мужчины']].map(([v,lbl])=>`<button onclick="S.draft.gender='${v}';refreshDir()" style="${sel(v,d.gender||'all')};flex:1;padding:9px 4px;font-size:12px">${lbl}</button>`).join('')}
         </div>
       </div>
     </div>
