@@ -146,6 +146,35 @@ app.get('/api/account', async (req, res) => {
   }
 });
 
+// ── API: Барлық деректер біріктірілген (дашборд үшін) ──
+app.get('/api/meta-data', async (req, res) => {
+  const token = process.env.META_ACCESS_TOKEN;
+  const account_id = process.env.META_AD_ACCOUNT_ID;
+  if (!token || !account_id) return res.status(400).json({ error: 'Meta not configured' });
+
+  try {
+    const [campaignsRes, insightsRes, accountRes] = await Promise.all([
+      axios.get(`https://graph.facebook.com/v19.0/act_${account_id}/campaigns`, {
+        params: { access_token: token, fields: 'id,name,status,objective,daily_budget,created_time', limit: 20 }
+      }),
+      axios.get(`https://graph.facebook.com/v19.0/act_${account_id}/insights`, {
+        params: { access_token: token, fields: 'impressions,clicks,spend,cpc,cpm,ctr,actions', date_preset: 'today', level: 'account' }
+      }),
+      axios.get(`https://graph.facebook.com/v19.0/act_${account_id}`, {
+        params: { access_token: token, fields: 'id,name,account_status,currency,amount_spent,balance' }
+      })
+    ]);
+
+    res.json({
+      account: accountRes.data,
+      campaigns: campaignsRes.data.data || [],
+      insights: insightsRes.data.data?.[0] || {}
+    });
+  } catch (err) {
+    res.status(400).json(err.response?.data || { error: err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`SmartTarget AI server running on port ${PORT}`);
 });

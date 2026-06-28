@@ -1322,6 +1322,45 @@ if(S.campaigns.length>0&&S.settings.autopilot&&!S.lastOptDate){
 }
 
 /* ────────────────────────────────
+   META API — НАҚТЫ ДЕРЕКТЕР
+──────────────────────────────── */
+async function loadMetaData(){
+  try {
+    const resp = await fetch('/api/meta-data');
+    if(!resp.ok) return;
+    const data = await resp.json();
+    if(data.error) return;
+
+    const ins = data.insights || {};
+    const spend = parseFloat(ins.spend||0).toFixed(2);
+    const cpc = parseFloat(ins.cpc||0).toFixed(2);
+
+    if($('kSpend')) $('kSpend').textContent = '$'+spend;
+    if($('kCpl')) $('kCpl').textContent = cpc>0 ? '$'+cpc : '—';
+
+    const campaigns = data.campaigns || [];
+    if(campaigns.length > 0 && S.campaigns.length === 0){
+      S.campaigns = campaigns.map(c=>({
+        id: c.id,
+        name: c.name,
+        status: c.status==='ACTIVE'?'on':'off',
+        spend: 0, leads: 0, cpl: 0,
+        budget: parseInt(c.daily_budget||0)/100
+      }));
+      save();
+      refreshDashboard();
+    }
+
+    const acc = data.account || {};
+    const banner = document.querySelector('.banner b');
+    if(banner && acc.name) banner.textContent = 'AI жұмыс істеп тұр · '+acc.name;
+
+    if($('kActs')) $('kActs').textContent = campaigns.length;
+  } catch(e){ console.log('Meta API:', e.message); }
+}
+loadMetaData();
+
+/* ────────────────────────────────
    USER MENU & NOTIFICATION BAR
 ──────────────────────────────── */
 function toggleUserMenu(){
