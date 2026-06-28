@@ -160,7 +160,7 @@ const S={
   screen:"connect", step:0,
   conn:{meta:false,tg:false,tgCode:"",wa:"",metaMode:"",bmId:"",accountId:"",accountName:"",ig:"",fb:"",fbMode:"",igLogin:"",igPass:"",igStep:null,waPhone:"",waStep:null},
   dirs:[],
-  draft:{name:"",budget:5000,target:2,max:5,wa:"",dest:"",cities:"",geoWide:false,ageFrom:"18",ageTo:"45",gender:"all",audience:"",url:""},
+  draft:{name:"",product:"",budget:5000,wa:"",dest:"",targeting:"",interests:"",cities:"",geoWide:false,ageFrom:"18",ageTo:"65",gender:"all",url:"",hasBase:false},
   ap:{mode:"auto",vampire:true,scale:true,scaleStep:30,regen:true,time:"08:00",freq:"daily",cap:50000,on:false},
   cr:{budget:2000,days:3,autocopy:true,lang:"kz-ru",tone:"Премиум, тёплый, уверенный. Казахско-русский."},
   budget:{fb:"own",card:false,daily:10,weeks:1,consult:false},
@@ -514,103 +514,90 @@ function vBudget(){
 /* ---------- 2. DIRECTION ---------- */
 function vDirection(){
   const d=S.draft;
+  const sel=(v,cur)=>`appearance:none;cursor:pointer;font-family:inherit;font-size:13px;padding:11px 10px;border-radius:10px;border:1px solid ${cur===v?'var(--gold)':'var(--line)'};background:${cur===v?'rgba(217,164,65,.08)':'var(--surface-2)'};color:${cur===v?'var(--gold-soft)':'var(--text-dim)'};text-align:center;transition:.15s;width:100%`;
+
   app.innerHTML=`
   <div class="eyebrow">Шаг 3 · Направления</div>
-  <h1>Настройте направление</h1>
-  <p class="sub">Направление — отдельная услуга со своей аудиторией и бюджетом. Например: «Лазерная эпиляция», «Ботокс». Можно добавить несколько.</p>
+  <h1>Расскажите о продукте</h1>
+  <p class="sub">AI создаст аудиторный портрет и настроит таргетинг — просто ответьте на вопросы.</p>
 
   <div class="card">
-    <!-- Название -->
+    <!-- 1. Название и продукт -->
     <div class="field">
-      <label>Название направления</label>
-      <input id="dName" placeholder="Напр. Лазерная эпиляция" value="${d.name}">
+      <label>Название услуги / продукта</label>
+      <input id="dName" placeholder="Напр.: Лазерная эпиляция, Доставка еды, Детский сад" value="${d.name||''}">
     </div>
 
-    <!-- Куда вести лидов -->
     <div class="field">
-      <label>Куда вести клиентов из рекламы</label>
+      <label>О продукте — для AI <span style="color:var(--muted);font-weight:400">цена, УТП, для кого</span></label>
+      <textarea id="dProduct" placeholder="Напр.: Лазерная эпиляция тела, цена от 5000₸, акция -30% новым клиентам. Принимаем в Алматы и Астане. Целевая — женщины 20-45 лет." style="width:100%;font-family:inherit;font-size:13.5px;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;resize:vertical;min-height:72px;line-height:1.5" oninput="S.draft.product=this.value">${d.product||''}</textarea>
+      <div style="font-size:12px;color:var(--muted);margin-top:5px">AI использует это для создания текстов объявлений и портрета аудитории</div>
+    </div>
+
+    <!-- 2. Цель кампании -->
+    <div class="field">
+      <label>Цель рекламы</label>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px">
-        ${[['wa','💬 WhatsApp'],['direct','✉️ Direct Instagram'],['traffic','🌐 Трафик на сайт']].map(([v,lbl])=>`
-        <button data-dest="${v}" onclick="S.draft.dest='${v}';vDirection()" style="appearance:none;cursor:pointer;font-family:inherit;font-size:12.5px;padding:10px 6px;border-radius:10px;border:1px solid ${d.dest===v?'var(--gold)':'var(--line)'};background:${d.dest===v?'rgba(217,164,65,.08)':'var(--surface-2)'};color:${d.dest===v?'var(--gold-soft)':'var(--text-dim)'};text-align:center;line-height:1.3;transition:.15s">
-          ${lbl}
-        </button>`).join('')}
+        <button onclick="S.draft.dest='wa';vDirection()" style="${sel('wa',d.dest)}">💬 Заявки<br><span style="font-size:11px;opacity:.7">в WhatsApp</span></button>
+        <button onclick="S.draft.dest='direct';vDirection()" style="${sel('direct',d.dest)}">✉️ Заявки<br><span style="font-size:11px;opacity:.7">в Direct</span></button>
+        <button onclick="S.draft.dest='traffic';vDirection()" style="${sel('traffic',d.dest)}">🌐 Трафик<br><span style="font-size:11px;opacity:.7">на сайт</span></button>
       </div>
-      ${d.dest==='wa'?`<div style="font-size:12px;color:var(--muted);margin-top:7px">Кнопка «Написать в WhatsApp» — заявки приходят напрямую вам</div>`:''}
-      ${d.dest==='direct'?`<div style="font-size:12px;color:var(--muted);margin-top:7px">Реклама ведёт в Direct Instagram — общение с клиентом там</div>`:''}
-      ${d.dest==='traffic'?`<div style="font-size:12px;color:var(--muted);margin-top:7px">Трафик на сайт или лендинг — укажите ссылку ниже</div>
-        <input id="dUrl" placeholder="https://yoursite.com/promo" value="${d.url||''}" style="margin-top:7px;width:100%;font-family:inherit;font-size:14px;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:9px 11px" oninput="S.draft.url=this.value.trim()">
-      `:''}
+      ${d.dest==='traffic'?`<input id="dUrl" placeholder="https://yoursite.com" value="${d.url||''}" style="margin-top:8px;width:100%;font-family:inherit;font-size:14px;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:9px 11px" oninput="S.draft.url=this.value.trim()">`:``}
     </div>
 
-    <!-- Города -->
+    <!-- 3. Тип аудитории -->
     <div class="field">
-      <label>География показа рекламы</label>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px">
-        <button onclick="S.draft.geoWide=false;vDirection()" style="appearance:none;cursor:pointer;font-family:inherit;font-size:12.5px;padding:10px;border-radius:10px;border:1px solid ${!d.geoWide?'var(--gold)':'var(--line)'};background:${!d.geoWide?'rgba(217,164,65,.08)':'var(--surface-2)'};color:${!d.geoWide?'var(--gold-soft)':'var(--text-dim)'};text-align:center;transition:.15s">
-          📍 Конкретные города
-        </button>
-        <button onclick="S.draft.geoWide=true;S.draft.cities='По всему Казахстану';vDirection()" style="appearance:none;cursor:pointer;font-family:inherit;font-size:12.5px;padding:10px;border-radius:10px;border:1px solid ${d.geoWide?'var(--gold)':'var(--line)'};background:${d.geoWide?'rgba(217,164,65,.08)':'var(--surface-2)'};color:${d.geoWide?'var(--gold-soft)':'var(--text-dim)'};text-align:center;transition:.15s">
-          🇰🇿 По всему Казахстану
-        </button>
+      <label>Как ищем аудиторию</label>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px">
+        <button onclick="S.draft.targeting='broad';vDirection()" style="${sel('broad',d.targeting)}">🎯 Широкая<br><span style="font-size:11px;opacity:.7">Advantage+</span></button>
+        <button onclick="S.draft.targeting='interests';vDirection()" style="${sel('interests',d.targeting)}">🔍 Интересы<br><span style="font-size:11px;opacity:.7">укажу сам</span></button>
+        <button onclick="S.draft.targeting='lookalike';vDirection()" style="${sel('lookalike',d.targeting)}">👥 Похожие<br><span style="font-size:11px;opacity:.7">по базе</span></button>
       </div>
-      ${d.geoWide ? `
-        <div style="background:rgba(217,164,65,.06);border:1px solid var(--gold-dim);border-radius:9px;padding:10px 13px;font-size:12.5px;color:var(--text-dim)">
-          Широкая аудитория по всей стране — AI сам найдёт конвертирующие сегменты через Advantage+
-        </div>
-      ` : `
-        <input id="dCities" placeholder="Астана, Алматы, Шымкент…" value="${(!d.geoWide&&d.cities!=='По всему Казахстану')?d.cities:''}" oninput="S.draft.cities=this.value.trim()">
-        <div style="font-size:12px;color:var(--muted);margin-top:5px">Перечислите через запятую — AI настроит геотаргетинг по каждому отдельно</div>
-      `}
+      ${d.targeting==='broad'?`<div style="background:rgba(217,164,65,.06);border:1px solid var(--gold-dim);border-radius:9px;padding:10px 13px;font-size:12.5px;color:var(--text-dim);margin-top:8px">AI сам найдёт конвертирующие сегменты через Advantage+ — рекомендуем для старта</div>`:''}
+      ${d.targeting==='interests'?`<textarea id="dInterests" placeholder="Напр.: красота и уход за собой, фитнес, молодые мамы, интернет-шопинг" style="margin-top:8px;width:100%;font-family:inherit;font-size:13px;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:9px 11px;resize:vertical;min-height:56px;line-height:1.5" oninput="S.draft.interests=this.value">${d.interests||''}</textarea>`:''}
+      ${d.targeting==='lookalike'?`<div style="background:rgba(134,179,117,.07);border:1px solid rgba(134,179,117,.3);border-radius:9px;padding:10px 13px;font-size:12.5px;color:var(--text-dim);margin-top:8px">Загрузим вашу базу клиентов (телефоны/email) — Meta найдёт похожих людей.<br><br><button onclick="document.getElementById('baseFile').click()" style="appearance:none;background:rgba(134,179,117,.15);border:1px solid rgba(134,179,117,.4);border-radius:7px;color:var(--ok);font-family:inherit;font-size:12px;padding:7px 13px;cursor:pointer">📁 Загрузить базу (CSV/Excel)</button><input id="baseFile" type="file" accept=".csv,.xlsx,.xls" style="display:none" onchange="S.draft.hasBase=true;this.previousElementSibling.textContent='✓ '+this.files[0].name"><br><span style="font-size:11px;color:var(--muted);margin-top:5px;display:block">Минимум 1000 контактов — телефоны или email</span></div>`:''}
     </div>
 
-    <!-- Аудитория и возраст -->
+    <!-- 4. География -->
+    <div class="field">
+      <label>География</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px">
+        <button onclick="S.draft.geoWide=false;vDirection()" style="${sel(false,d.geoWide)}">📍 Конкретные города</button>
+        <button onclick="S.draft.geoWide=true;S.draft.cities='По всему Казахстану';vDirection()" style="${sel(true,d.geoWide)}">🇰🇿 Весь Казахстан</button>
+      </div>
+      ${!d.geoWide?`<input id="dCities" placeholder="Астана, Алматы, Шымкент…" value="${d.cities!=='По всему Казахстану'?d.cities||'':''}" oninput="S.draft.cities=this.value.trim()"><div style="font-size:12px;color:var(--muted);margin-top:5px">Через запятую — AI настроит геотаргетинг по каждому</div>`:''}
+    </div>
+
+    <!-- 5. Пол и возраст -->
     <div class="row">
       <div class="field">
-        <label>Возраст аудитории</label>
-        <div style="display:flex;align-items:center;gap:10px">
-          <input id="dAgeFrom" type="number" min="18" max="65" placeholder="18" value="${d.ageFrom||'18'}" style="width:70px;font-family:'JetBrains Mono',monospace;font-size:15px;text-align:center">
-          <span style="color:var(--muted);flex:none">—</span>
-          <input id="dAgeTo" type="number" min="18" max="65" placeholder="45" value="${d.ageTo||'45'}" style="width:70px;font-family:'JetBrains Mono',monospace;font-size:15px;text-align:center">
+        <label>Возраст</label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input id="dAgeFrom" type="number" min="18" max="65" value="${d.ageFrom||'18'}" style="width:64px;font-family:'JetBrains Mono',monospace;font-size:15px;text-align:center">
+          <span style="color:var(--muted)">—</span>
+          <input id="dAgeTo" type="number" min="18" max="65" value="${d.ageTo||'65'}" style="width:64px;font-family:'JetBrains Mono',monospace;font-size:15px;text-align:center">
           <span style="color:var(--muted);font-size:13px">лет</span>
         </div>
       </div>
       <div class="field">
-        <label>Пол аудитории</label>
+        <label>Пол</label>
         <div style="display:flex;gap:6px">
-          ${[['all','Все'],['f','Женщины'],['m','Мужчины']].map(([v,lbl])=>`
-          <button onclick="S.draft.gender='${v}';vDirection()" style="appearance:none;cursor:pointer;font-family:inherit;font-size:12.5px;padding:9px 8px;border-radius:9px;border:1px solid ${(d.gender||'all')===v?'var(--gold)':'var(--line)'};background:${(d.gender||'all')===v?'rgba(217,164,65,.08)':'var(--surface-2)'};color:${(d.gender||'all')===v?'var(--gold-soft)':'var(--text-dim)'};flex:1;text-align:center;transition:.15s">${lbl}</button>`).join('')}
+          ${[['all','Все'],['f','Женщины'],['m','Мужчины']].map(([v,lbl])=>`<button onclick="S.draft.gender='${v}';vDirection()" style="${sel(v,d.gender||'all')};flex:1;padding:9px 4px;font-size:12px">${lbl}</button>`).join('')}
         </div>
       </div>
     </div>
 
-    <!-- Описание аудитории -->
-    <div class="field">
-      <label>Описание аудитории <span style="color:var(--muted);font-weight:400">— для AI</span></label>
-      <textarea id="dAudience" placeholder="Напр.: замужние женщины 25–40, интересуются красотой и уходом за собой, живут в Астане, средний+ доход" style="width:100%;font-family:inherit;font-size:13.5px;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;resize:vertical;min-height:64px;line-height:1.5" oninput="S.draft.audience=this.value">${d.audience||''}</textarea>
-      <div style="font-size:12px;color:var(--muted);margin-top:5px">AI использует это описание для настройки Advantage+ и создания текстов объявлений.</div>
-    </div>
-
-    <!-- Бюджет и CPL -->
+    <!-- 6. Бюджет -->
     <div style="border-top:1px solid var(--line);padding-top:14px;margin-top:4px">
-      <div style="font-family:'Unbounded',sans-serif;font-weight:500;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px">Бюджет и цели</div>
+      <div style="font-family:'Unbounded',sans-serif;font-weight:500;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px">Бюджет</div>
       <div class="row">
         <div class="field" style="margin-bottom:0">
-          <label>Бюджет в день</label>
-          <div class="suffix"><input id="dBudget" type="number" value="${d.budget}"><span class="sfx">₸</span></div>
+          <label>В день</label>
+          <div class="suffix"><input id="dBudget" type="number" value="${d.budget||5000}"><span class="sfx">₸</span></div>
         </div>
         <div class="field" style="margin-bottom:0">
-          <label>WhatsApp для заявок <span class="hint">если отличается</span></label>
-          <input id="dWa" placeholder="основной, если пусто" value="${d.wa}">
-        </div>
-      </div>
-      <div class="row" style="margin-top:12px">
-        <div class="field" style="margin-bottom:0">
-          <label>Целевой CPL <span class="hint">желаемая цена</span></label>
-          <div class="suffix"><input id="dTarget" type="number" step="0.1" value="${d.target}"><span class="sfx">$</span></div>
-        </div>
-        <div class="field" style="margin-bottom:0">
-          <label>Макс CPL <span class="hint">выше — авто-стоп</span></label>
-          <div class="suffix"><input id="dMax" type="number" step="0.1" value="${d.max}"><span class="sfx">$</span></div>
+          <label>WhatsApp <span class="hint">для заявок</span></label>
+          <input id="dWa" placeholder="+7 777…" value="${d.wa||''}">
         </div>
       </div>
     </div>
@@ -618,84 +605,37 @@ function vDirection(){
     <button class="btn ghost" id="addDir" style="width:100%;margin-top:16px">+ Добавить ещё направление</button>
   </div>
 
-  <!-- Креативы -->
-  <div class="card">
-    <div style="font-family:'Unbounded',sans-serif;font-weight:500;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px">Материалы для запуска</div>
-    <p style="font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:14px">Загрузите фото/видео для первых объявлений, а также PDF с информацией о продукте или аудитории — AI и специалист используют их для настройки.</p>
-
-    <!-- Файл-дроп -->
-    <div id="dropzone" style="border:2px dashed var(--line);border-radius:12px;padding:22px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:12px"
-      onclick="document.getElementById('fileInput').click()"
-      ondragover="event.preventDefault();this.style.borderColor='var(--gold)'"
-      ondragleave="this.style.borderColor='var(--line)'"
-      ondrop="event.preventDefault();this.style.borderColor='var(--line)';handleFiles(event.dataTransfer.files)">
-      <div style="font-size:28px;margin-bottom:8px">📎</div>
-      <div style="font-size:13.5px;color:var(--text-dim)">Перетащите файлы или <span style="color:var(--gold-soft);font-weight:600">нажмите для выбора</span></div>
-      <div style="font-size:12px;color:var(--muted);margin-top:5px">Фото, видео, PDF — до 500 МБ каждый</div>
-    </div>
-    <input id="fileInput" type="file" multiple accept="image/*,video/*,.pdf" style="display:none" onchange="handleFiles(this.files)">
-    <div id="fileList" style="display:flex;flex-direction:column;gap:7px"></div>
-
-    <div style="background:var(--surface-2);border-radius:9px;padding:11px 13px;font-size:12px;color:var(--muted);line-height:1.55;margin-top:10px">
-      💡 Файлы отправятся специалисту через Telegram-бот. Если нет материалов — мы поможем подготовить первые креативы.
-    </div>
-  </div>
-
-  <!-- Написать специалисту -->
-  <div class="card" style="border-color:rgba(123,167,201,.25);background:rgba(123,167,201,.04)">
-    <div style="display:flex;align-items:flex-start;gap:12px">
-      <div style="font-size:24px;flex:none">💬</div>
-      <div style="flex:1">
-        <div style="font-weight:600;font-size:14.5px;margin-bottom:5px">Написать специалисту</div>
-        <div style="font-size:12.5px;color:var(--text-dim);line-height:1.55;margin-bottom:12px">Есть вопросы по настройке? Опишите — специалист ответит в Telegram в течение 1–2 часов.</div>
-        <textarea id="specMsg" placeholder="Напр.: у нас два города — Астана и Алматы, можно ли запустить разные объявления для каждого?" style="width:100%;font-family:inherit;font-size:13.5px;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;resize:vertical;min-height:72px;line-height:1.5"></textarea>
-        <button id="sendSpec" style="appearance:none;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;margin-top:9px;background:rgba(123,167,201,.12);border:1px solid rgba(123,167,201,.3);border-radius:9px;padding:10px 18px;color:#7BA7C9;transition:.15s" onmouseover="this.style.background='rgba(123,167,201,.2)'" onmouseout="this.style.background='rgba(123,167,201,.12)'">
-          ✈️ Отправить специалисту
-        </button>
-        <div id="specSent" style="display:none;color:var(--ok);font-size:13px;font-weight:600;margin-top:9px">✓ Сообщение отправлено — ответим в Telegram</div>
-      </div>
-    </div>
-  </div>
-
   ${S.dirs.length?`
   <div class="card">
-    <h3 style="font-family:Unbounded;font-weight:500;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px">Добавленные направления (${S.dirs.length})</h3>
+    <div style="font-family:'Unbounded',sans-serif;font-weight:500;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px">Добавленные направления (${S.dirs.length})</div>
     <div class="dirlist" id="dl"></div>
   </div>`:''}
 
   <div class="nav">
     <button class="back" id="back">← Назад</button>
-    <button class="btn" id="next" style="width:auto;padding:14px 24px">Дальше — автопилот →</button>
+    <button class="btn" id="next" style="width:auto;padding:14px 24px">Дальше →</button>
   </div>`;
 
   const read=()=>{
     S.draft.name=($("#dName")||{}).value?.trim()||S.draft.name;
+    S.draft.product=($("#dProduct")||{}).value?.trim()||S.draft.product||'';
     S.draft.budget=+($("#dBudget")||{}).value||5000;
-    S.draft.target=+($("#dTarget")||{}).value||2;
-    S.draft.max=+($("#dMax")||{}).value||5;
     S.draft.wa=($("#dWa")||{}).value?.trim()||'';
+    S.draft.interests=($("#dInterests")||{}).value?.trim()||S.draft.interests||'';
     if(!S.draft.geoWide) S.draft.cities=($("#dCities")||{}).value?.trim()||S.draft.cities||'';
     S.draft.ageFrom=($("#dAgeFrom")||{}).value||'18';
-    S.draft.ageTo=($("#dAgeTo")||{}).value||'45';
-    S.draft.audience=($("#dAudience")||{}).value??S.draft.audience??'';
+    S.draft.ageTo=($("#dAgeTo")||{}).value||'65';
     if($("#dUrl")) S.draft.url=$("#dUrl").value.trim();
   };
 
   function tryAddDir(){
     read();
     if(!S.draft.name){ const el=$("#dName");if(el){el.style.borderColor='var(--bad)';el.focus();}return false; }
-    if(!S.draft.dest){
-      const msg=document.createElement('div');
-      msg.style.cssText='color:var(--bad);font-size:12.5px;margin-top:6px';
-      msg.textContent='Выберите куда вести клиентов ↑';
-      msg.className='dest-err';
-      const df=document.querySelector('[data-dest]')?.closest('.field');
-      if(df&&!df.querySelector('.dest-err')) df.appendChild(msg);
-      return false;
-    }
+    if(!S.draft.dest){ alert('Выберите цель рекламы'); return false; }
+    if(!S.draft.targeting){ alert('Выберите как ищем аудиторию'); return false; }
     if(!S.draft.geoWide&&!S.draft.cities){ const el=$("#dCities");if(el){el.style.borderColor='var(--bad)';el.focus();}return false; }
     S.dirs.push({...S.draft});
-    S.draft={name:'',budget:5000,target:2,max:5,wa:'',dest:'',cities:'',geoWide:false,ageFrom:'18',ageTo:'45',gender:'all',audience:'',url:''};
+    S.draft={name:'',product:'',budget:5000,wa:'',dest:'',targeting:'',interests:'',cities:'',geoWide:false,ageFrom:'18',ageTo:'65',gender:'all',url:'',hasBase:false};
     return true;
   }
 
