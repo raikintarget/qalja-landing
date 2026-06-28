@@ -317,7 +317,10 @@ app.post(`/tg/${TG_TOKEN}`, async (req, res) => {
     await tgSend(chatId, '⏳ Деректер жүктелуде...');
     try {
       const { campaigns, insights: i } = await getMetaData(user.meta_token, user.meta_account_id);
-      const active = campaigns.filter(c => c.status === 'ACTIVE').length;
+      const active = campaigns.filter(c => c.status === 'ACTIVE');
+      const campLines = active.length
+        ? active.map(c => `  • ${c.name}`).join('\n')
+        : '  Активті кампания жоқ';
       await tgSend(chatId,
         `📊 <b>Күнделікті есеп</b>\n` +
         `👤 ${user.name} · ${user.meta_account_name}\n\n` +
@@ -326,7 +329,7 @@ app.post(`/tg/${TG_TOKEN}`, async (req, res) => {
         `👁 Көрсету: <b>${parseInt(i.impressions||0).toLocaleString()}</b>\n` +
         `💵 CPC: <b>$${parseFloat(i.cpc||0).toFixed(2)}</b>\n` +
         `📈 CTR: <b>${parseFloat(i.ctr||0).toFixed(2)}%</b>\n\n` +
-        `📋 Кампания: ${campaigns.length} (${active} активті)\n\n` +
+        `▶️ Активті кампания (${active.length}):\n${campLines}\n\n` +
         `🔗 <a href="${BASE_URL}/ai-targetolog-app.html">Дашборд →</a>`
       );
     } catch(e) { await tgSend(chatId, '❌ Қате: ' + e.message); }
@@ -396,10 +399,13 @@ async function scheduleDailyReports() {
         if (!u) continue;
         try {
           const { campaigns, insights: i } = await getMetaData(u.meta_token, u.meta_account_id);
-          const active = campaigns.filter(c => c.status === 'ACTIVE').length;
+          const active = campaigns.filter(c => c.status === 'ACTIVE');
+          if (!active.length) continue; // активті кампания жоқ болса хабар жібермейміз
+          const campLines = active.map(c => `  • ${c.name}`).join('\n');
           await tgSend(u.tg_chat_id,
             `📊 <b>Күнделікті есеп</b>\n👤 ${u.name}\n\n` +
-            `💰 $${parseFloat(i.spend||0).toFixed(2)} · 👆 ${i.clicks||0} клик · 📋 ${active} активті кампания\n\n` +
+            `💰 $${parseFloat(i.spend||0).toFixed(2)} · 👆 ${i.clicks||0} клик\n\n` +
+            `▶️ Активті кампания (${active.length}):\n${campLines}\n\n` +
             `🔗 <a href="${BASE_URL}/ai-targetolog-app.html">Дашборд →</a>`
           );
         } catch(e) { console.error('Daily report error:', e.message); }
