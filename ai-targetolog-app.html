@@ -1326,7 +1326,10 @@ if(S.campaigns.length>0&&S.settings.autopilot&&!S.lastOptDate){
 ──────────────────────────────── */
 async function loadMetaData(){
   try {
-    const resp = await fetch('/api/meta-data');
+    const token = localStorage.getItem('st_token') || '';
+    const resp = await fetch('/api/meta-data', {
+      headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+    });
     if(!resp.ok) return;
     const data = await resp.json();
     if(data.error) return;
@@ -1359,6 +1362,16 @@ async function loadMetaData(){
   } catch(e){ console.log('Meta API:', e.message); }
 }
 loadMetaData();
+
+// Facebook OAuth сәтті аяқталды ма?
+if(new URLSearchParams(location.search).get('fb_connected')==='1'){
+  history.replaceState(null,'',location.pathname);
+  const n=document.createElement('div');
+  n.style.cssText='position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#1e3320;border:1px solid #4caf6e;color:#86b375;border-radius:10px;padding:12px 20px;font-size:14px;font-weight:600;z-index:9999;white-space:nowrap';
+  n.textContent='✅ Facebook Ads сәтті байланысты!';
+  document.body.appendChild(n);
+  setTimeout(()=>n.remove(),4000);
+}
 
 /* ────────────────────────────────
    USER MENU & NOTIFICATION BAR

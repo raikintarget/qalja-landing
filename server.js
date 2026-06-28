@@ -188,19 +188,30 @@ app.get('/api/meta-data', async (req, res) => {
 // FACEBOOK OAUTH
 // ══════════════════════════════
 
-app.get('/auth/facebook', (req, res) => {
-  const state = req.query.state || crypto.randomBytes(16).toString('hex');
+// OAuth старт — session токенін state-ке қосамыз
+app.get('/auth/facebook', async (req, res) => {
+  const sessionToken = req.query.session || '';
+  // state = sessionToken:randomBytes (кейін callback-та парсиламыз)
+  const rand = crypto.randomBytes(8).toString('hex');
+  const state = sessionToken ? `${sessionToken}:${rand}` : rand;
+
+  // State-ті DB-ге сақта
+  await pool.query(
+    'INSERT INTO tg_link_tokens (token, user_id) VALUES ($1, $2) ON CONFLICT (token) DO NOTHING',
+    [state, null]
+  );
+
   const scope = 'ads_management,ads_read,business_management';
   const url = `https://www.facebook.com/v19.0/dialog/oauth` +
     `?client_id=${META_APP_ID}` +
     `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
-    `&scope=${scope}&state=${state}&response_type=code`;
+    `&scope=${scope}&state=${encodeURIComponent(state)}&response_type=code`;
   res.redirect(url);
 });
 
 app.get('/auth/callback', async (req, res) => {
-  const { code, state, error } = req.query;
-  if (error) return res.redirect('/auth.html?error=access_denied');
+  const { code, state: rawState, error } = req.query;
+  if (error) return res.redirect('/ai-targetolog-onboarding.html?error=access_denied');
 
   try {
     const tokenRes = await axios.get('https://graph.facebook.com/v19.0/oauth/access_token', {
@@ -208,37 +219,100 @@ app.get('/auth/callback', async (req, res) => {
     });
     const { access_token } = tokenRes.data;
 
-    const [userRes, adsRes] = await Promise.all([
-      axios.get('https://graph.facebook.com/v19.0/me', { params: { access_token, fields: 'id,name' } }),
+    const [adsRes] = await Promise.all([
       axios.get('https://graph.facebook.com/v19.0/me/adaccounts', {
-        params: { access_token, fields: 'id,name', limit: 5 }
+        params: { access_token, fields: 'id,name,account_status', limit: 10 }
       })
     ]);
 
     const adAccount = adsRes.data.data?.[0];
     const accountId = adAccount?.id?.replace('act_', '');
+    const state = decodeURIComponent(rawState || '');
 
-    // Telegram арқылы келген
-    const tgRow = await pool.query('SELECT tg_chat_id FROM tg_link_tokens WHERE token = $1', [state]);
-    if (tgRow.rows.length > 0) {
-      const chatId = tgRow.rows[0].tg_chat_id;
-      await pool.query(
-        'UPDATE users SET meta_token=$1, meta_account_id=$2, meta_account_name=$3 WHERE tg_chat_id=$4',
-        [access_token, accountId, adAccount?.name, chatId]
-      );
-      await pool.query('DELETE FROM tg_link_tokens WHERE token = $1', [state]);
-      await tgSend(chatId, `✅ <b>Facebook Ads байланысты!</b>\n\n📊 Аккаунт: ${adAccount?.name}\n\n/report деп жазып статистиканы алыңыз!`);
-      return res.send(`<html><body style="background:#0E0D0B;color:#EBD7A6;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center"><div><div style="font-size:48px">✅</div><h2 style="color:#D9A441">Байланысты!</h2><p>Telegram ботына оралыңыз</p></div></body></html>`);
+    // State-тен session токенін алу: "sessionToken:rand" форматы
+    const sessionToken = state.includes(':') ? state.split(':')[0] : null;
+
+    if (sessionToken) {
+      // Веб арқылы — session-дан user табып, DB-ге сақтаймыз
+      const user = await getUserBySession(sessionToken);
+      if (user) {
+        await pool.query(
+          'UPDATE users SET meta_token=$1, meta_account_id=$2, meta_account_name=$3 WHERE id=$4',
+          [access_token, accountId, adAccount?.name, user.id]
+        );
+        // Telegram-ға хабар
+        if (user.tg_chat_id) {
+          await tgSend(user.tg_chat_id,
+            `✅ <b>Facebook Ads байланысты!</b>\n📊 Аккаунт: ${adAccount?.name}\n\n/report деп жазыңыз!`
+          );
+        }
+        // Дашбордқа redirect — байланысты деген белгімен
+        return res.redirect('/ai-targetolog-app.html?fb_connected=1');
+      }
     }
 
+    // Тіркелмеген пайдаланушы үшін — деректерді URL-ге қосып жіберу
     const payload = encodeURIComponent(JSON.stringify({
-      token: access_token, user: userRes.data, adAccounts: adsRes.data.data || []
+      token: access_token, adAccounts: adsRes.data.data || []
     }));
-    res.redirect(`/ai-targetolog-app.html?meta=${payload}`);
+    res.redirect(`/ai-targetolog-onboarding.html?meta=${payload}`);
+
   } catch (err) {
     console.error('OAuth error:', err.response?.data || err.message);
-    res.redirect('/auth.html?error=oauth_failed');
+    res.redirect('/ai-targetolog-onboarding.html?error=oauth_failed');
   }
+});
+
+// ── Партнерский доступ — клиент Business Manager ID береді ──
+app.post('/api/connect/partner', async (req, res) => {
+  const sessionToken = req.headers.authorization?.replace('Bearer ', '');
+  const { bm_id } = req.body;
+  if (!sessionToken || !bm_id) return res.status(400).json({ error: 'Missing params' });
+
+  const user = await getUserBySession(sessionToken);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+  // System User токенімізбен клиенттің BM-ін тексер
+  const sysToken = process.env.META_ACCESS_TOKEN;
+  try {
+    const r = await axios.get(`https://graph.facebook.com/v19.0/${bm_id}/owned_ad_accounts`, {
+      params: { access_token: sysToken, fields: 'id,name,account_status', limit: 5 }
+    });
+    const accounts = r.data.data || [];
+    if (!accounts.length) {
+      return res.status(400).json({ error: 'Аккаунт табылмады. Партнер доступ дұрыс берілді ме?' });
+    }
+    const acc = accounts[0];
+    const accountId = acc.id.replace('act_', '');
+    await pool.query(
+      'UPDATE users SET meta_token=$1, meta_account_id=$2, meta_account_name=$3 WHERE id=$4',
+      [sysToken, accountId, acc.name, user.id]
+    );
+    res.json({ ok: true, account: acc.name, account_id: accountId });
+  } catch(e) {
+    res.status(400).json({ error: 'Партнер доступ жоқ немесе BM ID дұрыс емес' });
+  }
+});
+
+// ── Инстаграм/Facebook жоқ — мәліметтерді сақта ──
+app.post('/api/connect/manual', async (req, res) => {
+  const sessionToken = req.headers.authorization?.replace('Bearer ', '');
+  const { ig_login, wa_phone, notes } = req.body;
+  if (!sessionToken) return res.status(401).json({ error: 'Unauthorized' });
+
+  const user = await getUserBySession(sessionToken);
+  if (!user) return res.status(401).json({ error: 'Invalid session' });
+
+  // Мәліметтерді сақта — менеджер байланысады
+  await pool.query(
+    'UPDATE users SET meta_account_name=$1 WHERE id=$2',
+    [`MANUAL:${ig_login || ''}:${wa_phone || ''}`, user.id]
+  );
+
+  // Adminге хабар (болашақта Telegram-ға жіберіледі)
+  console.log(`📥 Жаңа клиент (қолмен): ${user.name} | IG: ${ig_login} | WA: ${wa_phone}`);
+
+  res.json({ ok: true, message: 'Менеджер 1-2 сағат ішінде байланысады' });
 });
 
 // ══════════════════════════════

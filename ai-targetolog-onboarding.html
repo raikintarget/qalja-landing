@@ -189,7 +189,7 @@ function vConnect(){
     <div style="font-size:36px;margin-bottom:12px">🔗</div>
     <div style="font-family:'Unbounded',sans-serif;font-weight:600;font-size:15px;margin-bottom:8px">Войти через Facebook</div>
     <div style="font-size:13px;color:var(--text-dim);margin-bottom:20px;line-height:1.6">AI получит доступ к вашим рекламным кампаниям.<br>Ваш пароль нам не нужен — только безопасный OAuth токен.</div>
-    <a href="/auth/facebook" style="display:inline-flex;align-items:center;gap:10px;background:#1877F2;border-radius:10px;padding:13px 24px;font-family:'Unbounded',sans-serif;font-weight:600;font-size:13px;color:#fff;text-decoration:none">
+    <a id="fbOauthBtn" href="#" onclick="startFbOAuth(event)" style="display:inline-flex;align-items:center;gap:10px;background:#1877F2;border-radius:10px;padding:13px 24px;font-family:'Unbounded',sans-serif;font-weight:600;font-size:13px;color:#fff;text-decoration:none">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
       Подключить Facebook Ads
     </a>
@@ -256,7 +256,13 @@ function vConnect(){
 
         <div style="display:flex;gap:11px;align-items:flex-start">
           <span style="font-family:'Unbounded',sans-serif;font-weight:700;color:var(--gold);min-width:22px;flex:none">4</span>
-          <span>Нажмите «Готово» ниже — наш специалист проверит доступ и подтвердит подключение в течение 1–2 часов</span>
+          <div style="flex:1;min-width:0">
+            <div style="margin-bottom:9px">Введите ваш <b>ID Business Portfolio</b> — мы проверим, что доступ выдан:</div>
+            <input id="ownBmId" type="text" placeholder="например: 2704422019909146" value="${S.conn.bmId||''}"
+              style="width:100%;font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:11px 13px"
+              oninput="S.conn.bmId=this.value.trim();checkConnReady()">
+            <div style="font-size:12px;color:var(--muted);margin-top:5px">Ваш ID: business.facebook.com → Настройки → Бизнес-портфолио</div>
+          </div>
         </div>
       </div>
     </div>
@@ -346,13 +352,15 @@ function vConnect(){
     if($("#oursWaPhone")) $("#oursWaPhone").oninput=e=>{S.conn.waPhone=e.target.value.trim();checkConnReady();};
   }
   if($("#connNext")) $("#connNext").onclick=()=>{
-    if(S.conn.metaMode==='ours'){ submitOurs(); } else { go("direction"); }
+    if(S.conn.metaMode==='ours'){ submitOurs(); }
+    else if(S.conn.metaMode==='own'){ submitPartner(); }
+    else { go("direction"); }
   };
 }
 
 function connReady(mode){
   if(!mode||!S.conn.tg) return false;
-  if(mode==='own') return true; // достаточно Telegram — доступ проверит специалист
+  if(mode==='own') return !!(S.conn.bmId && S.conn.tg); // BM ID + Telegram
   if(mode==='ours') return !!(S.conn.igLogin&&S.conn.igPass&&S.conn.waPhone);
   return false;
 }
@@ -362,13 +370,53 @@ function checkConnReady(){
   if(btn) btn.disabled=!connReady(S.conn.metaMode);
 }
 
-function submitOurs(){
+function startFbOAuth(e){
+  e.preventDefault();
+  const token = localStorage.getItem('st_token') || '';
+  window.location.href = '/auth/facebook?session=' + encodeURIComponent(token);
+}
+
+async function submitPartner(){
+  const btn=$("#connNext");
+  if(btn){btn.textContent='Проверяем доступ…';btn.disabled=true;}
+  const token = localStorage.getItem('st_token') || '';
+  try {
+    const r = await fetch('/api/connect/partner', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify({ bm_id: S.conn.bmId })
+    });
+    const data = await r.json();
+    if(r.ok){
+      // Доступ подтверждён — идём дальше
+      go("direction");
+    } else {
+      // Доступ ещё не выдан — специалист проверит вручную
+      if(btn){btn.textContent='Готово, жду проверки →';btn.disabled=false;}
+      alert('⏳ Доступ пока не выдан. Назначьте партнёра в Business Manager и нажмите ещё раз. Если вы уже назначили — специалист проверит в течение 1–2 часов.');
+    }
+  } catch(e) {
+    if(btn){btn.textContent='Готово, жду проверки →';btn.disabled=false;}
+    alert('⚠️ ' + e.message);
+  }
+}
+
+async function submitOurs(){
   const btn=$("#connNext");
   if(btn){btn.textContent='Отправляем…';btn.disabled=true;}
-  setTimeout(()=>{
-    // Данные сохранены, переходим на следующий шаг
+  const token = localStorage.getItem('st_token') || '';
+  try {
+    const r = await fetch('/api/connect/manual', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify({ ig_login: S.conn.igLogin, wa_phone: S.conn.waPhone })
+    });
+    if(!r.ok) { const d=await r.json(); throw new Error(d.error||'Ошибка'); }
     go("direction");
-  },1200);
+  } catch(e) {
+    if(btn){btn.textContent='Отправить данные специалисту →';btn.disabled=false;}
+    alert('⚠️ ' + e.message);
+  }
 }
 
 /* ---------- 2. BUDGET & PAYMENT ---------- */
