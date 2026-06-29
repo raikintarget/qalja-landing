@@ -85,7 +85,7 @@ async function getMetaData(token, accountId) {
       params: { access_token: token, fields: 'id,name,status,objective,daily_budget', limit: 20 }
     }),
     axios.get(`https://graph.facebook.com/v19.0/act_${accountId}/insights`, {
-      params: { access_token: token, fields: 'impressions,clicks,spend,cpc,ctr', date_preset: 'today', level: 'account' }
+      params: { access_token: token, fields: 'impressions,clicks,spend,cpc,ctr,inline_link_clicks,messaging_conversation_started_7d', date_preset: 'today', level: 'account' }
     }),
     axios.get(`https://graph.facebook.com/v19.0/act_${accountId}`, {
       params: { access_token: token, fields: 'id,name,currency,amount_spent' }
@@ -190,6 +190,22 @@ app.post('/api/settings', async (req, res) => {
 app.post('/api/logout', async (req, res) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (token) await pool.query('DELETE FROM sessions WHERE token = $1', [token]);
+  res.json({ ok: true });
+});
+
+// Пароль өзгерту
+app.post('/api/change-password', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'Авторизация қажет' });
+  const user = await getUserBySession(token);
+  if (!user) return res.status(401).json({ error: 'Сессия жоқ' });
+  const { current_password, new_password } = req.body;
+  if (!current_password || !new_password) return res.status(400).json({ error: 'Барлық өрістерді толтырыңыз' });
+  if (new_password.length < 6) return res.status(400).json({ error: 'Пароль кемінде 6 таңба' });
+  const currentHash = hashPassword(current_password);
+  if (currentHash !== user.password_hash) return res.status(400).json({ error: 'Ағымдағы пароль қате' });
+  const newHash = hashPassword(new_password);
+  await pool.query('UPDATE users SET password_hash=$1 WHERE id=$2', [newHash, user.id]);
   res.json({ ok: true });
 });
 

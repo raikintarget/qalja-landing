@@ -255,6 +255,7 @@ h2{font-family:"Unbounded";font-weight:600;font-size:clamp(16px,3.5vw,21px);line
   <button class="t" data-tab="chat">💬 Чат</button>
   <div class="nav-r">
     <div class="ai-status" id="aiStatusBadge"><span class="pulse" id="aiPulse"></span><span id="aiStatusTxt">загрузка…</span></div>
+    <button class="ib" id="langToggleBtn" onclick="toggleLang()" title="Тіл / Язык" style="font-size:11px;font-weight:700;width:36px">RU</button>
     <button class="ib" onclick="openSettings()" title="Настройки">⚙️</button>
     <!-- USER AVATAR -->
     <div id="userAvatarBtn" style="display:flex;align-items:center;gap:7px;cursor:pointer;padding:4px 8px;border-radius:9px;border:1px solid var(--line);background:var(--s2);transition:.15s;flex:none;position:relative" onclick="toggleUserMenu()" title="Аккаунт">
@@ -546,41 +547,67 @@ h2{font-family:"Unbounded";font-weight:600;font-size:clamp(16px,3.5vw,21px);line
 
 <!-- MODAL: Настройки -->
 <div class="ov" id="settingsModal">
-  <div class="modal">
-    <h3>⚙️ Настройки</h3>
-    <div class="fl"><label>Модель Claude</label>
-      <select id="sModel">
-        <option value="claude-sonnet-4-6">Sonnet 4.6 — рекомендуется</option>
-        <option value="claude-haiku-4-5-20251001">Haiku 4.5 — быстро и дёшево</option>
-        <option value="claude-opus-4-6">Opus 4.6 — лучшее качество</option>
-      </select>
-    </div>
+  <div class="modal" style="max-height:90vh;overflow-y:auto">
+    <h3 id="sTitle">⚙️ Настройки</h3>
+
+    <!-- Профиль -->
     <div style="border:1px solid var(--line);border-radius:var(--r);padding:13px;margin-bottom:13px">
-      <div class="ey" style="margin-bottom:10px">Бизнес</div>
-      <div class="fl"><label>Название</label><input id="sBiz" placeholder="Ваш бизнес"></div>
+      <div class="ey" id="sSecProfile" style="margin-bottom:10px">Профиль</div>
+      <div class="fl"><label id="sLblEmail">Email</label><input id="sEmail" placeholder="email" disabled style="opacity:.6;cursor:default;font-size:12px"></div>
+      <div class="fl"><label id="sLblAccId">Рекламный аккаунт</label><input id="sAccId" placeholder="—" disabled style="opacity:.6;cursor:default;font-size:12px"></div>
+      <!-- Пароль өзгерту -->
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">
+        <div style="font-size:12px;font-weight:600;color:var(--dim);margin-bottom:8px" id="sLblChangePwd">Изменить пароль</div>
+        <div class="fl"><label id="sLblCurPwd">Текущий пароль</label><input type="password" id="sCurPwd" autocomplete="current-password"></div>
+        <div class="fl"><label id="sLblNewPwd">Новый пароль</label><input type="password" id="sNewPwd" autocomplete="new-password"></div>
+        <div class="fl"><label id="sLblConfPwd">Повторить</label><input type="password" id="sConfPwd" autocomplete="new-password"></div>
+        <div id="sPwdMsg" style="font-size:12px;margin-top:4px;display:none"></div>
+        <button class="btn sm" onclick="changePassword()" id="sBtnPwd" style="margin-top:8px;width:100%">💾 Сохранить пароль</button>
+      </div>
+    </div>
+
+    <!-- Бизнес -->
+    <div style="border:1px solid var(--line);border-radius:var(--r);padding:13px;margin-bottom:13px">
+      <div class="ey" id="sSecBiz" style="margin-bottom:10px">Бизнес</div>
+      <div class="fl"><label id="sLblBizName">Название</label><input id="sBiz" placeholder="Ваш бизнес"></div>
       <div class="r2">
-        <div class="fl"><label>Ниша</label><input id="sNiche" placeholder="Бьюти, медицина…"></div>
-        <div class="fl"><label>Целевой CPL ($)</label><input id="sCpl" type="number" step="0.5" placeholder="2.00"></div>
+        <div class="fl"><label id="sLblNiche">Ниша</label><input id="sNiche" placeholder="Бьюти, медицина…"></div>
+        <div class="fl"><label id="sLblCpl">Целевой CPL ($)</label><input id="sCpl" type="number" step="0.5" placeholder="2.00"></div>
       </div>
       <div class="fl"><label>WhatsApp</label><input id="sWa" placeholder="+7 ___ ___ __ __"></div>
-      <div class="fl"><label>Facebook Page ID</label><input id="sPageId" placeholder="115532398308067" style="font-size:12px"><small style="color:var(--muted);font-size:11px">Нужен для создания рекламы. Найти: facebook.com/ваша-страница → Настройки → ID страницы</small></div>
-      <div class="fl"><label>Фото для рекламы</label>
+      <div class="fl"><label>Facebook Page ID</label><input id="sPageId" placeholder="115532398308067" style="font-size:12px"><small id="sPageIdHint" style="color:var(--muted);font-size:11px">Нужен для создания рекламы. Найти: facebook.com/ваша-страница → Настройки → ID страницы</small></div>
+      <div class="fl"><label id="sLblModel">Модель Claude</label>
+        <select id="sModel">
+          <option value="claude-sonnet-4-6">Sonnet 4.6 — рекомендуется</option>
+          <option value="claude-haiku-4-5-20251001">Haiku 4.5 — жылдам / быстро</option>
+          <option value="claude-opus-4-6">Opus 4.6 — үздік / лучшее</option>
+        </select>
+      </div>
+      <div class="fl"><label id="sLblPhoto">Фото для рекламы</label>
         <div id="adImgBox" style="border:1.5px dashed var(--line);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:.2s" onclick="document.getElementById('adImgInput').click()" ondragover="event.preventDefault();this.style.borderColor='var(--gold)'" ondragleave="this.style.borderColor='var(--line)'" ondrop="event.preventDefault();handleAdImg(event.dataTransfer.files[0])">
           <div id="adImgPreview" style="display:none;margin-bottom:8px"><img id="adImgThumb" style="max-width:100%;max-height:120px;border-radius:7px;object-fit:cover"></div>
-          <div id="adImgPlaceholder">📸 Нажмите или перетащите фото<br><small style="color:var(--muted)">JPG/PNG до 30 МБ · рекомендуется 1080×1080</small></div>
+          <div id="adImgPlaceholder" id="sPhotoPlaceholder">📸 Нажмите или перетащите фото<br><small style="color:var(--muted)">JPG/PNG до 30 МБ · рекомендуется 1080×1080</small></div>
           <div id="adImgStatus" style="display:none;font-size:12px;margin-top:6px"></div>
         </div>
         <input type="file" id="adImgInput" accept="image/jpeg,image/png" style="display:none" onchange="handleAdImg(this.files[0])">
       </div>
     </div>
+
+    <!-- Автопилот -->
     <div style="border:1px solid var(--line);border-radius:var(--r);padding:13px">
-      <div class="ey" style="margin-bottom:8px">Автопилот</div>
-      <div class="sr"><div class="t"><b>AI работает автоматически</b><small>Принимает решения сам, присылает отчёт</small></div><input type="checkbox" class="sw" id="sAuto" checked></div>
-      <div class="sr"><div class="t"><b>Ежедневный отчёт</b><small>AI сам формирует и отправляет в Telegram</small></div><input type="checkbox" class="sw" id="sReport" checked></div>
+      <div class="ey" id="sSecAuto" style="margin-bottom:8px">Автопилот</div>
+      <div class="sr"><div class="t"><b id="sAutoLbl">AI работает автоматически</b><small id="sAutoDesc">Принимает решения сам, присылает отчёт</small></div><input type="checkbox" class="sw" id="sAuto" checked></div>
+      <div class="sr"><div class="t"><b id="sRepLbl">Ежедневный отчёт</b><small id="sRepDesc">AI сам формирует и отправляет в Telegram</small></div><input type="checkbox" class="sw" id="sReport" checked></div>
     </div>
-    <div class="mf">
-      <button class="btn sm g" onclick="closeSettings()">Отмена</button>
-      <button class="btn sm" onclick="saveSettings()">Сохранить</button>
+
+    <div class="mf" style="margin-top:14px">
+      <button class="btn sm g" onclick="closeSettings()" id="sBtnCancel">Отмена</button>
+      <button class="btn sm" onclick="saveSettings()" id="sBtnSave">Сохранить</button>
+    </div>
+
+    <!-- Выход -->
+    <div style="text-align:center;margin-top:12px">
+      <button onclick="doLogout()" style="background:none;border:none;color:var(--bad);font-family:inherit;font-size:13px;cursor:pointer;padding:6px 12px;border-radius:8px" id="sBtnLogout">🚪 Выйти из аккаунта</button>
     </div>
   </div>
 </div>
@@ -594,13 +621,81 @@ function loadS(){ try{ return JSON.parse(localStorage.getItem(KEY)) || def(); }c
 function def(){
   return {
     campaigns:[],creatives:[],reports:[],actions:[],chatHistory:[],
-    settings:{model:'claude-sonnet-4-6',bizName:'',niche:'',targetCpl:2.0,wa:'',pageId:'',autopilot:true,dailyReport:true},
+    settings:{model:'claude-sonnet-4-6',bizName:'',niche:'',targetCpl:2.0,wa:'',pageId:'',autopilot:true,dailyReport:true,lang:'ru'},
     budget:{limDaily:300,limCpl:5,limLeads:5,alert:true},
-    totalActions:0, lastReportText:'', lastOptDate:''
+    totalActions:0, lastReportText:'', lastOptDate:'', userEmail:'', metaAccountId:'', metaAccountName:''
   };
 }
 let S = loadS();
 function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+
+/* ────────────────────────────────
+   LANGUAGE / ТІЛ
+──────────────────────────────── */
+const LANGS={
+  ru:{
+    tabAuto:'🤖 Автопилот',tabCamp:'📋 Кампании',tabBudget:'💰 Бюджет',
+    tabCreatives:'🎨 Креативы',tabReports:'📩 Отчёты',tabChat:'💬 Чат',
+    aiLoading:'загрузка…',aiOnline:'работает',
+    sTitle:'⚙️ Настройки',sSecProfile:'Профиль',sLblEmail:'Email',
+    sLblAccId:'Рекламный аккаунт',sLblChangePwd:'Изменить пароль',
+    sLblCurPwd:'Текущий пароль',sLblNewPwd:'Новый пароль',sLblConfPwd:'Повторить',
+    sBtnPwd:'💾 Сохранить пароль',sSecBiz:'Бизнес',sLblBizName:'Название',
+    sLblNiche:'Ниша',sLblCpl:'Целевой CPL ($)',sLblModel:'Модель Claude',
+    sLblPhoto:'Фото для рекламы',sPageIdHint:'Нужен для создания рекламы. Найти: facebook.com/ваша-страница → Настройки → ID страницы',
+    sSecAuto:'Автопилот',sAutoLbl:'AI работает автоматически',sAutoDesc:'Принимает решения сам, присылает отчёт',
+    sRepLbl:'Ежедневный отчёт',sRepDesc:'AI сам формирует и отправляет в Telegram',
+    sBtnCancel:'Отмена',sBtnSave:'Сохранить',sBtnLogout:'🚪 Выйти из аккаунта',
+    pwdFillAll:'Заполните все поля',pwdNoMatch:'Пароли не совпадают',pwdShort:'Пароль минимум 6 символов',pwdOk:'✅ Пароль изменён',pwdErr:'Ошибка',
+    logoutConfirm:'Выйти из аккаунта?',
+    repChats:'Переписок',repClicks:'Кликов по ссылке',repTotal:'Итого',
+  },
+  kk:{
+    tabAuto:'🤖 Автопилот',tabCamp:'📋 Кампаниялар',tabBudget:'💰 Бюджет',
+    tabCreatives:'🎨 Креативтер',tabReports:'📩 Есептер',tabChat:'💬 Чат',
+    aiLoading:'жүктелуде…',aiOnline:'жұмыс істеп тұр',
+    sTitle:'⚙️ Баптаулар',sSecProfile:'Профиль',sLblEmail:'Email',
+    sLblAccId:'Жарнама аккаунты',sLblChangePwd:'Парольді өзгерту',
+    sLblCurPwd:'Ағымдағы пароль',sLblNewPwd:'Жаңа пароль',sLblConfPwd:'Қайталау',
+    sBtnPwd:'💾 Парольді сақтау',sSecBiz:'Бизнес',sLblBizName:'Атауы',
+    sLblNiche:'Ниша',sLblCpl:'Мақсатты CPL ($)',sLblModel:'Claude моделі',
+    sLblPhoto:'Жарнама үшін сурет',sPageIdHint:'Жарнама жасауға қажет. Табу: facebook.com/сіздің-бет → Баптаулар → Бет ID',
+    sSecAuto:'Автопилот',sAutoLbl:'AI өздігінен жұмыс істейді',sAutoDesc:'Өзі шешім қабылдайды, есеп жібереді',
+    sRepLbl:'Күнделікті есеп',sRepDesc:'AI өзі жасап Telegram-ға жібереді',
+    sBtnCancel:'Болдырмау',sBtnSave:'Сақтау',sBtnLogout:'🚪 Шығу',
+    pwdFillAll:'Барлық өрістерді толтырыңыз',pwdNoMatch:'Парольдер сәйкес келмейді',pwdShort:'Пароль кемінде 6 таңба',pwdOk:'✅ Пароль өзгертілді',pwdErr:'Қате',
+    logoutConfirm:'Аккаунттан шығасыз ба?',
+    repChats:'Хат алмасу',repClicks:'Сілтеме кликтері',repTotal:'Жиыны',
+  }
+};
+let L=LANGS[S.settings.lang||'ru'];
+
+function toggleLang(){
+  S.settings.lang=S.settings.lang==='ru'?'kk':'ru';
+  L=LANGS[S.settings.lang];
+  save(); applyLang();
+  const btn=$('langToggleBtn');
+  if(btn) btn.textContent=S.settings.lang==='ru'?'RU':'ҚАЗ';
+}
+function applyLang(){
+  const lang=S.settings.lang||'ru';
+  L=LANGS[lang];
+  const btn=$('langToggleBtn');
+  if(btn) btn.textContent=lang==='ru'?'RU':'ҚАЗ';
+  // Nav tabs
+  const tabs=document.querySelectorAll('.t[data-tab]');
+  const tabKeys={autopilot:'tabAuto',campaigns:'tabCamp',budget:'tabBudget',creatives:'tabCreatives',reports:'tabReports',chat:'tabChat'};
+  tabs.forEach(t=>{ if(tabKeys[t.dataset.tab]) t.textContent=L[tabKeys[t.dataset.tab]]||t.textContent; });
+  // Settings modal labels
+  const ids=['sTitle','sSecProfile','sLblEmail','sLblAccId','sLblChangePwd','sLblCurPwd','sLblNewPwd','sLblConfPwd',
+    'sBtnPwd','sSecBiz','sLblBizName','sLblNiche','sLblCpl','sLblModel','sLblPhoto','sPageIdHint',
+    'sSecAuto','sAutoLbl','sAutoDesc','sRepLbl','sRepDesc','sBtnCancel','sBtnSave','sBtnLogout'];
+  ids.forEach(id=>{ const el=$(id); if(el&&L[id]) el.textContent=L[id]; });
+  // AI status
+  const st=$('aiStatusTxt');
+  if(st&&st.textContent===LANGS['ru'].aiOnline||st&&st.textContent===LANGS['kk'].aiOnline)
+    st.textContent=L.aiOnline;
+}
 
 /* ────────────────────────────────
    UTILS
@@ -685,7 +780,7 @@ function refreshDashboard(){
   $('bannerLive').style.background=auto?'var(--ok)':'var(--muted)';
   $('bannerLive').style.animation=auto?'blink 1.2s infinite':'none';
   $('pauseBtn').textContent=auto?'⏸ Пауза':'▶ Включить';
-  $('aiStatusTxt').textContent=auto?'работает':'пауза';
+  $('aiStatusTxt').textContent=auto?(L.aiOnline||'работает'):(S.settings.lang==='kk'?'пауза':'пауза');
   $('aiPulse').className=auto?'pulse':'pulse off';
   $('noKeyBanner').style.display='none';
   renderDashCamps();
@@ -1136,12 +1231,28 @@ async function genReport(){
     }catch{}
   }
 
-  const lines=camps.map(c=>`${VI[verdict(c)]} ${c.name} (CPL ${c.leads>0?'$'+(c.spend/c.leads).toFixed(2):'—'})`);
+  const ins=S.metaInsights||{};
+  const totalChats=parseInt(ins.messaging_conversation_started_7d||0);
+  const totalClicks=parseInt(ins.inline_link_clicks||0);
+
+  // Per-campaign rows
+  const campLines=camps.map(c=>{
+    const campCpl=c.leads>0?'$'+(c.spend/c.leads).toFixed(2):'—';
+    return `${VI[verdict(c)]} ${c.name}\n   💰 $${c.spend} · 📨 ${c.leads} заявок · CPL ${campCpl}`;
+  });
+
   let rep=`📊 ${typeL[type]} · ${periodLabel}\n`;
   rep+=`Клиент: ${client}\n\n`;
-  rep+=`Расход: ${fmt$(spend)} · Заявок: ${leads}\n`;
-  rep+=`CPL: $${cpl>0?cpl.toFixed(2):'—'} · Цель: ≤$${t}\n\n`;
-  if(lines.length) rep+=lines.join('\n')+'\n\n';
+  if(campLines.length){
+    rep+=campLines.join('\n\n')+'\n\n';
+    rep+=`─────────────────\n`;
+    rep+=`${L.repTotal||'Итого'}:\n`;
+  }
+  rep+=`💸 ${L.repTotal||'Итого'} расход: ${fmt$(spend)}\n`;
+  rep+=`📨 Заявок: ${leads} · CPL: $${cpl>0?cpl.toFixed(2):'—'} · Цель: ≤$${t}\n`;
+  if(totalChats>0) rep+=`💬 ${L.repChats||'Переписок'}: ${totalChats}\n`;
+  if(totalClicks>0) rep+=`🖱 ${L.repClicks||'Кликов по ссылке'}: ${totalClicks}\n`;
+  rep+='\n';
   if(aiText) rep+=`💡 ${aiText}\n\n`;
   rep+=`🤖 SmartTarget AI`;
 
@@ -1434,6 +1545,12 @@ function openSettings(){
   $('sPageId').value=st.pageId||'';
   $('sAuto').checked=!!st.autopilot;
   $('sReport').checked=!!st.dailyReport;
+  // Email + аккаунт
+  if(S.userEmail) $('sEmail').value=S.userEmail;
+  $('sAccId').value=S.metaAccountId?(S.metaAccountName||'')+' · '+S.metaAccountId:'—';
+  // Пароль өрістерін тазала
+  $('sCurPwd').value='';$('sNewPwd').value='';$('sConfPwd').value='';
+  $('sPwdMsg').style.display='none';
   // Сурет preview
   if(st.adImageUrl){
     document.getElementById('adImgThumb').src=st.adImageUrl;
@@ -1443,11 +1560,13 @@ function openSettings(){
     document.getElementById('adImgStatus').style.color='var(--ok)';
     document.getElementById('adImgStatus').textContent='✅ Фото загружено';
   }
+  applyLang();
   $('settingsModal').classList.add('show');
 }
 function closeSettings(){ $('settingsModal').classList.remove('show'); }
 async function saveSettings(){
   S.settings={
+    ...S.settings,
     model:$('sModel').value,
     bizName:$('sBiz').value.trim(),
     niche:$('sNiche').value.trim(),
@@ -1458,12 +1577,26 @@ async function saveSettings(){
     dailyReport:$('sReport').checked,
   };
   save();
-  // Серверге де сақта
   const tok=localStorage.getItem('st_token');
   if(tok){
     fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({settings:S.settings})}).catch(()=>{});
   }
   closeSettings(); refreshDashboard(); initChat();
+}
+async function changePassword(){
+  const cur=$('sCurPwd').value, nw=$('sNewPwd').value, cf=$('sConfPwd').value;
+  const msg=$('sPwdMsg');
+  const show=(t,ok)=>{ msg.style.display='block'; msg.style.color=ok?'var(--ok)':'var(--bad)'; msg.textContent=t; };
+  if(!cur||!nw||!cf) return show(L.pwdFillAll,false);
+  if(nw!==cf) return show(L.pwdNoMatch,false);
+  if(nw.length<6) return show(L.pwdShort,false);
+  const tok=localStorage.getItem('st_token');
+  try{
+    const r=await fetch('/api/change-password',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({current_password:cur,new_password:nw})});
+    const d=await r.json();
+    if(d.ok){ show(L.pwdOk,true); $('sCurPwd').value='';$('sNewPwd').value='';$('sConfPwd').value=''; }
+    else show(d.error||L.pwdErr,false);
+  }catch(e){ show(e.message,false); }
 }
 
 // Close modals on overlay click
@@ -1482,17 +1615,27 @@ async function loadProfile(){
     const r=await fetch('/api/me',{headers:{'Authorization':'Bearer '+tok}});
     if(!r.ok) return;
     const u=await r.json();
-    // Settings серверден жүктеу (localStorage-ден артықшылығы жоғары)
     if(u.settings && Object.keys(u.settings).length>0){
       S.settings={...S.settings,...u.settings};
       save();
     }
     if(u.meta_account_id) S.metaAccountId=u.meta_account_id;
     if(u.meta_account_name) S.metaAccountName=u.meta_account_name;
+    if(u.email){ S.userEmail=u.email; }
+    if(u.name){
+      const initials=u.name.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+      const av=document.querySelector('#userAvatarBtn div');
+      if(av) av.textContent=initials;
+      const nm=document.getElementById('navUserName');
+      if(nm) nm.textContent=u.name.split(' ')[0];
+      const mn=document.querySelector('#userMenu div b');
+      if(mn) mn.textContent=u.name;
+    }
     refreshDashboard(); initChat();
   }catch(e){}
 }
 
+applyLang();
 refreshDashboard();
 initChat();
 loadProfile();
@@ -1518,6 +1661,7 @@ async function loadMetaData(){
     const ins = data.insights || {};
     const spend = parseFloat(ins.spend||0).toFixed(2);
     const cpc = parseFloat(ins.cpc||0).toFixed(2);
+    S.metaInsights = ins; // глобально сақта (есепке қажет)
 
     if($('kSpend')) $('kSpend').textContent = '$'+spend;
     if($('kCpl')) $('kCpl').textContent = cpc>0 ? '$'+cpc : '—';
@@ -1566,8 +1710,11 @@ function toggleUserMenu(){
 function closeUserMenu(){
   document.getElementById('userMenu').style.display='none';
 }
-function doLogout(){
-  if(confirm('Выйти из аккаунта?')){
+async function doLogout(){
+  if(confirm(L.logoutConfirm||'Выйти из аккаунта?')){
+    const tok=localStorage.getItem('st_token');
+    if(tok) await fetch('/api/logout',{method:'POST',headers:{'Authorization':'Bearer '+tok}}).catch(()=>{});
+    localStorage.removeItem('st_token');
     window.location.href='auth.html?mode=login';
   }
 }
