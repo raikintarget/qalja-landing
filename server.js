@@ -251,6 +251,9 @@ app.get('/api/meta-data', async (req, res) => {
     if (user?.meta_token) {
       metaToken = user.meta_token;
       accountId = user.meta_account_id;
+    } else if (user?.meta_account_id) {
+      // Клиенттің өз токені жоқ — System User токенімен клиент аккаунтын пайдалан
+      accountId = user.meta_account_id;
     }
   }
 
