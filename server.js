@@ -85,7 +85,7 @@ async function getMetaData(token, accountId) {
       params: { access_token: token, fields: 'id,name,status,objective,daily_budget', limit: 20 }
     }),
     axios.get(`https://graph.facebook.com/v19.0/act_${accountId}/insights`, {
-      params: { access_token: token, fields: 'impressions,clicks,spend,cpc,ctr,inline_link_clicks,messaging_conversation_started_7d', date_preset: 'last_30d', level: 'account' }
+      params: { access_token: token, fields: 'impressions,clicks,spend,cpc,ctr,inline_link_clicks,actions', date_preset: 'last_30d', level: 'account' }
     }),
     axios.get(`https://graph.facebook.com/v19.0/act_${accountId}`, {
       params: { access_token: token, fields: 'id,name,currency,amount_spent' }
@@ -93,11 +93,11 @@ async function getMetaData(token, accountId) {
     axios.get(`https://graph.facebook.com/v19.0/act_${accountId}/adsets`, {
       params: { access_token: token, fields: 'id,name,campaign_id,daily_budget,status', limit: 50 }
     }).catch(() => ({ data: { data: [] } })),
-    // Campaign-level insights: spend, clicks, messaging conversations last 30 days
+    // Campaign-level insights: spend, clicks, actions (conversations) last 30 days
     axios.get(`https://graph.facebook.com/v19.0/act_${accountId}/insights`, {
       params: {
         access_token: token,
-        fields: 'campaign_id,campaign_name,spend,clicks,impressions,ctr,messaging_conversation_started_7d,inline_link_clicks',
+        fields: 'campaign_id,campaign_name,spend,clicks,impressions,inline_link_clicks,actions',
         date_preset: 'last_30d',
         level: 'campaign',
         limit: 50
@@ -117,7 +117,13 @@ async function getMetaData(token, accountId) {
   // Build campaign-level insights map
   const campInsights = {};
   for (const ci of (campInsRes.data.data || [])) {
-    campInsights[ci.campaign_id] = ci;
+    // Extract conversations from actions array
+    const actions = ci.actions || [];
+    const conversations = actions.find(a => a.action_type === 'onsite_conversion.messaging_conversation_started_7d')?.value
+      || actions.find(a => a.action_type === 'onsite_conversion.messaging_first_reply')?.value
+      || actions.find(a => a.action_type === 'onsite_conversion.lead_grouped')?.value
+      || 0;
+    campInsights[ci.campaign_id] = { ...ci, conversations: parseInt(conversations) };
   }
 
   const campaigns = (campsRes.data.data || []).map(c => ({
@@ -126,7 +132,7 @@ async function getMetaData(token, accountId) {
     spend: parseFloat(campInsights[c.id]?.spend || 0),
     clicks: parseInt(campInsights[c.id]?.clicks || 0),
     impressions: parseInt(campInsights[c.id]?.impressions || 0),
-    conversations: parseInt(campInsights[c.id]?.messaging_conversation_started_7d || 0),
+    conversations: campInsights[c.id]?.conversations || 0,
     link_clicks: parseInt(campInsights[c.id]?.inline_link_clicks || 0),
   }));
 
