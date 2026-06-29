@@ -627,32 +627,133 @@ async function setupWebhook() {
 }
 
 // ── Күн сайын есеп ──
+// Алматы UTC+5 → 08:00 Алматы = 03:00 UTC
+const ADMIN_TG_CHAT_ID = process.env.ADMIN_TG_CHAT_ID; // супер-админ Telegram chat ID
+
+async function buildDailyReport(u) {
+  // System user токенін немесе клиент токенін пайдалан
+  const metaToken = u.meta_token || process.env.META_ACCESS_TOKEN;
+  const accountId = u.meta_account_id;
+  if (!accountId) return null;
+
+  // Кешегі күн үшін деректер
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yIso = yesterday.toISOString().slice(0, 10);
+
+  const base = `https://graph.facebook.com/v19.0`;
+  const [campInsRes, accInsRes] = await Promise.all([
+    axios.get(`${base}/act_${accountId}/insights`, {
+      params: {
+        access_token: metaToken,
+        fields: 'campaign_id,campaign_name,spend,clicks,actions,inline_link_clicks',
+        time_range: JSON.stringify({ since: yIso, until: yIso }),
+        level: 'campaign', limit: 50
+      }
+    }).catch(() => ({ data: { data: [] } })),
+    axios.get(`${base}/act_${accountId}/insights`, {
+      params: {
+        access_token: metaToken,
+        fields: 'spend,clicks,impressions,inline_link_clicks,actions',
+        time_range: JSON.stringify({ since: yIso, until: yIso }),
+        level: 'account'
+      }
+    }).catch(() => ({ data: { data: [] } }))
+  ]);
+
+  const campData = campInsRes.data.data || [];
+  const accIns = accInsRes.data.data?.[0] || {};
+
+  const totalSpend = parseFloat(accIns.spend || 0);
+  const totalClicks = parseInt(accIns.inline_link_clicks || accIns.clicks || 0);
+
+  // Conversations from actions
+  const getConv = (actions) => {
+    if (!actions) return 0;
+    return parseInt(
+      actions.find(a => a.action_type === 'onsite_conversion.messaging_conversation_started_7d')?.value ||
+      actions.find(a => a.action_type === 'onsite_conversion.messaging_first_reply')?.value ||
+      actions.find(a => a.action_type === 'onsite_conversion.lead_grouped')?.value || 0
+    );
+  };
+
+  const totalConv = getConv(accIns.actions);
+
+  let campLines = '';
+  if (campData.length) {
+    campLines = campData.map(c => {
+      const sp = parseFloat(c.spend || 0).toFixed(2);
+      const cl = parseInt(c.inline_link_clicks || c.clicks || 0);
+      const conv = getConv(c.actions);
+      return `  • <b>${c.campaign_name}</b>\n    💸 $${sp} · 👆 ${cl} клик${conv > 0 ? ` · 💬 ${conv} перепис.` : ''}`;
+    }).join('\n');
+  } else {
+    campLines = '  Кешегі расход жоқ';
+  }
+
+  const dateLabel = yesterday.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+
+  const msg =
+    `📊 <b>Күнделікті есеп · ${dateLabel}</b>\n` +
+    `👤 ${u.name} · ${u.meta_account_name || accountId}\n\n` +
+    `💸 Жиынтық расход: <b>$${totalSpend.toFixed(2)}</b>\n` +
+    `👆 Кликтер: <b>${totalClicks}</b>\n` +
+    (totalConv > 0 ? `💬 Хат алмасу: <b>${totalConv}</b>\n` : '') +
+    `\n${campLines}\n\n` +
+    `🔗 <a href="${BASE_URL}/ai-targetolog-app.html">Дашборд →</a>`;
+
+  return { msg, totalSpend, totalClicks, totalConv, campCount: campData.length };
+}
+
 async function scheduleDailyReports() {
   const now = new Date();
+  // 03:00 UTC = 08:00 Алматы (UTC+5)
   const next = new Date();
-  next.setHours(9, 0, 0, 0);
+  next.setUTCHours(3, 0, 0, 0);
   if (next <= now) next.setDate(next.getDate() + 1);
+
+  console.log(`📅 Күнделікті есеп жоспарланды: ${next.toISOString()}`);
+
   setTimeout(async () => {
     const sendAll = async () => {
-      const clients = await pool.query('SELECT chat_id FROM users WHERE tg_chat_id IS NOT NULL AND meta_token IS NOT NULL');
-      for (const row of clients.rows) {
-        const r = await pool.query('SELECT * FROM users WHERE tg_chat_id = $1', [row.tg_chat_id]);
-        const u = r.rows[0];
-        if (!u) continue;
+      const dateLabel = new Date(Date.now() - 86400000).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+      console.log(`📨 Күнделікті есептер жіберілуде (${dateLabel})...`);
+
+      // tg_chat_id бар барлық клиенттерге жіберу (meta_token жоқта да — system user токенімен)
+      const clients = await pool.query(
+        'SELECT * FROM users WHERE tg_chat_id IS NOT NULL AND meta_account_id IS NOT NULL'
+      );
+
+      const results = [];
+
+      for (const u of clients.rows) {
         try {
-          const { campaigns, insights: i } = await getMetaData(u.meta_token, u.meta_account_id);
-          const active = campaigns.filter(c => c.status === 'ACTIVE');
-          if (!active.length) continue; // активті кампания жоқ болса хабар жібермейміз
-          const campLines = active.map(c => `  • ${c.name}`).join('\n');
-          await tgSend(u.tg_chat_id,
-            `📊 <b>Күнделікті есеп</b>\n👤 ${u.name}\n\n` +
-            `💰 $${parseFloat(i.spend||0).toFixed(2)} · 👆 ${i.clicks||0} клик\n\n` +
-            `▶️ Активті кампания (${active.length}):\n${campLines}\n\n` +
-            `🔗 <a href="${BASE_URL}/ai-targetolog-app.html">Дашборд →</a>`
-          );
-        } catch(e) { console.error('Daily report error:', e.message); }
+          const report = await buildDailyReport(u);
+          if (!report) { results.push({ name: u.name, status: '⏭ аккаунт жоқ' }); continue; }
+          if (report.totalSpend === 0 && report.campCount === 0) {
+            results.push({ name: u.name, status: '⏭ расход жоқ' }); continue;
+          }
+          await tgSend(u.tg_chat_id, report.msg);
+          results.push({ name: u.name, status: `✅ жіберілді ($${report.totalSpend.toFixed(2)})` });
+        } catch(e) {
+          console.error(`Daily report error for ${u.email}:`, e.message);
+          results.push({ name: u.name, status: `❌ қате: ${e.message.slice(0, 60)}` });
+        }
       }
+
+      // Супер-админге жалпы нәтиже жіберу
+      if (ADMIN_TG_CHAT_ID) {
+        const summary = results.length
+          ? results.map(r => `${r.status} — ${r.name}`).join('\n')
+          : 'Клиент жоқ';
+        await tgSend(ADMIN_TG_CHAT_ID,
+          `🤖 <b>SmartTarget — Есеп жіберу нәтижесі · ${dateLabel}</b>\n\n${summary}\n\nЖалпы: ${results.length} клиент`
+        ).catch(() => {});
+      }
+
+      console.log(`✅ Күнделікті есептер аяқталды: ${results.length} клиент`);
     };
+
     await sendAll();
     setInterval(sendAll, 24 * 60 * 60 * 1000);
   }, next - now);
@@ -733,6 +834,35 @@ app.post('/api/admin/set-account', async (req, res) => {
   );
   if (!result.rows.length) return res.status(404).json({ error: 'User not found' });
   res.json({ ok: true, user: result.rows[0], account_id, account_name: accName });
+});
+
+// Admin: барлық клиенттер тізімін қайтару (есеп логы үшін)
+app.get('/api/admin/clients', async (req, res) => {
+  const { secret } = req.query;
+  if (secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
+  const r = await pool.query(
+    'SELECT id, email, name, plan, meta_account_id, meta_account_name, tg_chat_id, created_at FROM users ORDER BY created_at DESC'
+  );
+  res.json({ clients: r.rows });
+});
+
+// Admin: тестовый есеп жіберу (бір клиентке)
+app.post('/api/admin/send-report', async (req, res) => {
+  const { secret, email } = req.body;
+  if (secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
+  const r = await pool.query('SELECT * FROM users WHERE email = $1', [email.toLowerCase()]);
+  const u = r.rows[0];
+  if (!u) return res.status(404).json({ error: 'User not found' });
+  if (!u.tg_chat_id) return res.status(400).json({ error: 'Telegram байланыстырылмаған' });
+  if (!u.meta_account_id) return res.status(400).json({ error: 'Meta аккаунт жоқ' });
+  try {
+    const report = await buildDailyReport(u);
+    if (!report) return res.json({ ok: false, reason: 'аккаунт жоқ' });
+    await tgSend(u.tg_chat_id, report.msg);
+    res.json({ ok: true, msg: report.msg.slice(0, 200) });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.listen(PORT, async () => {
