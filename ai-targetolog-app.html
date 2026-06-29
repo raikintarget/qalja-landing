@@ -296,10 +296,10 @@ h2{font-family:"Unbounded";font-weight:600;font-size:clamp(16px,3.5vw,21px);line
   </div>
 
   <div class="kpis">
-    <div class="kpi"><small>Расход сегодня</small><b id="kSpend">—</b><div class="d neu" id="kSpendD"></div></div>
-    <div class="kpi"><small>Заявок</small><b id="kLeads">—</b><div class="d up" id="kLeadsD"></div></div>
+    <div class="kpi"><small>Расход · вчера</small><b id="kSpend">—</b><div class="d neu" id="kSpendD"></div></div>
+    <div class="kpi"><small>Переписок · вчера</small><b id="kLeads">—</b><div class="d up" id="kLeadsD"></div></div>
     <div class="kpi"><small>Средний CPL</small><b id="kCpl">—</b><div class="d" id="kCplD"></div></div>
-    <div class="kpi"><small>Действий AI</small><b id="kActs">—</b><div class="d neu" id="kActsD"></div></div>
+    <div class="kpi"><small>Активных кампаний</small><b id="kActs">—</b><div class="d neu" id="kActsD"></div></div>
   </div>
 
   <div class="g2">
@@ -1618,9 +1618,17 @@ async function loadMetaData(){
     const ins = data.insights || {};
     const spend = parseFloat(ins.spend||0).toFixed(2);
     const cpc = parseFloat(ins.cpc||0).toFixed(2);
-    S.metaInsights = ins; // глобально сақта (есепке қажет)
+    // Conversations from actions array
+    const actions = ins.actions || [];
+    const conversations = parseInt(
+      actions.find(a=>a.action_type==='onsite_conversion.messaging_conversation_started_7d')?.value ||
+      actions.find(a=>a.action_type==='onsite_conversion.messaging_first_reply')?.value ||
+      actions.find(a=>a.action_type==='onsite_conversion.lead_grouped')?.value || 0
+    );
+    S.metaInsights = ins;
 
     if($('kSpend')) $('kSpend').textContent = '$'+spend;
+    if($('kLeads')) $('kLeads').textContent = conversations || ins.clicks || '—';
     if($('kCpl')) $('kCpl').textContent = cpc>0 ? '$'+cpc : '—';
 
     const campaigns = data.campaigns || [];

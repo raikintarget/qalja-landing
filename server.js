@@ -85,7 +85,7 @@ async function getMetaData(token, accountId) {
       params: { access_token: token, fields: 'id,name,status,objective,daily_budget', limit: 20 }
     }),
     axios.get(`https://graph.facebook.com/v19.0/act_${accountId}/insights`, {
-      params: { access_token: token, fields: 'impressions,clicks,spend,cpc,ctr,inline_link_clicks,actions', date_preset: 'last_30d', level: 'account' }
+      params: { access_token: token, fields: 'impressions,clicks,spend,cpc,ctr,inline_link_clicks,actions', date_preset: 'yesterday', level: 'account' }
     }),
     axios.get(`https://graph.facebook.com/v19.0/act_${accountId}`, {
       params: { access_token: token, fields: 'id,name,currency,amount_spent' }
@@ -98,7 +98,7 @@ async function getMetaData(token, accountId) {
       params: {
         access_token: token,
         fields: 'campaign_id,campaign_name,spend,clicks,impressions,inline_link_clicks,actions',
-        date_preset: 'last_30d',
+        date_preset: 'yesterday',
         level: 'campaign',
         limit: 50
       }
