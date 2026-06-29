@@ -426,6 +426,13 @@ h2{font-family:"Unbounded";font-weight:600;font-size:clamp(16px,3.5vw,21px);line
             <option value="ai">AI-анализ (подробный)</option>
           </select>
         </div>
+        <div class="fl"><label>Период</label>
+          <div style="display:flex;gap:7px;align-items:center">
+            <input type="date" id="repDateFrom" style="flex:1;font-family:inherit;font-size:13px;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:8px 10px">
+            <span style="color:var(--muted);font-size:13px">—</span>
+            <input type="date" id="repDateTo" style="flex:1;font-family:inherit;font-size:13px;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:8px 10px">
+          </div>
+        </div>
         <div class="fl"><label>Клиент</label><input id="repClient" placeholder="Имя клиента"></div>
         <button class="btn full" onclick="genReport()">🔄 Сгенерировать</button>
       </div>
@@ -541,14 +548,6 @@ h2{font-family:"Unbounded";font-weight:600;font-size:clamp(16px,3.5vw,21px);line
 <div class="ov" id="settingsModal">
   <div class="modal">
     <h3>⚙️ Настройки</h3>
-    <div class="ann"><span class="ic">🔑</span><span>API-ключ хранится в вашем браузере и никуда не передаётся. Получите на <b>console.anthropic.com</b></span></div>
-    <div class="fl"><label>Anthropic API-ключ</label>
-      <div style="display:flex;gap:7px">
-        <input id="sKey" type="password" placeholder="sk-ant-…" autocomplete="off" style="flex:1">
-        <button class="btn sm g" type="button" onclick="testAPI()" id="testBtn" style="flex:none;white-space:nowrap">Проверить</button>
-      </div>
-      <div id="testResult" style="margin-top:7px;font-size:12px;display:none"></div>
-    </div>
     <div class="fl"><label>Модель Claude</label>
       <select id="sModel">
         <option value="claude-sonnet-4-6">Sonnet 4.6 — рекомендуется</option>
@@ -564,6 +563,15 @@ h2{font-family:"Unbounded";font-weight:600;font-size:clamp(16px,3.5vw,21px);line
         <div class="fl"><label>Целевой CPL ($)</label><input id="sCpl" type="number" step="0.5" placeholder="2.00"></div>
       </div>
       <div class="fl"><label>WhatsApp</label><input id="sWa" placeholder="+7 ___ ___ __ __"></div>
+      <div class="fl"><label>Facebook Page ID</label><input id="sPageId" placeholder="115532398308067" style="font-size:12px"><small style="color:var(--muted);font-size:11px">Нужен для создания рекламы. Найти: facebook.com/ваша-страница → Настройки → ID страницы</small></div>
+      <div class="fl"><label>Фото для рекламы</label>
+        <div id="adImgBox" style="border:1.5px dashed var(--line);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:.2s" onclick="document.getElementById('adImgInput').click()" ondragover="event.preventDefault();this.style.borderColor='var(--gold)'" ondragleave="this.style.borderColor='var(--line)'" ondrop="event.preventDefault();handleAdImg(event.dataTransfer.files[0])">
+          <div id="adImgPreview" style="display:none;margin-bottom:8px"><img id="adImgThumb" style="max-width:100%;max-height:120px;border-radius:7px;object-fit:cover"></div>
+          <div id="adImgPlaceholder">📸 Нажмите или перетащите фото<br><small style="color:var(--muted)">JPG/PNG до 30 МБ · рекомендуется 1080×1080</small></div>
+          <div id="adImgStatus" style="display:none;font-size:12px;margin-top:6px"></div>
+        </div>
+        <input type="file" id="adImgInput" accept="image/jpeg,image/png" style="display:none" onchange="handleAdImg(this.files[0])">
+      </div>
     </div>
     <div style="border:1px solid var(--line);border-radius:var(--r);padding:13px">
       <div class="ey" style="margin-bottom:8px">Автопилот</div>
@@ -586,7 +594,7 @@ function loadS(){ try{ return JSON.parse(localStorage.getItem(KEY)) || def(); }c
 function def(){
   return {
     campaigns:[],creatives:[],reports:[],actions:[],chatHistory:[],
-    settings:{apiKey:'',model:'claude-sonnet-4-6',bizName:'',niche:'',targetCpl:2.0,wa:'',autopilot:true,dailyReport:true},
+    settings:{model:'claude-sonnet-4-6',bizName:'',niche:'',targetCpl:2.0,wa:'',pageId:'',autopilot:true,dailyReport:true},
     budget:{limDaily:300,limCpl:5,limLeads:5,alert:true},
     totalActions:0, lastReportText:'', lastOptDate:''
   };
@@ -602,6 +610,10 @@ const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
 const sl=ms=>new Promise(r=>setTimeout(r,reduce?0:ms));
 const nowT=()=>{ const d=new Date(); return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
 const today=()=>new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
+const yesterday=()=>{ const d=new Date(); d.setDate(d.getDate()-1); return d.toLocaleDateString('ru-RU',{day:'numeric',month:'long'}); };
+const fmtDate=(iso)=>{ const d=new Date(iso); return d.toLocaleDateString('ru-RU',{day:'numeric',month:'long'}); };
+const isoToday=()=>new Date().toISOString().slice(0,10);
+const isoYesterday=()=>{ const d=new Date(); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10); };
 const fmt$=v=>v===0?'$0':v<10?'$'+v.toFixed(2):v<1000?'$'+Math.round(v):'$'+(v/1000).toFixed(1)+'k';
 
 function verdict(c){
@@ -639,7 +651,7 @@ document.querySelectorAll('.t[data-tab]').forEach(btn=>{
     if(tab==='campaigns') renderCampaigns();
     if(tab==='budget') renderBudget();
     if(tab==='creatives') renderCreatives();
-    if(tab==='reports') renderRepHistory();
+    if(tab==='reports'){ renderRepHistory(); initRepDates(); }
     if(tab==='autopilot') refreshDashboard();
   });
 });
@@ -675,7 +687,7 @@ function refreshDashboard(){
   $('pauseBtn').textContent=auto?'⏸ Пауза':'▶ Включить';
   $('aiStatusTxt').textContent=auto?'работает':'пауза';
   $('aiPulse').className=auto?'pulse':'pulse off';
-  $('noKeyBanner').style.display=S.settings.apiKey?'none':'flex';
+  $('noKeyBanner').style.display='none';
   renderDashCamps();
   renderChart();
   if(S.actions.length) renderFeed(S.actions.slice(-20));
@@ -827,7 +839,7 @@ async function runDay(){
   // AI comment via Claude
   await sl(400);
   let aiComment='';
-  if(S.settings.apiKey){
+  {
     addAction('🤖','Формирую AI-комментарий…','gold');
     const campSum=camps.map(c=>{const cpl=c.leads>0?'$'+(c.spend/c.leads).toFixed(2):'нет заявок';return `"${c.name}": $${c.spend}, ${c.leads} заявок, CPL ${cpl}`;}).join('; ');
     try{
@@ -1053,12 +1065,10 @@ async function saveCreative(){
     aiNote:'',createdAt:nowT()
   };
   // AI analysis of creative
-  if(S.settings.apiKey){
-    try{
-      const note=await callClaude([{role:'user',content:`Новый ${cre.format} креатив "${cre.name}" для кампании "${cre.campaign||'—'}". Тон: "${cre.tone||'не указан'}". Напиши одну строку: что ожидать от теста и рекламный заголовок (до 10 слов).`}],150);
-      cre.aiNote=note;
-    }catch{}
-  } else {
+  try{
+    const note=await callClaude([{role:'user',content:`Новый ${cre.format} креатив "${cre.name}" для кампании "${cre.campaign||'—'}". Тон: "${cre.tone||'не указан'}". Напиши одну строку: что ожидать от теста и рекламный заголовок (до 10 слов).`}],150);
+    cre.aiNote=note;
+  }catch{
     cre.aiNote=`Тест запущен · бюджет $${cre.budget}/день · ${cre.testDaysTotal} дней`;
   }
   S.creatives.unshift(cre);
@@ -1094,25 +1104,40 @@ function showReport(i){
   $('repSt').textContent='загружен';
 }
 
+function initRepDates(){
+  // По умолчанию: вчера → вчера
+  const df=$('repDateFrom'), dt=$('repDateTo');
+  if(df&&!df.value) df.value=isoYesterday();
+  if(dt&&!dt.value) dt.value=isoYesterday();
+}
+
 async function genReport(){
+  initRepDates();
   const type=$('repType').value;
   const client=$('repClient').value.trim()||S.settings.bizName||'Клиент';
+  const dateFrom=$('repDateFrom').value||isoYesterday();
+  const dateTo=$('repDateTo').value||isoYesterday();
   const {spend,leads,cpl}=getKPI();
   const t=S.settings.targetCpl||2;
   const camps=S.campaigns;
   const typeL={daily:'Ежедневный',weekly:'Еженедельный',ai:'AI-анализ'};
 
+  // Период для отображения
+  const periodLabel = dateFrom===dateTo
+    ? fmtDate(dateFrom)
+    : `${fmtDate(dateFrom)} – ${fmtDate(dateTo)}`;
+
   let aiText='';
-  if(S.settings.apiKey&&camps.length){
+  if(camps.length){
     const campSum=camps.map(c=>{const cpl=c.leads>0?'$'+(c.spend/c.leads).toFixed(2):'нет заявок';return `"${c.name}": $${c.spend}, ${c.leads} заявок, CPL ${cpl}`;}).join('; ');
     const lens={daily:'2 предложения',weekly:'3-4 предложения',ai:'подробный стратегический анализ 5-7 предложений'};
     try{
-      aiText=await callClaude([{role:'user',content:`Бизнес: ${S.settings.bizName||'—'}, ниша: ${S.settings.niche||'—'}. Кампании: ${campSum}. Цель CPL: $${t}. Дай ${lens[type]}.`}],type==='ai'?600:250);
+      aiText=await callClaude([{role:'user',content:`Бизнес: ${S.settings.bizName||'—'}, ниша: ${S.settings.niche||'—'}. Период: ${periodLabel}. Кампании: ${campSum}. Цель CPL: $${t}. Дай ${lens[type]}.`}],type==='ai'?600:250);
     }catch{}
   }
 
   const lines=camps.map(c=>`${VI[verdict(c)]} ${c.name} (CPL ${c.leads>0?'$'+(c.spend/c.leads).toFixed(2):'—'})`);
-  let rep=`📊 ${typeL[type]} · ${today()}\n`;
+  let rep=`📊 ${typeL[type]} · ${periodLabel}\n`;
   rep+=`Клиент: ${client}\n\n`;
   rep+=`Расход: ${fmt$(spend)} · Заявок: ${leads}\n`;
   rep+=`CPL: $${cpl>0?cpl.toFixed(2):'—'} · Цель: ≤$${t}\n\n`;
@@ -1121,7 +1146,7 @@ async function genReport(){
   rep+=`🤖 SmartTarget AI`;
 
   S.lastReportText=rep;
-  S.reports.unshift({date:today(),time:nowT(),text:rep,type});
+  S.reports.unshift({date:periodLabel,time:nowT(),text:rep,type});
   if(S.reports.length>20) S.reports=S.reports.slice(0,20);
   save();
   $('repBubble').innerHTML=esc(rep)+'<span class="tg-tm">'+nowT()+' ✓✓</span>';
@@ -1145,18 +1170,49 @@ function shareWA(){
 /* ────────────────────────────────
    CLAUDE API
 ──────────────────────────────── */
-const SYS=`Ты SmartTarget AI — профессиональный AI-таргетолог, автономный агент по работе с Meta Ads (Instagram/Facebook). Ты не просто советник — ты таргетолог, который сам принимает решения, оптимизирует кампании и управляет бюджетом. Отвечай на русском, кратко и конкретно. Используй цифры. Эмодзи для структуры — умеренно.`;
+const SYS=`Ты SmartTarget AI — AI-таргетолог внутри платформы SmartTarget. У тебя есть прямой доступ к Meta Ads API клиента. Платформа выполняет твои команды: создаёт кампании, меняет бюджеты, останавливает объявления.
+
+В контексте каждого сообщения передаются реальные данные клиента: кампании, расходы, заявки, CPL.
+
+Что ты делаешь:
+✅ Анализируешь данные из контекста, объясняешь цифрами
+✅ Создаёшь кампании через платформу — когда клиент просит
+✅ Пишешь тексты объявлений (заголовок + текст + CTA)
+✅ Даёшь точные решения: что остановить, масштабировать, какой бюджет
+
+Когда создаёшь кампанию — собери параметры (если не указаны — спроси). Когда всё есть, напиши текст подтверждения И добавь в конце JSON-блок строго в таком формате:
+
+\`\`\`campaign_create
+{"name":"Название кампании","dest":"wa","daily_budget":5,"geo":"Атырау","age_min":25,"age_max":45,"gender":0,"ad_text":"Текст объявления","ad_headline":"Заголовок","wa_template":"Здравствуйте! Хочу узнать подробнее"}
+\`\`\`
+
+dest: "wa" (WhatsApp), "direct" (Instagram Direct), "traffic" (сайт)
+gender: 0 (все), 1 (мужчины), 2 (женщины)
+daily_budget: в долларах США
+wa_template: шаблон первого сообщения клиента в WhatsApp — короткий, естественный (если бизнес казахский — пиши на казахском: "Сәлем! Тағам туралы білгім келеді")
+
+Когда просят "дубль", "скопируй", "создай такую же":
+- Возьми ВСЕ параметры из контекста кампании (бюджет, гео, возраст, цель — всё)
+- Если в контексте нет гео/возраста — определи из названия кампании (например "Atyrau" = гео "Атырау", возраст стандартный 25–55)
+- Измени только название (добавь " — 2" или отличие которое попросили)
+- НИКОГДА не спрашивай бюджет, гео, возраст при дублировании — возьми из контекста или названия
+- Сразу выдай JSON без уточняющих вопросов
+- wa_template должен быть на том же языке что и бизнес (казахский = казахша, русский = по-русски)
+
+Платформа автоматически создаст кампанию в Meta Ads через API. Не придумывай параметры которых нет в контексте.
+
+Отвечай на русском. Кратко и конкретно. Эмодзи умеренно.`;
 
 async function callClaude(msgs,maxT=800){
-  const k=S.settings.apiKey;
-  if(!k) throw new Error('API-ключ не настроен');
-  const resp=await fetch('https://api.anthropic.com/v1/messages',{
+  const tok=localStorage.getItem('st_token');
+  if(!tok) throw new Error('Нет сессии');
+  const resp=await fetch('/api/ai',{
     method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':k,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
     body:JSON.stringify({model:S.settings.model||'claude-sonnet-4-6',max_tokens:maxT,system:SYS,messages:msgs})
   });
-  if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||`HTTP ${resp.status}`);}
-  return (await resp.json()).content[0].text;
+  if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error||`HTTP ${resp.status}`);}
+  return (await resp.json()).text;
 }
 
 /* ────────────────────────────────
@@ -1164,10 +1220,31 @@ async function callClaude(msgs,maxT=800){
 ──────────────────────────────── */
 function ctx(){
   const c=S.campaigns;
-  if(!c.length) return '';
   const t=S.settings.targetCpl||2;
   const k=getKPI();
-  return `\n[Данные: бизнес "${S.settings.bizName||'—'}", ниша "${S.settings.niche||'—'}", цель CPL $${t}. Кампании: ${c.map(x=>`"${x.name}": $${x.spend}, ${x.leads} заявок${x.leads>0?', CPL $'+(x.spend/x.leads).toFixed(2):''}`).join('; ')}. Расход итого: ${k.spend.toFixed(2)}, заявок: ${k.leads}]`;
+  const biz=S.settings.bizName||'—';
+  const niche=S.settings.niche||'—';
+  const wa=S.settings.wa||'—';
+  const accInfo = S.metaAccountName ? ` рекламный аккаунт "${S.metaAccountName}" (ID: ${S.metaAccountId||'—'}),` : '';
+  let txt=`\n[КОНТЕКСТ КЛИЕНТА:${accInfo} бизнес "${biz}", ниша "${niche}", WhatsApp ${wa}, цель CPL $${t}.`;
+  if(c.length){
+    const vd={scale:'масштабировать',watch:'наблюдать',vampire:'остановить',new:'новая'};
+    txt+=` Кампании (${c.length}): `+c.map(x=>{
+      const cpl=x.leads>0?'CPL $'+(x.spend/x.leads).toFixed(2):'заявок нет';
+      const destName=x.dest==='wa'?'WhatsApp':x.dest==='direct'?'Direct':x.dest==='traffic'?'Сайт':'wa';
+      const extra=[];
+      if(x.geo) extra.push(`гео: ${x.geo}`);
+      if(x.age_min||x.age_max) extra.push(`возраст: ${x.age_min||18}–${x.age_max||65}`);
+      if(x.dest) extra.push(`цель: ${destName}`);
+      if(x.wa_template) extra.push(`wa_template: "${x.wa_template}"`);
+      const extraStr=extra.length?', '+extra.join(', '):'';
+      return `"${x.name}" — бюджет $${x.budget||'?'}/день${extraStr}, расход $${x.spend}, ${x.leads} заявок, ${cpl}, вердикт: ${vd[verdict(x)]||'—'}`;
+    }).join('; ')+`. Итого расход: $${k.spend.toFixed(2)}, заявок: ${k.leads}.`;
+  } else {
+    txt+=` Кампаний в платформе ещё нет.`;
+  }
+  txt+=']';
+  return txt;
 }
 
 function mockAI(msg){
@@ -1233,16 +1310,64 @@ async function sendMsg(){
   body.appendChild(td); body.scrollTop=body.scrollHeight;
   await sl(300);
   let reply='';
-  if(S.settings.apiKey){
-    try{ reply=await callClaude(chatMsgs.slice(-12)); }
-    catch(e){ reply=`⚠️ Ошибка API: ${e.message}\n\nПроверьте ключ в ⚙️ настройках.`; }
-  } else {
-    await sl(500+Math.random()*400); reply=mockAI(text);
-  }
+  try{ reply=await callClaude(chatMsgs.slice(-12)); }
+  catch(e){ reply=`⚠️ Ошибка: ${e.message}`; }
   td.remove();
   chatMsgs.push({role:'assistant',content:reply});
-  addMsg(reply,false);
+
+  // JSON блок бар ма — кампания жасау
+  const campMatch = reply.match(/```campaign_create\s*([\s\S]*?)```/);
+  if(campMatch){
+    const cleanReply = reply.replace(/```campaign_create[\s\S]*?```/,'').trim();
+    addMsg(cleanReply, false);
+    try{
+      const params = JSON.parse(campMatch[1].trim());
+      await createCampaignFromChat(params);
+    }catch(e){
+      addMsg(`⚠️ Параметр қатесі: ${e.message}`, false);
+    }
+  } else {
+    addMsg(reply, false);
+  }
+
   $('sb').disabled=false; $('chatSt').textContent='онлайн';
+}
+
+async function createCampaignFromChat(params){
+  const body=$('chatBody');
+  // Прогресс хабарламасы
+  const prog=document.createElement('div');
+  prog.className='msg'; prog.id='campProg';
+  prog.innerHTML=`<div class="mav">🤖</div><div class="mbub" style="background:rgba(217,164,65,.12);border:1px solid var(--gold-dim)">⏳ Кампания жасалып жатыр Meta Ads-та…</div>`;
+  body.appendChild(prog); body.scrollTop=body.scrollHeight;
+
+  try{
+    const tok=localStorage.getItem('st_token');
+    // page_id және image hash settings-тен алу
+    if(!params.page_id && S.settings.pageId) params.page_id = S.settings.pageId;
+    if(!params.image_hash && S.settings.adImageHash) params.image_hash = S.settings.adImageHash;
+    const r=await fetch('/api/meta/create-campaign',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
+      body:JSON.stringify(params)
+    });
+    const d=await r.json();
+    prog.remove();
+    if(d.ok){
+      const msg=`✅ Кампания жасалды!\n\n📋 ${params.name}\n💰 $${params.daily_budget}/күн · ${params.geo||'Казахстан'} · ${params.age_min}–${params.age_max} жас\n🎯 Мақсат: ${params.dest==='wa'?'WhatsApp':params.dest==='direct'?'Direct':'Сайт'}\n\nСтатус: ⏸ PAUSED (Ads Manager-де активтендіріңіз)\nКампания ID: ${d.campaign_id}`;
+      addMsg(msg, false);
+      // Жергілікті тізімге қос
+      S.campaigns.push({id:d.campaign_id, name:params.name, status:'off', spend:0, leads:0, budget:params.daily_budget,
+        geo:params.geo||'', age_min:params.age_min||18, age_max:params.age_max||65, gender:params.gender||0,
+        dest:params.dest||'wa', wa_template:params.wa_template||''});
+      save(); renderCampaigns(); refreshDashboard();
+    } else {
+      addMsg(`❌ Қате: ${d.error}`, false);
+    }
+  }catch(e){
+    prog.remove();
+    addMsg(`❌ Қате: ${e.message}`, false);
+  }
 }
 function qSend(t){ $('ci').value=t; sendMsg(); }
 function clearChat(){ chatMsgs=[]; initChat(); }
@@ -1253,57 +1378,91 @@ $('ci').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.prev
    SETTINGS
 ──────────────────────────────── */
 async function testAPI(){
-  const key=$('sKey').value.trim();
-  const model=$('sModel').value||'claude-sonnet-4-6';
-  const res=$('testResult');
-  const btn=$('testBtn');
-  if(!key){ res.style.display='block'; res.style.color='var(--bad)'; res.textContent='⚠️ Введите API-ключ'; return; }
-  btn.disabled=true; btn.textContent='⏳…';
-  res.style.display='block'; res.style.color='var(--dim)'; res.textContent='Подключаюсь к Claude API…';
   try{
-    const r=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model,max_tokens:60,messages:[{role:'user',content:'Ответь одной строкой: "SmartTarget AI подключён успешно ✓"'}]})
-    });
-    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.error?.message||`HTTP ${r.status}`); }
-    const d=await r.json();
-    const txt=d.content[0].text;
-    res.style.color='var(--ok)';
-    res.textContent='✅ '+txt;
+    const txt=await callClaude([{role:'user',content:'Ответь одной строкой: "SmartTarget AI подключён ✓"'}],60);
+    alert('✅ '+txt);
   }catch(e){
-    res.style.color='var(--bad)';
-    res.textContent='❌ '+e.message;
+    alert('❌ '+e.message);
   }
-  btn.disabled=false; btn.textContent='Проверить';
+}
+
+async function handleAdImg(file){
+  if(!file) return;
+  // Preview
+  const reader=new FileReader();
+  reader.onload=e=>{
+    document.getElementById('adImgThumb').src=e.target.result;
+    document.getElementById('adImgPreview').style.display='block';
+    document.getElementById('adImgPlaceholder').style.display='none';
+  };
+  reader.readAsDataURL(file);
+
+  // Upload
+  const status=document.getElementById('adImgStatus');
+  status.style.display='block'; status.style.color='var(--muted)'; status.textContent='⏳ Загружаю в Meta...';
+
+  const tok=localStorage.getItem('st_token');
+  const fd=new FormData();
+  fd.append('image', file, file.name);
+  try{
+    const r=await fetch('/api/meta/upload-image',{method:'POST',headers:{'Authorization':'Bearer '+tok},body:fd});
+    const d=await r.json();
+    if(d.ok){
+      S.settings.adImageHash=d.hash;
+      S.settings.adImageUrl=d.url;
+      save();
+      status.style.color='var(--ok)';
+      status.textContent='✅ Загружено в Meta Ads';
+    } else {
+      status.style.color='var(--bad)';
+      status.textContent='❌ '+d.error;
+    }
+  }catch(e){
+    status.style.color='var(--bad)';
+    status.textContent='❌ '+e.message;
+  }
 }
 
 function openSettings(){
   const st=S.settings;
-  $('sKey').value=st.apiKey||'';
   $('sModel').value=st.model||'claude-sonnet-4-6';
   $('sBiz').value=st.bizName||'';
   $('sNiche').value=st.niche||'';
   $('sCpl').value=st.targetCpl||2;
   $('sWa').value=st.wa||'';
+  $('sPageId').value=st.pageId||'';
   $('sAuto').checked=!!st.autopilot;
   $('sReport').checked=!!st.dailyReport;
+  // Сурет preview
+  if(st.adImageUrl){
+    document.getElementById('adImgThumb').src=st.adImageUrl;
+    document.getElementById('adImgPreview').style.display='block';
+    document.getElementById('adImgPlaceholder').style.display='none';
+    document.getElementById('adImgStatus').style.display='block';
+    document.getElementById('adImgStatus').style.color='var(--ok)';
+    document.getElementById('adImgStatus').textContent='✅ Фото загружено';
+  }
   $('settingsModal').classList.add('show');
-  setTimeout(()=>$('sKey').focus(),50);
 }
 function closeSettings(){ $('settingsModal').classList.remove('show'); }
-function saveSettings(){
+async function saveSettings(){
   S.settings={
-    apiKey:$('sKey').value.trim(),
     model:$('sModel').value,
     bizName:$('sBiz').value.trim(),
     niche:$('sNiche').value.trim(),
     targetCpl:+$('sCpl').value||2,
     wa:$('sWa').value.trim(),
+    pageId:$('sPageId').value.trim(),
     autopilot:$('sAuto').checked,
     dailyReport:$('sReport').checked,
   };
-  save(); closeSettings(); refreshDashboard(); initChat();
+  save();
+  // Серверге де сақта
+  const tok=localStorage.getItem('st_token');
+  if(tok){
+    fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({settings:S.settings})}).catch(()=>{});
+  }
+  closeSettings(); refreshDashboard(); initChat();
 }
 
 // Close modals on overlay click
@@ -1314,8 +1473,29 @@ function saveSettings(){
 /* ────────────────────────────────
    INIT
 ──────────────────────────────── */
+// Серверден профиль жүктеу
+async function loadProfile(){
+  const tok=localStorage.getItem('st_token');
+  if(!tok) return;
+  try{
+    const r=await fetch('/api/me',{headers:{'Authorization':'Bearer '+tok}});
+    if(!r.ok) return;
+    const u=await r.json();
+    // Settings серверден жүктеу (localStorage-ден артықшылығы жоғары)
+    if(u.settings && Object.keys(u.settings).length>0){
+      S.settings={...S.settings,...u.settings};
+      save();
+    }
+    if(u.meta_account_id) S.metaAccountId=u.meta_account_id;
+    if(u.meta_account_name) S.metaAccountName=u.meta_account_name;
+    refreshDashboard(); initChat();
+  }catch(e){}
+}
+
 refreshDashboard();
 initChat();
+loadProfile();
+loadMetaData();
 // Auto-run if has campaigns and autopilot on
 if(S.campaigns.length>0&&S.settings.autopilot&&!S.lastOptDate){
   setTimeout(()=>runDay(),1200);
@@ -1355,13 +1535,15 @@ async function loadMetaData(){
     }
 
     const acc = data.account || {};
+    // Клиенттің аккаунт деректерін сақта — кампания жасағанда дұрыс аккаунтқа жіберу үшін
+    if(acc.id) S.metaAccountId = acc.id.replace('act_','');
+    if(acc.name) S.metaAccountName = acc.name;
     const banner = document.querySelector('.banner b');
     if(banner && acc.name) banner.textContent = 'AI жұмыс істеп тұр · '+acc.name;
 
     if($('kActs')) $('kActs').textContent = campaigns.length;
   } catch(e){ console.log('Meta API:', e.message); }
 }
-loadMetaData();
 
 // Facebook OAuth сәтті аяқталды ма?
 if(new URLSearchParams(location.search).get('fb_connected')==='1'){

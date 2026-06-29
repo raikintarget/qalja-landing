@@ -2,6 +2,9 @@ const express = require('express');
 const axios = require('axios');
 const crypto = require('crypto');
 const { Pool } = require('pg');
+const multer = require('multer');
+const FormData = require('form-data');
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 30 * 1024 * 1024 } });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -30,8 +33,10 @@ async function initDB() {
       meta_account_id TEXT,
       meta_account_name TEXT,
       tg_chat_id BIGINT,
+      settings JSONB DEFAULT '{}',
       created_at TIMESTAMP DEFAULT NOW()
     );
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS settings JSONB DEFAULT '{}';
     CREATE TABLE IF NOT EXISTS sessions (
       token TEXT PRIMARY KEY,
       user_id INTEGER REFERENCES users(id),
@@ -75,7 +80,7 @@ async function tgSend(chatId, text) {
 
 // ── Meta API ──
 async function getMetaData(token, accountId) {
-  const [campsRes, insRes, accRes] = await Promise.all([
+  const [campsRes, insRes, accRes, adsetsRes] = await Promise.all([
     axios.get(`https://graph.facebook.com/v19.0/act_${accountId}/campaigns`, {
       params: { access_token: token, fields: 'id,name,status,objective,daily_budget', limit: 20 }
     }),
@@ -84,10 +89,29 @@ async function getMetaData(token, accountId) {
     }),
     axios.get(`https://graph.facebook.com/v19.0/act_${accountId}`, {
       params: { access_token: token, fields: 'id,name,currency,amount_spent' }
-    })
+    }),
+    axios.get(`https://graph.facebook.com/v19.0/act_${accountId}/adsets`, {
+      params: { access_token: token, fields: 'id,name,campaign_id,daily_budget,status', limit: 50 }
+    }).catch(() => ({ data: { data: [] } }))
   ]);
+
+  // Merge adset daily_budget into campaigns (budget is at adset level in Meta)
+  const adsets = adsetsRes.data.data || [];
+  const budgetByCampaign = {};
+  for (const as of adsets) {
+    if (as.campaign_id && as.daily_budget) {
+      // Sum budgets if multiple adsets per campaign
+      budgetByCampaign[as.campaign_id] = (budgetByCampaign[as.campaign_id] || 0) + parseInt(as.daily_budget || 0);
+    }
+  }
+
+  const campaigns = (campsRes.data.data || []).map(c => ({
+    ...c,
+    daily_budget: c.daily_budget || budgetByCampaign[c.id] || 0
+  }));
+
   return {
-    campaigns: campsRes.data.data || [],
+    campaigns,
     insights: insRes.data.data?.[0] || {},
     account: accRes.data
   };
@@ -145,7 +169,21 @@ app.get('/api/me', async (req, res) => {
   if (!user) return res.status(401).json({ error: 'Invalid session' });
   res.json({ id: user.id, email: user.email, name: user.name, plan: user.plan,
     meta_connected: !!user.meta_token, meta_account_name: user.meta_account_name,
-    tg_connected: !!user.tg_chat_id });
+    meta_account_id: user.meta_account_id,
+    tg_connected: !!user.tg_chat_id,
+    settings: user.settings || {} });
+});
+
+// Settings сақтау
+app.post('/api/settings', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  const user = await getUserBySession(token);
+  if (!user) return res.status(401).json({ error: 'Invalid session' });
+  const { settings } = req.body;
+  if (!settings) return res.status(400).json({ error: 'No settings' });
+  await pool.query('UPDATE users SET settings=$1 WHERE id=$2', [JSON.stringify(settings), user.id]);
+  res.json({ ok: true });
 });
 
 // Шығу
@@ -357,6 +395,165 @@ app.post(`/tg/${TG_TOKEN}`, async (req, res) => {
   res.sendStatus(200);
 });
 
+// ── API: Claude AI proxy (клиент ключті білмейді) ──
+app.post('/api/ai', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  const user = await getUserBySession(token);
+  if (!user) return res.status(401).json({ error: 'Invalid session' });
+
+  const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+  if (!ANTHROPIC_KEY) return res.status(500).json({ error: 'AI not configured' });
+
+  const { messages, system, model = 'claude-sonnet-4-6', max_tokens = 800 } = req.body;
+  try {
+    const r = await axios.post('https://api.anthropic.com/v1/messages', {
+      model, max_tokens, system, messages
+    }, {
+      headers: {
+        'x-api-key': ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json'
+      }
+    });
+    res.json({ text: r.data.content[0].text });
+  } catch (e) {
+    const msg = e.response?.data?.error?.message || e.message;
+    res.status(502).json({ error: msg });
+  }
+});
+
+// ── API: Meta кампания жасау ──
+app.post('/api/meta/create-campaign', async (req, res) => {
+  const sessionToken = req.headers.authorization?.replace('Bearer ', '');
+  if (!sessionToken) return res.status(401).json({ error: 'Unauthorized' });
+  const user = await getUserBySession(sessionToken);
+  if (!user) return res.status(401).json({ error: 'Invalid session' });
+
+  const metaToken = user.meta_token || process.env.META_ACCESS_TOKEN;
+  const accountId = user.meta_account_id || process.env.META_AD_ACCOUNT_ID;
+  if (!metaToken || !accountId) return res.status(400).json({ error: 'Meta аккаунт қосылмаған' });
+
+  const { name, objective = 'OUTCOME_ENGAGEMENT', daily_budget, dest, wa_phone, page_id, ig_account_id, geo_cities, age_min = 18, age_max = 65, gender = 0, ad_text, ad_headline, image_hash, wa_template, geo } = req.body;
+
+  if (!name || !daily_budget) return res.status(400).json({ error: 'name және daily_budget міндетті' });
+
+  const base = `https://graph.facebook.com/v19.0`;
+
+  try {
+    // 1. Кампания
+    const campR = await axios.post(`${base}/act_${accountId}/campaigns`, {
+      name,
+      objective,
+      status: 'PAUSED',
+      special_ad_categories: [],
+      is_adset_budget_sharing_enabled: false,
+      access_token: metaToken
+    });
+    const campaignId = campR.data.id;
+
+    // 2. Ad Set — targeting
+    // Қала атынан Meta city key табу
+    const KZ_CITIES = {
+      'атырау': '1290182', 'atyrau': '1290182',
+      'алматы': '1522374', 'almaty': '1522374',
+      'астана': '1522374', 'astana': '1523674', 'нур-султан': '1523674',
+      'шымкент': '1523782', 'shymkent': '1523782',
+      'қарағанды': '1522924', 'karagandy': '1522924',
+      'актобе': '1289434', 'aktobe': '1289434',
+      'тараз': '1523670', 'taraz': '1523670',
+      'павлодар': '1523451', 'pavlodar': '1523451',
+      'усть-каменогорск': '1523770', 'ust-kamenogorsk': '1523770',
+      'семей': '1523594', 'semey': '1523594',
+    };
+
+    let geoLocations = { countries: ['KZ'] };
+    if (geo_cities?.length) {
+      geoLocations = { cities: geo_cities.map(c => ({ key: c.key })) };
+    } else if (geo) {
+      const cityKey = KZ_CITIES[geo.toLowerCase().trim()];
+      if (cityKey) geoLocations = { cities: [{ key: cityKey }] };
+    }
+
+    // destination type
+    let destinationType = 'WHATSAPP';
+    if (dest === 'direct') destinationType = 'INSTAGRAM_DIRECT';
+    if (dest === 'traffic') destinationType = 'WEBSITE';
+
+    const targeting = {
+      age_min, age_max,
+      genders: gender === 0 ? [1, 2] : [gender],
+      geo_locations: geoLocations,
+      targeting_automation: { advantage_audience: 0 }
+    };
+
+    let optimizationGoal = 'CONVERSATIONS';
+    if (dest === 'traffic') optimizationGoal = 'LINK_CLICKS';
+
+    const adsetBody = {
+      name: `${name} — Ad Set`,
+      campaign_id: campaignId,
+      daily_budget: Math.round(daily_budget * 100), // центтерде
+      billing_event: 'IMPRESSIONS',
+      optimization_goal: optimizationGoal,
+      bid_strategy: 'LOWEST_COST_WITHOUT_CAP',
+      status: 'PAUSED',
+      targeting,
+      destination_type: destinationType,
+      access_token: metaToken
+    };
+    // WhatsApp/Direct үшін page_id міндетті
+    if (page_id && dest !== 'traffic') {
+      adsetBody.promoted_object = { page_id };
+    }
+
+    const adsetR = await axios.post(`${base}/act_${accountId}/adsets`, adsetBody);
+    const adsetId = adsetR.data.id;
+
+    // 3. Ad Creative (тек page_id болса)
+    let adId = null;
+    if (page_id && (ad_text || ad_headline)) {
+      const linkData = {
+        message: ad_text || '',
+        name: ad_headline || name,
+        call_to_action: dest === 'wa'
+          ? { type: 'WHATSAPP_MESSAGE', value: {
+              app_destination: 'WHATSAPP',
+              ...(wa_phone ? { whatsapp_number: wa_phone.replace(/\D/g,'') } : {}),
+              ...(wa_template ? { link: `https://wa.me/?text=${encodeURIComponent(wa_template)}` } : {})
+            }}
+          : { type: 'LEARN_MORE' }
+      };
+      // Сурет бар болса қос
+      if (image_hash) linkData.image_hash = image_hash;
+
+      const creativeBody = {
+        name: `${name} — Creative`,
+        object_story_spec: { page_id, link_data: linkData },
+        access_token: metaToken
+      };
+      const creR = await axios.post(`${base}/act_${accountId}/adcreatives`, creativeBody);
+      const creativeId = creR.data.id;
+
+      // 4. Ad
+      const adR = await axios.post(`${base}/act_${accountId}/ads`, {
+        name: `${name} — Ad`,
+        adset_id: adsetId,
+        creative: { creative_id: creativeId },
+        status: 'PAUSED',
+        access_token: metaToken
+      });
+      adId = adR.data.id;
+    }
+
+    res.json({ ok: true, campaign_id: campaignId, adset_id: adsetId, ad_id: adId });
+  } catch (e) {
+    const msg = e.response?.data?.error?.message || e.message;
+    console.error('create-campaign error:', msg);
+    res.status(400).json({ error: msg });
+  }
+});
+
 // ── API: Telegram байланыстыруға код жасау ──
 app.post('/api/tg-link-code', async (req, res) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
@@ -415,6 +612,83 @@ async function scheduleDailyReports() {
     setInterval(sendAll, 24 * 60 * 60 * 1000);
   }, next - now);
 }
+
+// ── API: Рекламалық сурет жүктеу (Meta Ad Images) ──
+app.post('/api/meta/upload-image', upload.single('image'), async (req, res) => {
+  const sessionToken = req.headers.authorization?.replace('Bearer ', '');
+  if (!sessionToken) return res.status(401).json({ error: 'Unauthorized' });
+  const user = await getUserBySession(sessionToken);
+  if (!user) return res.status(401).json({ error: 'Invalid session' });
+
+  const metaToken = user.meta_token || process.env.META_ACCESS_TOKEN;
+  const accountId = user.meta_account_id || process.env.META_AD_ACCOUNT_ID;
+  if (!metaToken || !accountId) return res.status(400).json({ error: 'Meta аккаунт қосылмаған' });
+  if (!req.file) return res.status(400).json({ error: 'Файл жоқ' });
+
+  try {
+    const form = new FormData();
+    form.append('filename', req.file.originalname);
+    form.append('bytes', req.file.buffer.toString('base64'));
+    form.append('access_token', metaToken);
+
+    const r = await axios.post(
+      `https://graph.facebook.com/v19.0/act_${accountId}/adimages`,
+      form,
+      { headers: form.getHeaders() }
+    );
+
+    const images = r.data.images;
+    const key = Object.keys(images)[0];
+    const hash = images[key].hash;
+    const url = images[key].url;
+
+    // DB-де сақта — кейін creative жасауда пайдалану үшін
+    await pool.query('UPDATE users SET settings = settings || $1 WHERE id = $2', [
+      JSON.stringify({ adImageHash: hash, adImageUrl: url }), user.id
+    ]);
+
+    res.json({ ok: true, hash, url });
+  } catch (e) {
+    const msg = e.response?.data?.error?.message || e.message;
+    console.error('upload-image error:', msg);
+    res.status(400).json({ error: msg });
+  }
+});
+
+// ── ADMIN: пайдаланушыға Meta аккаунт тағайындау ──
+const ADMIN_SECRET = process.env.ADMIN_SECRET || 'smarttarget_admin_2026';
+
+// Settings жаңарту (page_id, image_hash т.б.)
+app.post('/api/admin/set-settings', async (req, res) => {
+  const { secret, email, settings } = req.body;
+  if (secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
+  const result = await pool.query(
+    'UPDATE users SET settings = settings || $1 WHERE email=$2 RETURNING id,email,name,settings',
+    [JSON.stringify(settings), email]
+  );
+  if (!result.rows.length) return res.status(404).json({ error: 'User not found' });
+  res.json({ ok: true, user: result.rows[0] });
+});
+
+app.post('/api/admin/set-account', async (req, res) => {
+  const { secret, email, account_id } = req.body;
+  if (secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Forbidden' });
+  const sysToken = process.env.META_ACCESS_TOKEN;
+  // Аккаунт атын алу
+  let accName = account_id;
+  try {
+    const r = await axios.get(`https://graph.facebook.com/v19.0/act_${account_id}`, {
+      params: { access_token: sysToken, fields: 'id,name' }
+    });
+    accName = r.data.name;
+  } catch(e) {}
+  const result = await pool.query(
+    'UPDATE users SET meta_token=$1, meta_account_id=$2, meta_account_name=$3 WHERE email=$4 RETURNING id,email,name',
+    [sysToken, account_id, accName, email]
+  );
+  if (!result.rows.length) return res.status(404).json({ error: 'User not found' });
+  res.json({ ok: true, user: result.rows[0], account_id, account_name: accName });
+});
 
 app.listen(PORT, async () => {
   console.log(`SmartTarget AI server running on port ${PORT}`);
