@@ -576,13 +576,7 @@ h2{font-family:"Unbounded";font-weight:600;font-size:clamp(16px,3.5vw,21px);line
       </div>
       <div class="fl"><label>WhatsApp</label><input id="sWa" placeholder="+7 ___ ___ __ __"></div>
       <div class="fl"><label>Facebook Page ID</label><input id="sPageId" placeholder="115532398308067" style="font-size:12px"><small id="sPageIdHint" style="color:var(--muted);font-size:11px">Нужен для создания рекламы. Найти: facebook.com/ваша-страница → Настройки → ID страницы</small></div>
-      <div class="fl"><label id="sLblModel">Модель Claude</label>
-        <select id="sModel">
-          <option value="claude-sonnet-4-6">Sonnet 4.6 — рекомендуется</option>
-          <option value="claude-haiku-4-5-20251001">Haiku 4.5 — жылдам / быстро</option>
-          <option value="claude-opus-4-6">Opus 4.6 — үздік / лучшее</option>
-        </select>
-      </div>
+      <input type="hidden" id="sModel" value="claude-sonnet-4-6">
       <div class="fl"><label id="sLblPhoto">Фото для рекламы</label>
         <div id="adImgBox" style="border:1.5px dashed var(--line);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:.2s" onclick="document.getElementById('adImgInput').click()" ondragover="event.preventDefault();this.style.borderColor='var(--gold)'" ondragleave="this.style.borderColor='var(--line)'" ondrop="event.preventDefault();handleAdImg(event.dataTransfer.files[0])">
           <div id="adImgPreview" style="display:none;margin-bottom:8px"><img id="adImgThumb" style="max-width:100%;max-height:120px;border-radius:7px;object-fit:cover"></div>
