@@ -857,117 +857,80 @@ async function runDay(){
   if(running) return;
   running=true;
   const runBtn=$('runBtn');
-  runBtn.disabled=true; runBtn.textContent='⏳ Работаю…';
+  runBtn.disabled=true; runBtn.textContent='⏳ Анализирую…';
   $('thinkingRow').style.display='flex';
 
   S.actions=[];
   S.totalActions=0;
-  addAction('🤖','AI-таргетолог начинает ежедневный анализ','gold');
-  await sl(700);
+  addAction('🤖','AI анализирует кампании…','gold');
+  await sl(500);
 
   const camps=S.campaigns.filter(c=>c.status!=='off');
   const t=S.settings.targetCpl||2;
 
   if(!camps.length){
-    addAction('📋','Активных кампаний нет. Запустите кампанию в Meta Ads.','');
+    addAction('📋','Активных кампаний нет — запустите рекламу в Meta Ads','');
     endRun(runBtn,'▶ Запустить анализ');
     return;
   }
 
-  addAction('📊',`Активных кампаний: <b>${camps.length}</b> из Meta Ads`,'info');
-  await sl(600);
-  addAction('🧠','Анализирую каждую связку по 4 сценариям…','gold');
-  await sl(500);
+  addAction('📊',`Данные из Meta Ads: <b>${camps.length} активных кампаний</b>`,'info');
+  await sl(400);
 
-  let acts=0;
   const reportLines=[];
-  const vampSave=[];
 
+  // Показываем реальные данные по каждой кампании
   for(const c of camps){
-    await sl(450);
+    await sl(300);
     const v=verdict(c);
-    const cpl=c.leads>0?(c.spend/c.leads).toFixed(2):'—';
+    const cpl=c.leads>0?'$'+(c.spend/c.leads).toFixed(2):'—';
+    const spend=c.spend>0?`$${c.spend.toFixed?c.spend.toFixed(2):c.spend}`:'$0';
+    const type={scale:'act',keep:'info',degrade:'warn',vampire:'warn',learning:'info'}[v];
 
-    let actionText='';
-    if(v==='scale'){
-      actionText=`Масштабирую +30%`;
-      c.lastAction=`Масштабирован · CPL $${cpl}`;
-      acts++;
-    } else if(v==='degrade'){
-      actionText=`Снижаю бюджет — CPL $${cpl}`;
-      c.lastAction=`Снижен бюджет · CPL $${cpl}`;
-      acts++;
-    } else if(v==='vampire'){
-      actionText=`Отключаю — вампир (CPL $${cpl}, заявок ${c.leads})`;
-      c.lastAction=`Отключён · CPL $${cpl}`;
-      if(c.spend>0) vampSave.push(c.spend);
-      acts++;
-    } else if(v==='learning'){
-      actionText=`Не трогаю — фаза обучения`;
-      c.lastAction=`В обучении — не вмешиваюсь`;
-    } else {
-      actionText=`Оставляю — CPL $${cpl} в норме`;
-      c.lastAction=`Стабильно · CPL $${cpl}`;
-    }
+    let rec='';
+    if(v==='scale') rec='📈 Рекомендация: увеличить бюджет';
+    else if(v==='degrade') rec='📉 Рекомендация: снизить бюджет';
+    else if(v==='vampire') rec='⏸ Рекомендация: остановить';
+    else if(v==='learning') rec='⏳ Обучение — не трогать';
+    else rec='✅ Стабильно — оставить';
 
-    const type={scale:'act',keep:'',degrade:'warn',vampire:'warn',learning:'info'}[v];
-    addAction(VI[v],`<b>${c.name}</b> — ${actionText}`,type);
-    reportLines.push(`${VI[v]} ${c.name} (CPL $${cpl})`);
+    addAction(VI[v],`<b>${c.name}</b><br><span style="font-size:11px;font-weight:400">Расход: ${spend} · Переписок: ${c.leads||0} · CPL: ${cpl}<br>${rec}</span>`,type);
+    reportLines.push(`${VI[v]} ${c.name}: расход ${spend}, переписок ${c.leads||0}, CPL ${cpl} → ${rec}`);
   }
 
-  // New creative suggestion
-  await sl(500);
-  const best=camps.filter(c=>verdict(c)==='scale')[0]||camps[0];
-  if(best){
-    addAction('🔄',`Генерирую новый креатив на основе <b>«${best.name}»</b>`,'gold');
-    await sl(600);
-    addAction('🚀',`Новый креатив запущен на тест · бюджет $30/день`,'act');
-    acts++;
-    reportLines.push(`🔄 Запущен новый тест-креатив`);
-  }
-
-  // AI comment via Claude
+  // AI кеңесі — нақты деректер негізінде
   await sl(400);
+  addAction('🤖','Формирую AI-рекомендацию…','gold');
+  const campSum=camps.map(c=>{
+    const cpl=c.leads>0?'$'+(c.spend/c.leads).toFixed(2):'нет переписок';
+    return `"${c.name}": расход $${c.spend||0}, переписок ${c.leads||0}, CPL ${cpl}`;
+  }).join('; ');
   let aiComment='';
-  {
-    addAction('🤖','Формирую AI-комментарий…','gold');
-    const campSum=camps.map(c=>{const cpl=c.leads>0?'$'+(c.spend/c.leads).toFixed(2):'нет заявок';return `"${c.name}": $${c.spend}, ${c.leads} заявок, CPL ${cpl}`;}).join('; ');
-    try{
-      aiComment=await callClaude([{role:'user',content:`Кампании за день: ${campSum}. Цель CPL: $${t}. Дай итог в 1-2 предложениях.`}],200);
-      addAction('💡',`<b>AI:</b> ${aiComment}`,'gold');
-    }catch(e){
-      addAction('⚠️',`Claude недоступен: ${e.message}`,'warn');
-    }
+  try{
+    aiComment=await callClaude([{role:'user',content:`Реальные данные из Meta Ads. Кампании: ${campSum}. Цель CPL: $${t}. Дай конкретную рекомендацию в 1-2 предложениях — что делать сейчас.`}],250);
+    addAction('💡',`<b>AI:</b> ${aiComment}`,'gold');
+  }catch(e){
+    addAction('⚠️',`Не удалось получить рекомендацию: ${e.message}`,'warn');
   }
 
-  // Build report
-  await sl(400);
+  // Сохраняем отчёт
   const {spend,leads,cpl}=getKPI();
-  const saved=vampSave.reduce((s,v)=>s+v,0);
-  let rep=`📊 Отчёт за ${today()} · ${S.settings.bizName||'ваш бизнес'}\n\n`;
-  rep+=`💰 Расход: ${fmt$(spend)} · Заявок: ${leads}\n`;
-  rep+=`📉 Средний CPL: $${cpl>0?cpl.toFixed(2):'—'} · Цель: ≤$${t}\n`;
-  if(saved>0) rep+=`💾 Сэкономлено на вампирах: ≈${fmt$(saved*7)}/нед\n`;
-  rep+=`\n${reportLines.join('\n')}\n`;
+  let rep=`📊 Анализ · ${today()} · ${S.settings.bizName||'ваш бизнес'}\n\n`;
+  rep+=`💸 Расход: ${fmt$(spend)} · Переписок: ${leads}\n`;
+  rep+=`📉 Средний CPL: $${cpl>0?cpl.toFixed(2):'—'} · Цель: ≤$${t}\n\n`;
+  rep+=reportLines.join('\n')+'\n';
   if(aiComment) rep+=`\n💡 ${aiComment}\n`;
-  rep+=`\n🤖 SmartTarget AI · автоотчёт`;
+  rep+=`\n🤖 SmartTarget AI`;
 
   S.lastReportText=rep;
-  S.totalActions=acts;
   S.lastOptDate=today();
-  // Add to history
   S.reports.unshift({date:today(),time:nowT(),text:rep,type:'daily'});
   if(S.reports.length>20) S.reports=S.reports.slice(0,20);
   save();
 
-  // Show TG report
-  addAction('✈️','Отчёт отправлен в Telegram','act');
-  $('tgSt').textContent='отправлен';
-  $('tgMsg').outerHTML=`<div class="tg-bub" id="tgMsg">${esc(rep)}<span class="tg-tm">${nowT()} ✓✓</span></div>`;
-
   $('thinkingRow').style.display='none';
   refreshDashboard();
-  endRun(runBtn,'▶ Запустить заново');
+  endRun(runBtn,'▶ Обновить анализ');
 }
 
 function endRun(btn,txt){ running=false; btn.disabled=false; btn.textContent=txt; }
