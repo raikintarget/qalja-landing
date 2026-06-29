@@ -1661,14 +1661,49 @@ async function loadMetaData(){
     if($('kCpl')) $('kCpl').textContent = cpc>0 ? '$'+cpc : '—';
 
     const campaigns = data.campaigns || [];
-    if(campaigns.length > 0 && S.campaigns.length === 0){
-      S.campaigns = campaigns.map(c=>({
-        id: c.id,
-        name: c.name,
-        status: c.status==='ACTIVE'?'on':'off',
-        spend: 0, leads: 0, cpl: 0,
-        budget: parseInt(c.daily_budget||0)/100
-      }));
+    if(campaigns.length > 0){
+      // Әрдайым Meta-дан келген деректермен жаңарт (spend, clicks, conversations)
+      const metaMap = {};
+      campaigns.forEach(c => { metaMap[c.id] = c; });
+
+      if(S.campaigns.length === 0){
+        // Бірінші жүктеу — толық тізімді жаса
+        S.campaigns = campaigns.map(c=>({
+          id: c.id,
+          name: c.name,
+          status: c.status==='ACTIVE'?'on':'off',
+          spend: c.spend||0,
+          leads: c.conversations||0,
+          clicks: c.clicks||0,
+          cpl: 0,
+          budget: parseInt(c.daily_budget||0)/100
+        }));
+      } else {
+        // Бар кампанияларды Meta деректерімен жаңарт
+        S.campaigns = S.campaigns.map(c => {
+          const m = metaMap[c.id];
+          if(!m) return c;
+          return {
+            ...c,
+            status: m.status==='ACTIVE'?'on':'off',
+            spend: m.spend||0,
+            leads: m.conversations||0,
+            clicks: m.clicks||0,
+            budget: parseInt(m.daily_budget||0)/100 || c.budget
+          };
+        });
+        // Жаңа кампаниялар қосылса — тізімге қос
+        campaigns.forEach(m => {
+          if(!S.campaigns.find(c=>c.id===m.id)){
+            S.campaigns.push({
+              id: m.id, name: m.name,
+              status: m.status==='ACTIVE'?'on':'off',
+              spend: m.spend||0, leads: m.conversations||0, clicks: m.clicks||0, cpl: 0,
+              budget: parseInt(m.daily_budget||0)/100
+            });
+          }
+        });
+      }
       save();
       refreshDashboard();
     }

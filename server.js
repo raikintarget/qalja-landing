@@ -80,34 +80,54 @@ async function tgSend(chatId, text) {
 
 // ── Meta API ──
 async function getMetaData(token, accountId) {
-  const [campsRes, insRes, accRes, adsetsRes] = await Promise.all([
+  const [campsRes, insRes, accRes, adsetsRes, campInsRes] = await Promise.all([
     axios.get(`https://graph.facebook.com/v19.0/act_${accountId}/campaigns`, {
       params: { access_token: token, fields: 'id,name,status,objective,daily_budget', limit: 20 }
     }),
     axios.get(`https://graph.facebook.com/v19.0/act_${accountId}/insights`, {
-      params: { access_token: token, fields: 'impressions,clicks,spend,cpc,ctr,inline_link_clicks,messaging_conversation_started_7d', date_preset: 'today', level: 'account' }
+      params: { access_token: token, fields: 'impressions,clicks,spend,cpc,ctr,inline_link_clicks,messaging_conversation_started_7d', date_preset: 'last_30d', level: 'account' }
     }),
     axios.get(`https://graph.facebook.com/v19.0/act_${accountId}`, {
       params: { access_token: token, fields: 'id,name,currency,amount_spent' }
     }),
     axios.get(`https://graph.facebook.com/v19.0/act_${accountId}/adsets`, {
       params: { access_token: token, fields: 'id,name,campaign_id,daily_budget,status', limit: 50 }
+    }).catch(() => ({ data: { data: [] } })),
+    // Campaign-level insights: spend, clicks, messaging conversations last 30 days
+    axios.get(`https://graph.facebook.com/v19.0/act_${accountId}/insights`, {
+      params: {
+        access_token: token,
+        fields: 'campaign_id,campaign_name,spend,clicks,impressions,ctr,messaging_conversation_started_7d,inline_link_clicks',
+        date_preset: 'last_30d',
+        level: 'campaign',
+        limit: 50
+      }
     }).catch(() => ({ data: { data: [] } }))
   ]);
 
-  // Merge adset daily_budget into campaigns (budget is at adset level in Meta)
+  // Merge adset daily_budget into campaigns
   const adsets = adsetsRes.data.data || [];
   const budgetByCampaign = {};
   for (const as of adsets) {
     if (as.campaign_id && as.daily_budget) {
-      // Sum budgets if multiple adsets per campaign
       budgetByCampaign[as.campaign_id] = (budgetByCampaign[as.campaign_id] || 0) + parseInt(as.daily_budget || 0);
     }
   }
 
+  // Build campaign-level insights map
+  const campInsights = {};
+  for (const ci of (campInsRes.data.data || [])) {
+    campInsights[ci.campaign_id] = ci;
+  }
+
   const campaigns = (campsRes.data.data || []).map(c => ({
     ...c,
-    daily_budget: c.daily_budget || budgetByCampaign[c.id] || 0
+    daily_budget: c.daily_budget || budgetByCampaign[c.id] || 0,
+    spend: parseFloat(campInsights[c.id]?.spend || 0),
+    clicks: parseInt(campInsights[c.id]?.clicks || 0),
+    impressions: parseInt(campInsights[c.id]?.impressions || 0),
+    conversations: parseInt(campInsights[c.id]?.messaging_conversation_started_7d || 0),
+    link_clicks: parseInt(campInsights[c.id]?.inline_link_clicks || 0),
   }));
 
   return {
