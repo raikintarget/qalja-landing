@@ -784,9 +784,10 @@ function refreshDashboard(){
 
 function renderDashCamps(){
   const el=$('dashCamps');
-  $('campCount2').textContent=S.campaigns.length?S.campaigns.length+' шт.':'';
-  if(!S.campaigns.length){ el.innerHTML='<div class="empty"><div class="ei">📋</div>Нет кампаний</div>'; return; }
-  el.innerHTML=S.campaigns.map(c=>{
+  const active=S.campaigns.filter(c=>c.status!=='off');
+  $('campCount2').textContent=active.length?active.length+' шт.':'';
+  if(!active.length){ el.innerHTML='<div class="empty"><div class="ei">📋</div>Активных кампаний нет</div>'; return; }
+  el.innerHTML=active.map(c=>{
     const v=verdict(c);
     const cpl=c.leads>0?'$'+(c.spend/c.leads).toFixed(2):'—';
     return `<div class="cc ${v}">
@@ -864,16 +865,16 @@ async function runDay(){
   addAction('🤖','AI-таргетолог начинает ежедневный анализ','gold');
   await sl(700);
 
-  const camps=S.campaigns;
+  const camps=S.campaigns.filter(c=>c.status!=='off');
   const t=S.settings.targetCpl||2;
 
   if(!camps.length){
-    addAction('📋','Кампаний нет. Добавьте в разделе «Кампании»','');
+    addAction('📋','Активных кампаний нет. Запустите кампанию в Meta Ads.','');
     endRun(runBtn,'▶ Запустить анализ');
     return;
   }
 
-  addAction('📊',`Получено <b>${camps.length} кампаний</b> из Meta Ads`,'info');
+  addAction('📊',`Активных кампаний: <b>${camps.length}</b> из Meta Ads`,'info');
   await sl(600);
   addAction('🧠','Анализирую каждую связку по 4 сценариям…','gold');
   await sl(500);
@@ -1208,7 +1209,7 @@ async function genReport(){
   const dateTo=$('repDateTo').value||isoYesterday();
   const {spend,leads,cpl}=getKPI();
   const t=S.settings.targetCpl||2;
-  const camps=S.campaigns;
+  const camps=S.campaigns.filter(c=>c.status!=='off');
   const typeL={daily:'Ежедневный',weekly:'Еженедельный',ai:'AI-анализ'};
 
   // Период для отображения
@@ -1325,7 +1326,7 @@ async function callClaude(msgs,maxT=800){
    CHAT
 ──────────────────────────────── */
 function ctx(){
-  const c=S.campaigns;
+  const c=S.campaigns.filter(x=>x.status!=='off');
   const t=S.settings.targetCpl||2;
   const k=getKPI();
   const biz=S.settings.bizName||'—';
