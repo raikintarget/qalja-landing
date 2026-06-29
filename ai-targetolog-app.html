@@ -576,7 +576,7 @@ h2{font-family:"Unbounded";font-weight:600;font-size:clamp(16px,3.5vw,21px);line
       </div>
       <div class="fl"><label>WhatsApp</label><input id="sWa" placeholder="+7 ___ ___ __ __"></div>
       <div class="fl"><label>Facebook Page ID</label><input id="sPageId" placeholder="115532398308067" style="font-size:12px"><small id="sPageIdHint" style="color:var(--muted);font-size:11px">Нужен для создания рекламы. Найти: facebook.com/ваша-страница → Настройки → ID страницы</small></div>
-      <input type="hidden" id="sModel" value="claude-sonnet-4-6">
+
       <div class="fl"><label id="sLblPhoto">Фото для рекламы</label>
         <div id="adImgBox" style="border:1.5px dashed var(--line);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:.2s" onclick="document.getElementById('adImgInput').click()" ondragover="event.preventDefault();this.style.borderColor='var(--gold)'" ondragleave="this.style.borderColor='var(--line)'" ondrop="event.preventDefault();handleAdImg(event.dataTransfer.files[0])">
           <div id="adImgPreview" style="display:none;margin-bottom:8px"><img id="adImgThumb" style="max-width:100%;max-height:120px;border-radius:7px;object-fit:cover"></div>
@@ -1531,7 +1531,6 @@ async function handleAdImg(file){
 
 function openSettings(){
   const st=S.settings;
-  $('sModel').value=st.model||'claude-sonnet-4-6';
   $('sBiz').value=st.bizName||'';
   $('sNiche').value=st.niche||'';
   $('sCpl').value=st.targetCpl||2;
@@ -1561,7 +1560,7 @@ function closeSettings(){ $('settingsModal').classList.remove('show'); }
 async function saveSettings(){
   S.settings={
     ...S.settings,
-    model:$('sModel').value,
+    model:'claude-sonnet-4-6',
     bizName:$('sBiz').value.trim(),
     niche:$('sNiche').value.trim(),
     targetCpl:+$('sCpl').value||2,
