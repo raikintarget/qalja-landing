@@ -583,6 +583,14 @@ h2{font-family:"Unbounded";font-weight:600;font-size:clamp(16px,3.5vw,21px);line
         <select id="crC"></select>
       </div>
     </div>
+    <div class="fl"><label>📸 Сурет <span class="h">— Meta-ға жүктеледі, кампанияда қолданылады</span></label>
+      <div id="creImgBox" style="border:1.5px dashed var(--line);border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:.2s;position:relative" onclick="document.getElementById('creImgInput').click()" ondragover="event.preventDefault();this.style.borderColor='var(--gold)'" ondragleave="this.style.borderColor='var(--line)'" ondrop="event.preventDefault();handleCreImg(event.dataTransfer.files[0])">
+        <div id="creImgPreview" style="display:none;margin-bottom:8px"><img id="creImgThumb" style="max-width:100%;max-height:100px;border-radius:7px;object-fit:cover"></div>
+        <div id="creImgPlaceholder">📸 Сурет жүктеу (JPG/PNG)<br><small style="color:var(--muted)">Кампания жасағанда осы сурет қолданылады</small></div>
+        <div id="creImgStatus" style="display:none;font-size:12px;margin-top:6px"></div>
+      </div>
+      <input type="file" id="creImgInput" accept="image/jpeg,image/png" style="display:none" onchange="handleCreImg(this.files[0])">
+    </div>
     <div class="fl"><label>Бюджет на тест ($) <span class="h">— AI оставит если CPL ок</span></label>
       <div class="sfx-w"><input id="crB" type="number" value="30" step="5"><span class="sfx">$/день</span></div>
     </div>
@@ -591,6 +599,19 @@ h2{font-family:"Unbounded";font-weight:600;font-size:clamp(16px,3.5vw,21px);line
     <div class="mf">
       <button class="btn sm g" onclick="closeCreModal()">Отмена</button>
       <button class="btn sm" onclick="saveCreative()">🚀 Запустить тест</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Креатив таңдау (кампания жасар алдында) -->
+<div class="ov" id="crePickerModal">
+  <div class="modal" style="max-width:520px">
+    <h3>📸 Қай суретпен жасайды?</h3>
+    <p class="sub" style="margin-bottom:13px">Кампания үшін креатив таңдаңыз</p>
+    <div id="crePickerList" style="max-height:340px;overflow-y:auto"></div>
+    <div class="mf">
+      <button class="btn sm g" onclick="closeCrePicker()">Болдырмау</button>
+      <button class="btn sm g" onclick="createWithoutCreative()">Суретсіз жасау</button>
     </div>
   </div>
 </div>
@@ -1234,7 +1255,9 @@ function renderCreatives(){
     const pct=Math.min(100,c.testDays&&c.testDaysTotal?(c.testDays/c.testDaysTotal*100):0);
     return `<div class="cre-card ${statusC}">
       <div class="cre-top">
-        <div class="cre-thumb">${icons[c.format]||'🎨'}</div>
+        <div class="cre-thumb" style="${c.imageUrl?'padding:0;overflow:hidden':''}">
+          ${c.imageUrl?`<img src="${c.imageUrl}" style="width:100%;height:100%;object-fit:cover;display:block">`:icons[c.format]||'🎨'}
+        </div>
         <div style="flex:1;min-width:0">
           <div style="font-weight:600;font-size:13.5px;margin-bottom:3px">${c.name}</div>
           <div style="font-size:11.5px;color:var(--dim)">${c.campaign||'Без кампании'} · ${c.format}</div>
@@ -1258,6 +1281,12 @@ function renderCreatives(){
 
 function openAddCreative(){
   $('crN').value='';$('crF').value='video';$('crB').value='30';$('crT').value='';
+  // Суретті тазала
+  $('creImgPreview').style.display='none';
+  $('creImgPlaceholder').style.display='block';
+  $('creImgStatus').style.display='none';
+  $('creImgInput').value='';
+  delete window._creImgHash; delete window._creImgUrl;
   const sel=$('crC');
   sel.innerHTML=S.campaigns.length
     ?S.campaigns.map(c=>`<option>${c.name}</option>`).join('')
@@ -1274,8 +1303,11 @@ async function saveCreative(){
     name,format:$('crF').value,campaign:$('crC').value,
     budget:+$('crB').value||30,tone:$('crT').value.trim(),
     status:'testing',spend:0,leads:0,testDays:0,testDaysTotal:7,
-    aiNote:'',createdAt:nowT()
+    aiNote:'',createdAt:nowT(),
+    imageHash:window._creImgHash||'',
+    imageUrl:window._creImgUrl||''
   };
+  delete window._creImgHash; delete window._creImgUrl;
   // AI analysis of creative
   try{
     const note=await callClaude([{role:'user',content:`Новый ${cre.format} креатив "${cre.name}" для кампании "${cre.campaign||'—'}". Тон: "${cre.tone||'не указан'}". Напиши одну строку: что ожидать от теста и рекламный заголовок (до 10 слов).`}],150);
@@ -1565,7 +1597,7 @@ async function sendMsg(){
     addMsg(cleanReply, false);
     try{
       const params = JSON.parse(campMatch[1].trim());
-      await createCampaignFromChat(params);
+      showCreativePicker(params);
     }catch(e){
       addMsg(`⚠️ Параметр қатесі: ${e.message}`, false);
     }
@@ -1597,7 +1629,8 @@ async function createCampaignFromChat(params){
     const d=await r.json();
     prog.remove();
     if(d.ok){
-      const msg=`✅ Кампания жасалды!\n\n📋 ${params.name}\n💰 $${params.daily_budget}/күн · ${params.geo||'Казахстан'} · ${params.age_min}–${params.age_max} жас\n🎯 Мақсат: ${params.dest==='wa'?'WhatsApp':params.dest==='direct'?'Direct':'Сайт'}\n\nСтатус: ⏸ PAUSED (Ads Manager-де активтендіріңіз)\nКампания ID: ${d.campaign_id}`;
+      const hasCre = params.image_hash ? '🖼 Сурет қосылды' : '📝 Суретсіз';
+      const msg=`⏸ <b>Кампания жасалды — PAUSED күйінде</b>\n\n📋 ${params.name}\n💰 $${params.daily_budget}/күн · ${params.geo||'Казахстан'} · ${params.age_min}–${params.age_max} жас\n🎯 ${params.dest==='wa'?'WhatsApp':params.dest==='direct'?'Direct':'Сайт'} · ${hasCre}\n\n⚡ Іске қосу үшін: Meta Ads Manager → кампанияны тауып → ACTIVE жасаңыз`;
       addMsg(msg, false);
       // Жергілікті тізімге қос
       S.campaigns.push({id:d.campaign_id, name:params.name, status:'off', spend:0, leads:0, budget:params.daily_budget,
@@ -1740,7 +1773,7 @@ async function changePassword(){
 }
 
 // Close modals on overlay click
-['campModal','creModal','settingsModal','leadModal'].forEach(id=>{
+['campModal','creModal','settingsModal','leadModal','crePickerModal'].forEach(id=>{
   const el=$(id);
   if(el) el.addEventListener('click',e=>{ if(e.target===el) el.classList.remove('show'); });
 });
@@ -2056,6 +2089,85 @@ async function deleteLead(id){
 }
 
 function escH(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ────────────────────────────────
+   CREATIVE IMAGE UPLOAD
+──────────────────────────────── */
+async function handleCreImg(file){
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    $('creImgThumb').src=e.target.result;
+    $('creImgPreview').style.display='block';
+    $('creImgPlaceholder').style.display='none';
+  };
+  reader.readAsDataURL(file);
+  const status=$('creImgStatus');
+  status.style.display='block'; status.style.color='var(--muted)'; status.textContent='⏳ Meta-ға жүктелуде...';
+  const tok=localStorage.getItem('st_token');
+  const fd=new FormData(); fd.append('image',file,file.name);
+  try{
+    const r=await fetch('/api/meta/upload-image',{method:'POST',headers:{'Authorization':'Bearer '+tok},body:fd});
+    const d=await r.json();
+    if(d.ok){
+      window._creImgHash=d.hash;
+      window._creImgUrl=d.url||$('creImgThumb').src;
+      status.style.color='var(--ok)'; status.textContent='✅ Жүктелді — кампанияда қолданылады';
+    } else {
+      status.style.color='var(--bad)'; status.textContent='❌ '+d.error;
+    }
+  }catch(e){
+    status.style.color='var(--bad)'; status.textContent='❌ '+e.message;
+  }
+}
+
+/* ────────────────────────────────
+   CREATIVE PICKER (campaign create)
+──────────────────────────────── */
+function showCreativePicker(params){
+  const withImg=S.creatives.filter(c=>c.imageHash);
+  if(!withImg.length){
+    // Суреттер жоқ — тікелей жаса
+    addMsg('📋 Жүктелген суреттер жоқ — суретсіз жасалуда...', false);
+    createCampaignFromChat(params);
+    return;
+  }
+  window._pendingCampParams=params;
+  const list=$('crePickerList');
+  list.innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:9px;margin-bottom:4px">
+    ${withImg.map((c,i)=>`
+      <div onclick="pickCreative(${i})" style="cursor:pointer;border:2px solid var(--line);border-radius:12px;overflow:hidden;transition:.18s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--line)'">
+        <img src="${c.imageUrl||''}" style="width:100%;height:100px;object-fit:cover;display:block">
+        <div style="padding:8px 9px">
+          <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escH(c.name)}</div>
+          <div style="font-size:10.5px;color:var(--dim)">${c.format}</div>
+        </div>
+      </div>
+    `).join('')}
+    </div>`;
+  $('crePickerModal').classList.add('show');
+}
+
+function pickCreative(i){
+  const withImg=S.creatives.filter(c=>c.imageHash);
+  const c=withImg[i];
+  const params=window._pendingCampParams;
+  if(c){ params.image_hash=c.imageHash; }
+  closeCrePicker();
+  createCampaignFromChat(params);
+}
+
+function closeCrePicker(){
+  $('crePickerModal').classList.remove('show');
+  delete window._pendingCampParams;
+}
+
+function createWithoutCreative(){
+  const params=window._pendingCampParams;
+  closeCrePicker();
+  createCampaignFromChat(params);
+}
 
 /* ────────────────────────────────
    PDF PRINT
