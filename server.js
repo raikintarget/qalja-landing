@@ -540,7 +540,7 @@ app.delete('/api/leads/:id', async (req, res) => {
 
 async function checkBalance(user, balanceCents) {
   if (!user?.id || !user?.tg_chat_id) return;
-  const LOW_THRESHOLD = parseInt(process.env.LOW_BALANCE_THRESHOLD_CENTS || '3000'); // $30 default
+  const LOW_THRESHOLD = parseInt(process.env.LOW_BALANCE_THRESHOLD_CENTS || '3000'); // $30
   if (balanceCents > LOW_THRESHOLD) return;
 
   // 12 сағатта бір рет ескерту
@@ -549,26 +549,26 @@ async function checkBalance(user, balanceCents) {
   if (lastAlert && (Date.now() - new Date(lastAlert).getTime()) < 12 * 60 * 60 * 1000) return;
 
   const bal = (balanceCents / 100).toFixed(2);
-  const KASPI_QR = process.env.KASPI_QR_URL;
   const ADMIN_ID = process.env.ADMIN_TG_CHAT_ID;
 
-  const clientMsg =
+  // Клиентке ескерту + "Толтырғым келеді" батырмасы
+  await tgSend(user.tg_chat_id,
     `⚠️ <b>${user.name}, жарнама балансы азайды!</b>\n\n` +
     `💰 Қалды: <b>$${bal}</b>\n\n` +
-    `Жарнама тоқтамасын үшін бюджетті толтырыңыз.\n` +
-    `Kaspi арқылы сканерлеп төлеңіз 👇`;
+    `Жарнама тоқтамасын үшін бюджетті толтыру керек.\n` +
+    `Төменгі батырманы басыңыз — маман сізге төлем QR-ін жібереді.`,
+    { inline_keyboard: [
+      [{ text: '💳 Бюджет толтырғым келеді', callback_data: `topup_request_${user.id}` }],
+      [{ text: '◀️ Мәзір', callback_data: 'back_menu' }]
+    ]}
+  );
 
-  if (KASPI_QR) {
-    await tgSendPhoto(user.tg_chat_id, KASPI_QR, clientMsg);
-  } else {
-    await tgSend(user.tg_chat_id, clientMsg + '\n\n📞 Маманмен байланысыңыз.', mainMenuKbd());
-  }
-
+  // Adminге хабарлама
   if (ADMIN_ID) {
     await tgSend(ADMIN_ID,
       `⚠️ <b>${user.name}</b> клиентінің балансы аз!\n` +
-      `💰 $${bal} қалды · ${user.meta_account_name || user.meta_account_id}\n` +
-      `🔔 Клиентке ескерту жіберілді.`
+      `💰 $${bal} қалды · ${user.meta_account_name || user.meta_account_id}\n\n` +
+      `Клиентке ескерту жіберілді — QR сұрататын болса хабарласады.`
     );
   }
 
@@ -812,6 +812,22 @@ app.post(`/tg/${TG_TOKEN}`, async (req, res) => {
       }
       await tgSend(chatId,
         `✅ <b>Хабарлама жіберілді!</b>\n\nМаман жақын арада сізге жазады.`,
+        mainMenuKbd()
+      );
+
+    } else if (data.startsWith('topup_request_')) {
+      // Клиент бюджет толтырғысы келеді
+      const ADMIN_ID = process.env.ADMIN_TG_CHAT_ID;
+      if (ADMIN_ID) {
+        await tgSend(ADMIN_ID,
+          `💳 <b>${user?.name || chatId} бюджет толтырғысы келеді!</b>\n\n` +
+          `📊 Аккаунт: ${user?.meta_account_name || user?.meta_account_id || '—'}\n` +
+          `🔗 Telegram: tg://user?id=${chatId}\n\n` +
+          `Meta Billing-ден QR алып жіберіңіз.`
+        );
+      }
+      await tgSend(chatId,
+        `✅ <b>Сұрауыңыз жіберілді!</b>\n\nМаман Meta-дан төлем QR-ін алып, жақын арада жібереді.`,
         mainMenuKbd()
       );
 
