@@ -563,12 +563,15 @@ async function checkBalance(user, balanceCents) {
     ]}
   );
 
-  // Adminге хабарлама
+  // Adminге хабарлама — URL жіберу батырмасымен
   if (ADMIN_ID) {
     await tgSend(ADMIN_ID,
       `⚠️ <b>${user.name}</b> клиентінің балансы аз!\n` +
       `💰 $${bal} қалды · ${user.meta_account_name || user.meta_account_id}\n\n` +
-      `Клиентке ескерту жіберілді — QR сұрататын болса хабарласады.`
+      `Клиентке ескерту жіберілді. Егер төлем сілтемесін жіберу керек болса — «📤 URL жіберу» батырмасын басыңыз.`,
+      { inline_keyboard: [[
+        { text: '📤 URL жіберу', callback_data: `admin_send_url_${user.tg_chat_id}` }
+      ]]}
     );
   }
 
@@ -821,14 +824,25 @@ app.post(`/tg/${TG_TOKEN}`, async (req, res) => {
       if (ADMIN_ID) {
         await tgSend(ADMIN_ID,
           `💳 <b>${user?.name || chatId} бюджет толтырғысы келеді!</b>\n\n` +
-          `📊 Аккаунт: ${user?.meta_account_name || user?.meta_account_id || '—'}\n` +
-          `🔗 Telegram: tg://user?id=${chatId}\n\n` +
-          `Meta Billing-ден QR алып жіберіңіз.`
+          `📊 Аккаунт: ${user?.meta_account_name || user?.meta_account_id || '—'}\n\n` +
+          `Meta → Billing → Добавить средства → Kaspi → сілтемені алыңыз да «📤 URL жіберу» батырмасын басыңыз.`,
+          { inline_keyboard: [[
+            { text: '📤 URL жіберу', callback_data: `admin_send_url_${chatId}` }
+          ]]}
         );
       }
       await tgSend(chatId,
-        `✅ <b>Сұрауыңыз жіберілді!</b>\n\nМаман Meta-дан төлем QR-ін алып, жақын арада жібереді.`,
+        `✅ <b>Сұрауыңыз жіберілді!</b>\n\nМаман Meta-дан төлем сілтемесін алып, жақын арада жібереді.`,
         mainMenuKbd()
+      );
+
+    } else if (data.startsWith('admin_send_url_')) {
+      // Admin URL жіберуге дайын
+      const clientChatId = data.replace('admin_send_url_', '');
+      userStates[chatId] = { state: 'waiting_topup_url', clientChatId };
+      await tgSend(chatId,
+        `📤 <b>Alipay+ сілтемесін жіберіңіз:</b>\n\nMeta-дан алған төлем URL-ін осы жерге жіберіңіз — бот клиентке автоматты жеткізеді.`,
+        { inline_keyboard: [[{ text: '❌ Болдырмау', callback_data: 'back_menu' }]] }
       );
 
     } else if (data === 'back_menu') {
@@ -857,6 +871,24 @@ app.post(`/tg/${TG_TOKEN}`, async (req, res) => {
 
   // ── State machine for multi-step flows ──
   const state = userStates[chatId]?.state;
+
+  // Admin төлем URL-ін жіберді → клиентке жеткіз
+  if (state === 'waiting_topup_url' && text && !text.startsWith('/')) {
+    const clientChatId = userStates[chatId]?.clientChatId;
+    delete userStates[chatId];
+    if (clientChatId) {
+      await tgSend(clientChatId,
+        `💳 <b>Бюджет толтыру сілтемесі дайын!</b>\n\n` +
+        `Төменгі сілтемені басып, Kaspi арқылы төлеңіз:\n\n` +
+        `🔗 ${text}\n\n` +
+        `⚠️ Сілтеме 9 минутта жарамсыз болады — тез төлеңіз!`
+      );
+      await tgSend(chatId, `✅ Сілтеме клиентке жіберілді!`, mainMenuKbd());
+    } else {
+      await tgSend(chatId, `❌ Клиент табылмады.`, mainMenuKbd());
+    }
+    return res.sendStatus(200);
+  }
 
   if (state === 'waiting_question' && text && !text.startsWith('/')) {
     delete userStates[chatId];
