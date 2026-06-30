@@ -37,6 +37,7 @@ async function initDB() {
       created_at TIMESTAMP DEFAULT NOW()
     );
     ALTER TABLE users ADD COLUMN IF NOT EXISTS settings JSONB DEFAULT '{}';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS last_balance_alert TIMESTAMP;
     CREATE TABLE IF NOT EXISTS sessions (
       token TEXT PRIMARY KEY,
       user_id INTEGER REFERENCES users(id),
@@ -156,7 +157,7 @@ async function getMetaData(token, accountId) {
       params: { access_token: token, fields: 'impressions,clicks,spend,cpc,ctr,inline_link_clicks,actions', date_preset: 'yesterday', level: 'account' }
     }),
     axios.get(`https://graph.facebook.com/v19.0/act_${accountId}`, {
-      params: { access_token: token, fields: 'id,name,currency,amount_spent' }
+      params: { access_token: token, fields: 'id,name,currency,amount_spent,balance' }
     }),
     axios.get(`https://graph.facebook.com/v19.0/act_${accountId}/adsets`, {
       params: { access_token: token, fields: 'id,name,campaign_id,daily_budget,status', limit: 50 }
@@ -395,6 +396,12 @@ app.get('/api/meta-data', async (req, res) => {
 
   try {
     const data = await getMetaData(metaToken, accountId);
+    // Баланс тексеру — аз болса клиентке Telegram ескерту
+    const balanceCents = parseInt(data.account?.balance || 0);
+    if (sessionToken) {
+      const userForCheck = await getUserBySession(sessionToken);
+      if (userForCheck) checkBalance(userForCheck, balanceCents).catch(console.error);
+    }
     res.json(data);
   } catch (err) {
     res.status(400).json(err.response?.data || { error: err.message });
@@ -526,6 +533,47 @@ app.delete('/api/leads/:id', async (req, res) => {
   await pool.query('DELETE FROM leads WHERE id=$1 AND user_id=$2', [req.params.id, user.id]);
   res.json({ ok: true });
 });
+
+// ══════════════════════════════
+// БАЛАНС МОНИТОРИНГІ
+// ══════════════════════════════
+
+async function checkBalance(user, balanceCents) {
+  if (!user?.id || !user?.tg_chat_id) return;
+  const LOW_THRESHOLD = parseInt(process.env.LOW_BALANCE_THRESHOLD_CENTS || '3000'); // $30 default
+  if (balanceCents > LOW_THRESHOLD) return;
+
+  // 12 сағатта бір рет ескерту
+  const r = await pool.query('SELECT last_balance_alert FROM users WHERE id=$1', [user.id]);
+  const lastAlert = r.rows[0]?.last_balance_alert;
+  if (lastAlert && (Date.now() - new Date(lastAlert).getTime()) < 12 * 60 * 60 * 1000) return;
+
+  const bal = (balanceCents / 100).toFixed(2);
+  const KASPI_QR = process.env.KASPI_QR_URL;
+  const ADMIN_ID = process.env.ADMIN_TG_CHAT_ID;
+
+  const clientMsg =
+    `⚠️ <b>${user.name}, жарнама балансы азайды!</b>\n\n` +
+    `💰 Қалды: <b>$${bal}</b>\n\n` +
+    `Жарнама тоқтамасын үшін бюджетті толтырыңыз.\n` +
+    `Kaspi арқылы сканерлеп төлеңіз 👇`;
+
+  if (KASPI_QR) {
+    await tgSendPhoto(user.tg_chat_id, KASPI_QR, clientMsg);
+  } else {
+    await tgSend(user.tg_chat_id, clientMsg + '\n\n📞 Маманмен байланысыңыз.', mainMenuKbd());
+  }
+
+  if (ADMIN_ID) {
+    await tgSend(ADMIN_ID,
+      `⚠️ <b>${user.name}</b> клиентінің балансы аз!\n` +
+      `💰 $${bal} қалды · ${user.meta_account_name || user.meta_account_id}\n` +
+      `🔔 Клиентке ескерту жіберілді.`
+    );
+  }
+
+  await pool.query('UPDATE users SET last_balance_alert=NOW() WHERE id=$1', [user.id]);
+}
 
 // ══════════════════════════════
 // TELEGRAM БОТ

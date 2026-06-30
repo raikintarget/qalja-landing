@@ -308,11 +308,12 @@ h2{font-family:"Unbounded";font-weight:600;font-size:clamp(16px,3.5vw,21px);line
     </div>
   </div>
 
-  <div class="kpis">
+  <div class="kpis" style="grid-template-columns:repeat(5,1fr)">
     <div class="kpi"><small>Расход · вчера</small><b id="kSpend">—</b><div class="d neu" id="kSpendD"></div></div>
     <div class="kpi"><small>Переписок · вчера</small><b id="kLeads">—</b><div class="d up" id="kLeadsD"></div></div>
     <div class="kpi"><small>Средний CPL</small><b id="kCpl">—</b><div class="d" id="kCplD"></div></div>
     <div class="kpi"><small>Активных кампаний</small><b id="kActs">—</b><div class="d neu" id="kActsD"></div></div>
+    <div class="kpi" id="kBalancePan" style="display:none"><small>💰 Баланс Meta</small><b id="kBalance" style="color:var(--ok)">—</b><div class="d neu" id="kBalanceD"></div></div>
   </div>
 
   <div class="g2">
@@ -1865,13 +1866,30 @@ async function loadMetaData(){
     }
 
     const acc = data.account || {};
-    // Клиенттің аккаунт деректерін сақта — кампания жасағанда дұрыс аккаунтқа жіберу үшін
     if(acc.id) S.metaAccountId = acc.id.replace('act_','');
     if(acc.name) S.metaAccountName = acc.name;
     const banner = document.querySelector('.banner b');
     if(banner && acc.name) banner.textContent = 'AI жұмыс істеп тұр · '+acc.name;
 
     if($('kActs')) $('kActs').textContent = campaigns.length;
+
+    // Баланс (prepaid)
+    const balanceCents = parseInt(acc.balance || 0);
+    if(balanceCents > 0 || acc.balance !== undefined){
+      const balDol = (balanceCents / 100).toFixed(2);
+      const LOW = 3000; // $30
+      const kBal = $('kBalance'), kBalD = $('kBalanceD'), kBalPan = $('kBalancePan');
+      if(kBalPan) kBalPan.style.display = '';
+      if(kBal){
+        kBal.textContent = '$' + balDol;
+        kBal.style.color = balanceCents < LOW ? 'var(--bad)' : balanceCents < LOW*2 ? 'var(--warn)' : 'var(--ok)';
+      }
+      if(kBalD){
+        if(balanceCents < LOW) kBalD.textContent = '⚠️ Аз қалды!';
+        else if(balanceCents < LOW*2) kBalD.textContent = '~ жетеді';
+        else kBalD.textContent = '✓ Норма';
+      }
+    }
   } catch(e){ console.log('Meta API:', e.message); }
 }
 
