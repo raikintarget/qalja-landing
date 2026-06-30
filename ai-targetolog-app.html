@@ -95,7 +95,19 @@ h2{font-family:"Unbounded";font-weight:600;font-size:clamp(16px,3.5vw,21px);line
 .cc .rec{font-size:12px;color:var(--dim);margin-top:8px;padding-top:8px;border-top:1px solid var(--line);line-height:1.5}
 .cc .ai-action{font-size:11.5px;color:var(--ok);margin-top:6px;font-weight:600;display:none}
 .cc.acted .ai-action{display:block}
-.cc .camp-btns{display:flex;gap:6px;margin-top:8px}
+.cc .camp-btns{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.cc .camp-btns .sep{width:1px;background:var(--line);margin:0 2px}
+.ab{appearance:none;cursor:pointer;font-family:inherit;font-size:11px;font-weight:600;border-radius:7px;padding:6px 10px;border:1px solid var(--line);background:var(--s);color:var(--dim);transition:.14s;white-space:nowrap}
+.ab:hover{color:var(--txt);border-color:var(--gd);background:rgba(217,164,65,.06)}
+.ab:disabled{opacity:.4;cursor:default}
+.ab.ok{border-color:rgba(134,179,117,.4);color:var(--ok)}
+.ab.ok:hover{background:rgba(134,179,117,.08)}
+.ab.bad{border-color:rgba(204,106,92,.4);color:var(--bad)}
+.ab.bad:hover{background:rgba(204,106,92,.08)}
+.ab.gold{border-color:rgba(217,164,65,.5);color:var(--gold)}
+.ab.gold:hover{background:rgba(217,164,65,.08)}
+.camp-action-result{font-size:11.5px;margin-top:7px;padding:7px 10px;border-radius:8px;border:1px solid rgba(134,179,117,.3);background:rgba(134,179,117,.07);color:var(--ok);display:none}
+.camp-action-result.err{border-color:rgba(204,106,92,.3);background:rgba(204,106,92,.07);color:var(--bad)}
 
 /* AI FEED */
 .feed{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto}
@@ -253,6 +265,7 @@ h2{font-family:"Unbounded";font-weight:600;font-size:clamp(16px,3.5vw,21px);line
   <button class="t" data-tab="creatives">🎨 Креативы</button>
   <button class="t" data-tab="reports">📩 Отчёты</button>
   <button class="t" data-tab="chat">💬 Чат</button>
+  <button class="t" data-tab="leads">👥 Лидтер</button>
   <div class="nav-r">
     <div class="ai-status" id="aiStatusBadge"><span class="pulse" id="aiPulse"></span><span id="aiStatusTxt">загрузка…</span></div>
     <button class="ib" id="langToggleBtn" onclick="toggleLang()" title="Тіл / Язык" style="font-size:11px;font-weight:700;width:36px">RU</button>
@@ -324,6 +337,11 @@ h2{font-family:"Unbounded";font-weight:600;font-size:clamp(16px,3.5vw,21px);line
         <div class="ph">Динамика CPL <span class="tag">цель ≤ $<span id="cplTarget">2.00</span></span></div>
         <svg class="chart-svg" id="chartSvg" viewBox="0 0 300 110" preserveAspectRatio="none"></svg>
         <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--muted);margin-top:4px"><span>7 дн. назад</span><span>сегодня</span></div>
+      </div>
+      <div class="pan" style="margin-bottom:12px">
+        <div class="ph">📅 Маусымдық кеңес <span class="tag" id="seasonTag"></span></div>
+        <div id="seasonalTip" style="font-size:13px;color:var(--dim);line-height:1.6">⏳ жүктелуде…</div>
+        <button class="btn sm g" style="margin-top:9px;font-size:11px" onclick="refreshSeasonalTip()">🔄 Жаңарту</button>
       </div>
       <div class="pan">
         <div class="ph">Telegram-отчёт</div>
@@ -447,8 +465,9 @@ h2{font-family:"Unbounded";font-weight:600;font-size:clamp(16px,3.5vw,21px);line
         <div class="tg-top"><div class="tg-av">🤖</div><div><span class="tg-nm">SmartTarget Bot</span><span class="tg-st" id="repSt">готов</span></div></div>
         <div class="tg-body"><div class="tg-bub" id="repBubble" style="color:var(--muted)">Нажмите «Сгенерировать»</div></div>
       </div>
-      <div style="display:flex;gap:7px;margin-top:10px">
+      <div style="display:flex;gap:7px;margin-top:10px;flex-wrap:wrap">
         <button class="btn sm g" onclick="copyReport()">📋 Копировать</button>
+        <button class="btn sm g" onclick="printReport()">📄 PDF</button>
         <button class="btn sm" onclick="shareWA()">WhatsApp ↗</button>
       </div>
     </div>
@@ -472,6 +491,9 @@ h2{font-family:"Unbounded";font-weight:600;font-size:clamp(16px,3.5vw,21px);line
         <button class="qb" onclick="qSend('Напиши текст рекламы для лучшей кампании')">✍️ Текст</button>
         <button class="qb" onclick="qSend('Какой план на следующий месяц?')">📈 Стратегия</button>
         <button class="qb" onclick="qSend('Объясни фазу обучения Meta')">📚 Meta</button>
+        <button class="qb" onclick="qSend('Менің нишамдағы конкуренттер қалай жарнама жасайды? Тиімді стратегия не? Нақты кеңес бер.')">🔍 Конкурент</button>
+        <button class="qb" onclick="qSend('Маусымдық стратегия: қазір қандай жарнама тиімді? Менің нишам мен кампанияларым негізінде нақты айт.')">📅 Маусым</button>
+        <button class="qb" style="border-color:var(--gold);color:var(--gold)" onclick="contactSpecialist()">👩‍💼 Маманмен байланыс</button>
       </div>
       <div class="chat-ir">
         <textarea class="ci" id="ci" placeholder="Задайте вопрос AI-таргетологу…" rows="1"></textarea>
@@ -479,6 +501,33 @@ h2{font-family:"Unbounded";font-weight:600;font-size:clamp(16px,3.5vw,21px);line
       </div>
     </div>
   </div>
+</div>
+
+<!-- ═══ ЛИДТЕР (CRM) ═══ -->
+<div class="pane" id="tab-leads">
+<div class="wrap">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:9px;margin-bottom:15px">
+    <div><div class="ey">CRM</div><h2>Лидтер</h2><p class="sub">Жарнамадан хабарласқан клиенттер тізімі · автоматты + қолмен қосу</p></div>
+    <button class="btn sm" onclick="openAddLead()">+ Лид қосу</button>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><small>Жалпы лидтер</small><b id="lTotal">—</b><div class="d neu"></div></div>
+    <div class="kpi"><small>Жаңа</small><b id="lNew" style="color:var(--info)">—</b><div class="d neu"></div></div>
+    <div class="kpi"><small>Конверсия</small><b id="lConverted" style="color:var(--ok)">—</b><div class="d up"></div></div>
+    <div class="kpi"><small>Конверсия %</small><b id="lRate">—</b><div class="d neu"></div></div>
+  </div>
+
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:13px">
+    <button class="ab on" id="lf-all" onclick="filterLeads('all')">Барлығы</button>
+    <button class="ab" id="lf-new" onclick="filterLeads('new')">🆕 Жаңа</button>
+    <button class="ab" id="lf-contacted" onclick="filterLeads('contacted')">📞 Байланысқан</button>
+    <button class="ab ok" id="lf-converted" onclick="filterLeads('converted')">✅ Конверсия</button>
+    <button class="ab bad" id="lf-lost" onclick="filterLeads('lost')">❌ Жоғалған</button>
+  </div>
+
+  <div id="leadsList"><div class="empty"><div class="ei">👥</div>Лидтер жоқ.<br>«+ Лид қосу» батырмасын басыңыз немесе жарнамадан автоматты қосылады.</div></div>
+</div>
 </div>
 
 </main>
@@ -541,6 +590,34 @@ h2{font-family:"Unbounded";font-weight:600;font-size:clamp(16px,3.5vw,21px);line
     <div class="mf">
       <button class="btn sm g" onclick="closeCreModal()">Отмена</button>
       <button class="btn sm" onclick="saveCreative()">🚀 Запустить тест</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Лид -->
+<div class="ov" id="leadModal">
+  <div class="modal">
+    <h3 id="leadModalTitle">Лид қосу</h3>
+    <div class="r2">
+      <div class="fl"><label>Аты-жөні</label><input id="lN" placeholder="Айгүл Нұрланова"></div>
+      <div class="fl"><label>Телефон</label><input id="lPh" placeholder="+7 ___ ___ __ __"></div>
+    </div>
+    <div class="r2">
+      <div class="fl"><label>Кампания / Қайдан?</label><input id="lCamp" placeholder="Қай жарнамадан келді?"></div>
+      <div class="fl"><label>Статус</label>
+        <select id="lSt">
+          <option value="new">🆕 Жаңа</option>
+          <option value="contacted">📞 Байланысқан</option>
+          <option value="converted">✅ Конверсия</option>
+          <option value="lost">❌ Жоғалған</option>
+        </select>
+      </div>
+    </div>
+    <div class="fl"><label>Ескертпе</label><textarea id="lNote" placeholder="Не айтты, не сұрады, келесі қадам..."></textarea></div>
+    <input type="hidden" id="lId">
+    <div class="mf">
+      <button class="btn sm g" onclick="closeLeadModal()">Болдырмау</button>
+      <button class="btn sm" onclick="saveLead()">💾 Сақтау</button>
     </div>
   </div>
 </div>
@@ -629,7 +706,7 @@ function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
 const LANGS={
   ru:{
     tabAuto:'🤖 Автопилот',tabCamp:'📋 Кампании',tabBudget:'💰 Бюджет',
-    tabCreatives:'🎨 Креативы',tabReports:'📩 Отчёты',tabChat:'💬 Чат',
+    tabCreatives:'🎨 Креативы',tabReports:'📩 Отчёты',tabChat:'💬 Чат',tabLeads:'👥 Лидтер',
     aiLoading:'загрузка…',aiOnline:'работает',
     sTitle:'⚙️ Настройки',sSecProfile:'Профиль',sLblEmail:'Email',
     sLblAccId:'Рекламный аккаунт',sLblChangePwd:'Изменить пароль',
@@ -646,7 +723,7 @@ const LANGS={
   },
   kk:{
     tabAuto:'🤖 Автопилот',tabCamp:'📋 Кампаниялар',tabBudget:'💰 Бюджет',
-    tabCreatives:'🎨 Креативтер',tabReports:'📩 Есептер',tabChat:'💬 Чат',
+    tabCreatives:'🎨 Креативтер',tabReports:'📩 Есептер',tabChat:'💬 Чат',tabLeads:'👥 Лидтер',
     aiLoading:'жүктелуде…',aiOnline:'жұмыс істеп тұр',
     sTitle:'⚙️ Баптаулар',sSecProfile:'Профиль',sLblEmail:'Email',
     sLblAccId:'Жарнама аккаунты',sLblChangePwd:'Парольді өзгерту',
@@ -678,7 +755,7 @@ function applyLang(){
   if(btn) btn.textContent=lang==='ru'?'RU':'ҚАЗ';
   // Nav tabs
   const tabs=document.querySelectorAll('.t[data-tab]');
-  const tabKeys={autopilot:'tabAuto',campaigns:'tabCamp',budget:'tabBudget',creatives:'tabCreatives',reports:'tabReports',chat:'tabChat'};
+  const tabKeys={autopilot:'tabAuto',campaigns:'tabCamp',budget:'tabBudget',creatives:'tabCreatives',reports:'tabReports',chat:'tabChat',leads:'tabLeads'};
   tabs.forEach(t=>{ if(tabKeys[t.dataset.tab]) t.textContent=L[tabKeys[t.dataset.tab]]||t.textContent; });
   // Settings modal labels
   const ids=['sTitle','sSecProfile','sLblEmail','sLblAccId','sLblChangePwd','sLblCurPwd','sLblNewPwd','sLblConfPwd',
@@ -742,6 +819,7 @@ document.querySelectorAll('.t[data-tab]').forEach(btn=>{
     if(tab==='creatives') renderCreatives();
     if(tab==='reports'){ renderRepHistory(); initRepDates(); }
     if(tab==='autopilot') refreshDashboard();
+    if(tab==='leads') loadLeads();
   });
 });
 
@@ -787,13 +865,21 @@ function renderDashCamps(){
   const active=S.campaigns.filter(c=>c.status!=='off');
   $('campCount2').textContent=active.length?active.length+' шт.':'';
   if(!active.length){ el.innerHTML='<div class="empty"><div class="ei">📋</div>Активных кампаний нет</div>'; return; }
-  el.innerHTML=active.map(c=>{
+  el.innerHTML=active.map((c,idx)=>{
+    const i=S.campaigns.indexOf(c);
     const v=verdict(c);
     const cpl=c.leads>0?'$'+(c.spend/c.leads).toFixed(2):'—';
-    return `<div class="cc ${v}">
+    const hasMeta=!!c.id;
+    return `<div class="cc ${v}" id="dcc-${i}">
       <div class="top"><span class="nm">${c.name}</span><span class="bdg ${v}">${VL[v]}</span></div>
-      <div class="mets"><span>$${c.spend}</span><span>${c.leads} заявок</span><span>CPL ${cpl}</span>${c.ctr?`<span>CTR ${c.ctr}%</span>`:''}</div>
-      ${c.lastAction?`<div class="ai-action acted">🤖 ${c.lastAction}</div>`:''}
+      <div class="mets"><span>$${c.spend}</span><span>${c.leads} перепис.</span><span>CPL ${cpl}</span>${c.ctr?`<span>CTR ${c.ctr}%</span>`:''}</div>
+      <div class="camp-action-result" id="car-${i}"></div>
+      <div class="camp-btns" style="margin-top:8px">
+        ${hasMeta?`<button class="ab gold" onclick="scaleCamp(${i},1.3)">📈 +30%</button>
+        <button class="ab" onclick="scaleCamp(${i},0.8)">📉 −20%</button>
+        <button class="ab bad" onclick="toggleCamp(${i},'PAUSED')">⏸ Пауза</button>`:''}
+        <button class="ab gold" onclick="dupCamp(${i})">📋 Дубль</button>
+      </div>
     </div>`;
   }).join('');
 }
@@ -908,7 +994,8 @@ async function runDay(){
   let aiComment='';
   try{
     aiComment=await callClaude([{role:'user',content:`Реальные данные из Meta Ads. Кампании: ${campSum}. Цель CPL: $${t}. Дай конкретную рекомендацию в 1-2 предложениях — что делать сейчас.`}],250);
-    addAction('💡',`<b>AI:</b> ${aiComment}`,'gold');
+    const aiHtml=aiComment.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\*(.+?)\*/g,'<i>$1</i>');
+    addAction('💡',`<b>AI:</b> ${aiHtml}`,'gold');
   }catch(e){
     addAction('⚠️',`Не удалось получить рекомендацию: ${e.message}`,'warn');
   }
@@ -947,13 +1034,14 @@ function toggleAutopilot(){
 function renderCampaigns(){
   const el=$('campList');
   if(!S.campaigns.length){ el.innerHTML='<div class="empty"><div class="ei">📋</div>Нет кампаний. Добавьте вручную или загрузите демо-данные.</div>'; return; }
-  const t=S.settings.targetCpl||2;
   el.innerHTML=S.campaigns.map((c,i)=>{
     const v=verdict(c);
     const cpl=c.leads>0?'$'+(c.spend/c.leads).toFixed(2):'—';
     const stC={active:'var(--ok)',learning:'var(--warn)',paused:'var(--muted)',off:'var(--bad)'};
     const stL={active:'Активна',learning:'Обучение',paused:'Пауза',off:'Отключена'};
-    return `<div class="cc ${v}">
+    const isActive=c.status==='active'||c.status==='learning';
+    const hasMeta=!!c.id;
+    return `<div class="cc ${v}" id="cc-${i}">
       <div class="top">
         <span class="nm">${c.name}</span>
         <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:${stC[c.status]||'var(--dim)'}">${stL[c.status]||''}</span>
@@ -961,17 +1049,24 @@ function renderCampaigns(){
       </div>
       <div class="mets">
         <span>Расход <b>$${c.spend}</b></span>
-        <span>Заявок <b>${c.leads}</b></span>
+        <span>Переписок <b>${c.leads}</b></span>
         <span>CPL <b>${cpl}</b></span>
         ${c.ctr?`<span>CTR <b>${c.ctr}%</b></span>`:''}
         ${c.budget?`<span>Бюджет <b>$${c.budget}/д</b></span>`:''}
-        ${c.niche?`<span style="color:var(--muted)">${c.niche}</span>`:''}
       </div>
       <div class="rec">${vrec(v,c)}</div>
-      ${c.lastAction?`<div class="ai-action acted">🤖 ${c.lastAction}</div>`:''}
+      <div class="camp-action-result" id="car-${i}"></div>
       <div class="camp-btns">
-        <button class="btn sm g" onclick="openEditCamp(${i})">✏️</button>
-        <button class="btn sm d" onclick="delCamp(${i})">× Удалить</button>
+        ${hasMeta?`
+        <button class="ab ${isActive?'bad':'ok'}" onclick="toggleCamp(${i},'${isActive?'PAUSED':'ACTIVE'}')" title="${isActive?'Поставить на паузу':'Запустить'}">
+          ${isActive?'⏸ Пауза':'▶ Запустить'}
+        </button>
+        <button class="ab gold" onclick="scaleCamp(${i},1.3)" title="+30% бюджет">📈 +30%</button>
+        <button class="ab" onclick="scaleCamp(${i},0.8)" title="-20% бюджет">📉 −20%</button>
+        <span class="sep"></span>`:''}
+        <button class="ab gold" onclick="dupCamp(${i})" title="Создать дубль">📋 Дубль</button>
+        <button class="ab" onclick="openEditCamp(${i})" title="Редактировать">✏️</button>
+        <button class="ab bad" onclick="delCamp(${i})">✕</button>
       </div>
     </div>`;
   }).join('');
@@ -1004,6 +1099,69 @@ function saveCamp(){
 function delCamp(i){
   if(!confirm('Удалить кампанию?')) return;
   S.campaigns.splice(i,1); save(); renderCampaigns(); refreshDashboard();
+}
+
+function showCampResult(i, msg, isErr=false){
+  const el=$('car-'+i);
+  if(!el) return;
+  el.textContent=msg;
+  el.style.display='block';
+  el.className='camp-action-result'+(isErr?' err':'');
+  setTimeout(()=>{el.style.display='none';},5000);
+}
+
+async function scaleCamp(i, factor){
+  const c=S.campaigns[i];
+  if(!c.id){ showCampResult(i,'❌ Meta ID жоқ — аккаунтты байланыстырыңыз',true); return; }
+  const btns=document.querySelectorAll(`#cc-${i} .ab`);
+  btns.forEach(b=>b.disabled=true);
+  showCampResult(i,'⏳ Бюджет өзгертілуде...');
+  const tok=localStorage.getItem('st_token');
+  try{
+    const r=await fetch('/api/meta/scale-budget',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({campaign_id:c.id,factor})});
+    const d=await r.json();
+    if(d.ok){
+      const dir=factor>1?'+'+Math.round((factor-1)*100)+'%':'-'+Math.round((1-factor)*100)+'%';
+      const detail=d.results.map(x=>`${x.name}: $${x.old}→$${x.new}`).join(', ');
+      showCampResult(i,`✅ Бюджет ${dir}: ${detail}`);
+      if(d.results[0]) { c.budget=parseFloat(d.results[0].new); save(); }
+      loadMetaData();
+    } else { showCampResult(i,'❌ '+d.error,true); }
+  }catch(e){ showCampResult(i,'❌ '+e.message,true); }
+  btns.forEach(b=>b.disabled=false);
+}
+
+async function toggleCamp(i, newStatus){
+  const c=S.campaigns[i];
+  if(!c.id){ showCampResult(i,'❌ Meta ID жоқ — аккаунтты байланыстырыңыз',true); return; }
+  const btns=document.querySelectorAll(`#cc-${i} .ab`);
+  btns.forEach(b=>b.disabled=true);
+  const label=newStatus==='ACTIVE'?'Іске қосылуда...':'Тоқтатылуда...';
+  showCampResult(i,'⏳ '+label);
+  const tok=localStorage.getItem('st_token');
+  try{
+    const r=await fetch('/api/meta/toggle-campaign',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({campaign_id:c.id,status:newStatus})});
+    const d=await r.json();
+    if(d.ok){
+      c.status=newStatus==='ACTIVE'?'active':'off';
+      save(); renderCampaigns(); refreshDashboard();
+      showCampResult(i,newStatus==='ACTIVE'?'✅ Кампания іске қосылды':'✅ Кампания тоқтатылды');
+    } else { showCampResult(i,'❌ '+d.error,true); }
+  }catch(e){ showCampResult(i,'❌ '+e.message,true); }
+}
+
+async function dupCamp(i){
+  const c=S.campaigns[i];
+  const dupName=c.name+' — 2';
+  // Switch to chat and send duplicate request
+  document.querySelectorAll('.t').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(p=>{p.classList.remove('on');});
+  document.querySelector('[data-tab="chat"]').classList.add('on');
+  $('tab-chat').classList.add('on');
+  await new Promise(r=>setTimeout(r,100));
+  const msg=`Дубль жаса: "${c.name}" — бюджет $${c.budget||10}/күн, ${c.geo||'Қазақстан'}, ${c.age_min||18}–${c.age_max||65} жас. Атауы: "${dupName}"`;
+  $('ci').value=msg;
+  sendMsg();
 }
 function loadDemo(){
   S.campaigns=[
@@ -1246,6 +1404,20 @@ const SYS=`Ты SmartTarget AI — AI-таргетолог внутри плат
 ❌ Никогда не предлагай пользователю идти в Meta Ads Manager вручную
 ❌ Никогда не объясняй технические ограничения — просто делай
 ❌ Никогда не спрашивай бюджет, гео или возраст при дублировании
+❌ Никогда не придумывай и не называй Business Manager ID, рекламный аккаунт ID, номера — только те, что есть в контексте клиента
+❌ Никогда не давай инструкции по подключению аккаунта через Meta Business Manager — это делает менеджер SmartTarget
+❌ Никогда не называй номера телефонов, WhatsApp, контакты специалиста — просто скажи "нажмите кнопку Маманмен байланыс"
+
+Если клиент спрашивает как подключить аккаунт, как начать, как добавить рекламный аккаунт — отвечай ТОЛЬКО: "Аккаунтты қосу үшін 👩‍💼 Маманмен байланыс батырмасын басыңыз — маман бәрін өзі реттейді."
+
+НОВЫЕ ВОЗМОЖНОСТИ ПЛАТФОРМЫ (расскажи если спрашивают):
+✅ Кнопка «Дубль» — дублирует кампанию в Meta Ads, можно попросить изменить параметры
+✅ Кнопка «+30%» / «−20%» — меняет бюджет прямо в Meta Ads без входа в кабинет
+✅ Кнопка «⏸ Пауза» / «▶ Запустить» — останавливает или запускает кампанию
+✅ Новый креатив — загружается через раздел Креативы, AI создаёт объявление
+
+Когда клиент хочет дублировать кампанию через чат — создавай дубль через JSON-блок, бери все параметры из контекста кампании.
+Когда клиент хочет поменять бюджет через чат — объясни что это можно сделать кнопкой прямо на карточке кампании (+30%, −20%).
 
 В контексте каждого сообщения — реальные данные клиента: кампании, бюджеты, расходы.
 
@@ -1441,6 +1613,16 @@ async function createCampaignFromChat(params){
 }
 function qSend(t){ $('ci').value=t; sendMsg(); }
 function clearChat(){ chatMsgs=[]; initChat(); }
+async function contactSpecialist(){
+  const tok=localStorage.getItem('st_token');
+  addMsg('👩‍💼 Маманмен байланысу сұрауы жіберілді...', true);
+  try{
+    await fetch('/api/notify-specialist',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok}});
+    addMsg('✅ Хабарлама жіберілді! Маман жақын арада сізге хабарласады.', false);
+  }catch(e){
+    addMsg('❌ Қате: '+e.message, false);
+  }
+}
 $('ci').addEventListener('input',function(){ this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,90)+'px'; });
 $('ci').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendMsg(); } });
 
@@ -1557,8 +1739,9 @@ async function changePassword(){
 }
 
 // Close modals on overlay click
-['campModal','creModal','settingsModal'].forEach(id=>{
-  $(id).addEventListener('click',e=>{ if(e.target===$(id)) $(id).classList.remove('show'); });
+['campModal','creModal','settingsModal','leadModal'].forEach(id=>{
+  const el=$(id);
+  if(el) el.addEventListener('click',e=>{ if(e.target===el) el.classList.remove('show'); });
 });
 
 /* ────────────────────────────────
@@ -1597,6 +1780,8 @@ refreshDashboard();
 initChat();
 loadProfile();
 loadMetaData();
+// Маусымдық кеңес
+showSeasonalTip(SEASONAL_TIPS[new Date().getMonth()]);
 // Auto-run if has campaigns and autopilot on
 if(S.campaigns.length>0&&S.settings.autopilot&&!S.lastOptDate){
   setTimeout(()=>runDay(),1200);
@@ -1725,6 +1910,197 @@ document.addEventListener('click',function(e){
     menu.style.display='none';
   }
 });
+
+/* ────────────────────────────────
+   LEADS / CRM
+──────────────────────────────── */
+let leadsData=[];
+let leadsFilter='all';
+
+async function loadLeads(){
+  const tok=localStorage.getItem('st_token');
+  if(!tok){renderLeadsEmpty();return;}
+  try{
+    const r=await fetch('/api/leads',{headers:{'Authorization':'Bearer '+tok}});
+    const d=await r.json();
+    leadsData=d.leads||[];
+    renderLeads();
+  }catch(e){console.log('Leads:',e.message);}
+}
+
+function renderLeadsEmpty(){
+  const el=$('leadsList');
+  if(el) el.innerHTML='<div class="empty"><div class="ei">👥</div>Жүйеге кіріңіз.</div>';
+}
+
+function filterLeads(f){
+  leadsFilter=f;
+  document.querySelectorAll('[id^="lf-"]').forEach(b=>b.classList.remove('on'));
+  const btn=$('lf-'+f);
+  if(btn) btn.classList.add('on');
+  renderLeads();
+}
+
+function renderLeads(){
+  const filtered=leadsFilter==='all'?leadsData:leadsData.filter(l=>l.status===leadsFilter);
+  const total=leadsData.length;
+  const newCnt=leadsData.filter(l=>l.status==='new').length;
+  const conv=leadsData.filter(l=>l.status==='converted').length;
+  const rate=total>0?(conv/total*100).toFixed(0)+'%':'—';
+  if($('lTotal')) $('lTotal').textContent=total||'—';
+  if($('lNew')) $('lNew').textContent=newCnt||'—';
+  if($('lConverted')) $('lConverted').textContent=conv||'—';
+  if($('lRate')) $('lRate').textContent=rate;
+  const el=$('leadsList');
+  if(!el) return;
+  if(!filtered.length){
+    el.innerHTML='<div class="empty"><div class="ei">👥</div>'+(leadsFilter==='all'?'Лидтер жоқ. «+ Лид қосу» батырмасын басыңыз.':'Бұл категорияда лидтер жоқ.')+'</div>';
+    return;
+  }
+  const stC={new:'learning',contacted:'info',converted:'keep',lost:'vampire'};
+  const stL={new:'🆕 Жаңа',contacted:'📞 Байланысқан',converted:'✅ Конверсия',lost:'❌ Жоғалған'};
+  el.innerHTML=filtered.map(l=>{
+    const sc=stC[l.status]||'learning';
+    const sl=stL[l.status]||l.status;
+    const dt=new Date(l.created_at).toLocaleDateString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    return `<div class="pan" style="margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--s2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:16px;flex:none">👤</div>
+          <div style="min-width:0">
+            <div style="font-weight:600;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escH(l.name||'Белгісіз')}</div>
+            <div style="font-size:11.5px;color:var(--dim)">${escH(l.phone||'—')} · ${escH(l.campaign_name||'Қол')}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex:none">
+          <select onchange="quickStatusLead(${l.id},this.value)" style="font-family:inherit;font-size:11.5px;background:var(--s2);border:1px solid var(--line);border-radius:7px;padding:4px 7px;color:var(--txt);cursor:pointer">
+            <option value="new"${l.status==='new'?' selected':''}>🆕 Жаңа</option>
+            <option value="contacted"${l.status==='contacted'?' selected':''}>📞 Байланысқан</option>
+            <option value="converted"${l.status==='converted'?' selected':''}>✅ Конверсия</option>
+            <option value="lost"${l.status==='lost'?' selected':''}>❌ Жоғалған</option>
+          </select>
+          <button class="ab" onclick="openEditLead(${l.id})" title="Өзгерту">✏️</button>
+          <button class="ab bad" onclick="deleteLead(${l.id})" title="Жою">✕</button>
+        </div>
+      </div>
+      ${l.notes?`<div style="font-size:12.5px;color:var(--dim);margin-top:8px;padding-top:8px;border-top:1px solid var(--line)">${escH(l.notes)}</div>`:''}
+      <div style="font-size:10.5px;color:var(--muted);margin-top:6px">${dt}</div>
+    </div>`;
+  }).join('');
+}
+
+function openAddLead(){
+  $('leadModalTitle').textContent='Лид қосу';
+  $('lN').value='';$('lPh').value='';$('lCamp').value='';$('lNote').value='';
+  $('lSt').value='new';$('lId').value='';
+  $('leadModal').classList.add('show');
+  setTimeout(()=>$('lN').focus(),50);
+}
+
+function openEditLead(id){
+  const l=leadsData.find(x=>x.id===id);
+  if(!l) return;
+  $('leadModalTitle').textContent='Лид өзгерту';
+  $('lN').value=l.name||'';$('lPh').value=l.phone||'';
+  $('lCamp').value=l.campaign_name||'';$('lNote').value=l.notes||'';
+  $('lSt').value=l.status||'new';$('lId').value=id;
+  $('leadModal').classList.add('show');
+}
+function closeLeadModal(){ $('leadModal').classList.remove('show'); }
+
+async function saveLead(){
+  const tok=localStorage.getItem('st_token');
+  const id=$('lId').value;
+  const body={name:$('lN').value.trim(),phone:$('lPh').value.trim(),campaign_name:$('lCamp').value.trim(),notes:$('lNote').value.trim(),status:$('lSt').value};
+  try{
+    const url=id?`/api/leads/${id}`:'/api/leads';
+    const method=id?'PUT':'POST';
+    const r=await fetch(url,{method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(d.ok){closeLeadModal();await loadLeads();}
+    else alert('Қате: '+(d.error||'сервер қатесі'));
+  }catch(e){alert('Қате: '+e.message);}
+}
+
+async function quickStatusLead(id,status){
+  const tok=localStorage.getItem('st_token');
+  const l=leadsData.find(x=>x.id===id);
+  if(!l) return;
+  await fetch(`/api/leads/${id}`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({...l,status})});
+  await loadLeads();
+}
+
+async function deleteLead(id){
+  if(!confirm('Лидті жою?')) return;
+  const tok=localStorage.getItem('st_token');
+  await fetch(`/api/leads/${id}`,{method:'DELETE',headers:{'Authorization':'Bearer '+tok}});
+  await loadLeads();
+}
+
+function escH(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ────────────────────────────────
+   PDF PRINT
+──────────────────────────────── */
+function printReport(){
+  const text=$('repBubble').textContent||'';
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>SmartTarget AI — Есеп</title><style>
+    body{font-family:Arial,sans-serif;padding:30px;color:#1a1a1a;max-width:800px;margin:0 auto}
+    h1{font-size:18px;border-bottom:2px solid #d9a441;padding-bottom:10px;margin-bottom:20px;color:#8A6E36}
+    pre{white-space:pre-wrap;font-size:14px;line-height:1.8;color:#222}
+    .footer{margin-top:30px;font-size:12px;color:#888;border-top:1px solid #ddd;padding-top:10px;text-align:center}
+    @media print{@page{margin:20mm}button{display:none}}
+  </style></head><body>
+    <h1>📊 SmartTarget AI — Есеп</h1>
+    <pre>${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+    <div class="footer">🤖 SmartTarget AI · ${new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'})}</div>
+    <script>setTimeout(()=>window.print(),400);<\/script>
+  </body></html>`);
+  w.document.close();
+}
+
+/* ────────────────────────────────
+   МАУСЫМДЫҚ КЕҢЕСТЕР
+──────────────────────────────── */
+const SEASONAL_TIPS=[
+  'Қаңтар: Жаңа жыл шаршауы бар. Ретаргетинг жасаңыз — кім байланысты бірақ сатылмады соларға.',
+  'Ақпан: 14 ақпан! Сыйлықтар мен романтика тақырыбы тиімді. Ерлерге reach арттырыңыз.',
+  'Наурыз: 8 Наурыз! 🌸 Beauty, мейрамхана, сыйлық — ең жоғары айлардың бірі. CPL төмен болады.',
+  'Сәуір: Жаз алдындағы дайындық. Beauty, фитнес, туризм — бюджетті 20-30% арттырыңыз.',
+  'Мамыр: Наурыз мейрамы + мамыр демалысы. Белсенділік жоғары — жаңа аудиторияны тестілеңіз.',
+  'Маусым: Жаз маусымы басталды. Видео контент жақсы жұмыс істейді. Демалыс тақырыбы — хит.',
+  'Шілде: Жаздың шарықтауы. CPL жоғарылауы мүмкін — аудиторияны тарылтыңыз, нишаны нақтылаңыз.',
+  'Тамыз: Мектепке оқу — сатып алу белсенді. Балаларға арналған қызметтер, форма, мектепке дайындық.',
+  'Қыркүйек: Күз маусымы басталды — жаңа бастамалар, курстар. Конверсия жоғары.',
+  'Қазан: Тұтыну белсенді. Black Friday дайындығы — жинақ акцияларын бастаңыз.',
+  'Қараша: 🔥 Black Friday! Бюджетті 2-3× арттырыңыз. Ең жоғары конверсия айы.',
+  'Желтоқсан: 🎄 Жаңа жыл! Ең жоғары сатылым айы. Максималды бюджет — максималды нәтиже.'
+];
+
+function showSeasonalTip(text){
+  const el=$('seasonalTip');
+  if(el) el.textContent=text;
+  const tag=$('seasonTag');
+  if(tag){
+    const months=['Қаңтар','Ақпан','Наурыз','Сәуір','Мамыр','Маусым','Шілде','Тамыз','Қыркүйек','Қазан','Қараша','Желтоқсан'];
+    tag.textContent=months[new Date().getMonth()];
+  }
+}
+
+async function refreshSeasonalTip(){
+  const el=$('seasonalTip');
+  if(el) el.textContent='⏳ AI кеңесі жасалуда…';
+  const niche=S.settings.niche||'—';
+  const camps=S.campaigns.filter(c=>c.status!=='off');
+  const campStr=camps.length?camps.map(c=>`"${c.name}"`).join(', '):'нет кампаний';
+  try{
+    const tip=await callClaude([{role:'user',content:`Сегодня ${new Date().toLocaleDateString('ru-RU',{month:'long'})}. Ниша: "${niche}". Кампании: ${campStr}. Дай 1-2 предложения: маусымдық кеңес — сейчас нужно делать в рекламе. Жауапты қысқаша қазақша бер.`}],200);
+    showSeasonalTip(tip);
+  }catch{
+    showSeasonalTip(SEASONAL_TIPS[new Date().getMonth()]);
+  }
+}
 
 // Populate user name from settings if available
 (function(){

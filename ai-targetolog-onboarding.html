@@ -550,7 +550,7 @@ function vDirection(){
     <!-- 2. Цель кампании -->
     <div class="field">
       <label>Цель рекламы</label>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px">
+      <div id="destSeg" style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px">
         <button onclick="S.draft.dest='wa';refreshDir()" style="${sel('wa',d.dest)}">💬 Заявки<br><span style="font-size:11px;opacity:.7">в WhatsApp</span></button>
         <button onclick="S.draft.dest='direct';refreshDir()" style="${sel('direct',d.dest)}">✉️ Заявки<br><span style="font-size:11px;opacity:.7">в Direct</span></button>
         <button onclick="S.draft.dest='traffic';refreshDir()" style="${sel('traffic',d.dest)}">🌐 Трафик<br><span style="font-size:11px;opacity:.7">на сайт</span></button>
@@ -561,7 +561,7 @@ function vDirection(){
     <!-- 3. Тип аудитории -->
     <div class="field">
       <label>Как ищем аудиторию</label>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px">
+      <div id="targetSeg" style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px">
         <button onclick="S.draft.targeting='broad';refreshDir()" style="${sel('broad',d.targeting)}">🎯 Широкая<br><span style="font-size:11px;opacity:.7">Advantage+</span></button>
         <button onclick="S.draft.targeting='interests';refreshDir()" style="${sel('interests',d.targeting)}">🔍 Интересы<br><span style="font-size:11px;opacity:.7">укажу сам</span></button>
         <button onclick="S.draft.targeting='lookalike';refreshDir()" style="${sel('lookalike',d.targeting)}">👥 Похожие<br><span style="font-size:11px;opacity:.7">по базе</span></button>
@@ -641,12 +641,49 @@ function vDirection(){
     if($("#dUrl")) S.draft.url=$("#dUrl").value.trim();
   };
 
+  function showErr(id, msg){
+    const el=$(id);
+    if(!el) return;
+    el.style.borderColor='var(--bad)';
+    el.scrollIntoView({behavior:'smooth', block:'center'});
+    el.focus();
+    // show inline error hint
+    let hint=el.nextElementSibling;
+    if(!hint||!hint.classList.contains('err-hint')){
+      hint=document.createElement('div');
+      hint.className='err-hint';
+      hint.style.cssText='font-size:12px;color:var(--bad);margin-top:4px';
+      el.parentNode.insertBefore(hint, el.nextSibling);
+    }
+    hint.textContent=msg;
+  }
+
   function tryAddDir(){
     read();
-    if(!S.draft.name){ const el=$("#dName");if(el){el.style.borderColor='var(--bad)';el.focus();}return false; }
-    if(!S.draft.dest){ alert('Выберите цель рекламы'); return false; }
-    if(!S.draft.targeting){ alert('Выберите как ищем аудиторию'); return false; }
-    if(!S.draft.geoWide&&!S.draft.cities){ const el=$("#dCities");if(el){el.style.borderColor='var(--bad)';el.focus();}return false; }
+    if(!S.draft.name){ showErr('#dName','Укажите название'); return false; }
+    if(!S.draft.dest){
+      const seg=document.querySelector('#destSeg');
+      if(seg){ seg.style.outline='2px solid var(--bad)'; seg.style.borderRadius='10px'; }
+      const el=$("#dName"); if(el) el.scrollIntoView({behavior:'smooth',block:'center'});
+      // show error below dest label
+      const destCard=document.querySelector('#destSeg')?.closest('.card');
+      if(destCard){
+        let h=destCard.querySelector('.err-hint');
+        if(!h){ h=document.createElement('div'); h.className='err-hint'; h.style.cssText='font-size:12px;color:var(--bad);margin-top:8px'; destCard.appendChild(h); }
+        h.textContent='Выберите цель рекламы'; destCard.scrollIntoView({behavior:'smooth',block:'center'});
+      }
+      return false;
+    }
+    if(!S.draft.targeting){
+      const tCard=document.querySelector('#targetSeg')?.closest('.card');
+      if(tCard){
+        let h=tCard.querySelector('.err-hint');
+        if(!h){ h=document.createElement('div'); h.className='err-hint'; h.style.cssText='font-size:12px;color:var(--bad);margin-top:8px'; tCard.appendChild(h); }
+        h.textContent='Выберите тип аудитории'; tCard.scrollIntoView({behavior:'smooth',block:'center'});
+      }
+      return false;
+    }
+    if(!S.draft.geoWide&&!S.draft.cities){ showErr('#dCities','Укажите города или выберите весь Казахстан'); return false; }
     S.dirs.push({...S.draft});
     S.draft={name:'',product:'',budget:5000,wa:'',dest:'',targeting:'',interests:'',cities:'',geoWide:false,ageFrom:'18',ageTo:'65',gender:'all',url:'',hasBase:false};
     return true;
@@ -703,13 +740,17 @@ function vDirection(){
 
   $("#back").onclick=()=>go("connect");
   $("#next").onclick=()=>{
-    // Auto-save current form if name is filled
+    // If there's a partially filled form, try to save it first
     read();
     if(S.draft.name){
-      if(!S.draft.dest||(!S.draft.geoWide&&!S.draft.cities)){ tryAddDir(); return; }
-      tryAddDir();
+      if(!tryAddDir()) return; // validation failed, show error and stop
     }
-    if(!S.dirs.length){ const el=$("#dName");if(el){el.style.borderColor='var(--bad)';el.scrollIntoView({behavior:'smooth'});el.focus();} return; }
+    // Must have at least one direction saved
+    if(!S.dirs.length){
+      const el=$("#dName");
+      if(el){ el.style.borderColor='var(--bad)'; el.scrollIntoView({behavior:'smooth',block:'center'}); el.focus(); }
+      return;
+    }
     go("autopilot");
   };
 }

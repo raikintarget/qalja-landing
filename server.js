@@ -48,6 +48,17 @@ async function initDB() {
       user_id INTEGER,
       created_at TIMESTAMP DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS leads (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id),
+      name TEXT DEFAULT '',
+      phone TEXT DEFAULT '',
+      source TEXT DEFAULT 'manual',
+      campaign_name TEXT DEFAULT '',
+      notes TEXT DEFAULT '',
+      status TEXT DEFAULT 'new',
+      created_at TIMESTAMP DEFAULT NOW()
+    );
   `);
   console.log('✅ Database дайын');
 }
@@ -68,14 +79,71 @@ async function getUserBySession(token) {
   return r.rows[0] || null;
 }
 
-// ── Telegram хабар жіберу ──
-async function tgSend(chatId, text) {
+
+// ── Telegram helpers ──
+async function tgSend(chatId, text, reply_markup) {
   if (!TG_TOKEN) return;
   try {
-    await axios.post(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
-      chat_id: chatId, text, parse_mode: 'HTML'
-    });
+    const payload = { chat_id: chatId, text, parse_mode: 'HTML' };
+    if (reply_markup) payload.reply_markup = reply_markup;
+    await axios.post(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, payload);
   } catch(e) { console.error('TG error:', e.message); }
+}
+
+async function tgEdit(chatId, messageId, text, reply_markup) {
+  if (!TG_TOKEN) return;
+  try {
+    const payload = { chat_id: chatId, message_id: messageId, text, parse_mode: 'HTML' };
+    if (reply_markup) payload.reply_markup = reply_markup;
+    await axios.post(`https://api.telegram.org/bot${TG_TOKEN}/editMessageText`, payload);
+  } catch(e) {}
+}
+
+async function tgAnswer(callbackId, text = '') {
+  if (!TG_TOKEN) return;
+  try {
+    await axios.post(`https://api.telegram.org/bot${TG_TOKEN}/answerCallbackQuery`, {
+      callback_query_id: callbackId, text
+    });
+  } catch(e) {}
+}
+
+async function tgSendPhoto(chatId, photoUrl, caption) {
+  if (!TG_TOKEN) return;
+  try {
+    await axios.post(`https://api.telegram.org/bot${TG_TOKEN}/sendPhoto`, {
+      chat_id: chatId, photo: photoUrl, caption, parse_mode: 'HTML'
+    });
+  } catch(e) { console.error('TG photo error:', e.message); }
+}
+
+function mainMenuKbd() {
+  return { inline_keyboard: [
+    [{ text: '📊 Кешегі есеп', callback_data: 'report_yesterday' }, { text: '📅 Айлық шығын', callback_data: 'report_month' }],
+    [{ text: '🤖 AI-ға сұрақ', callback_data: 'ask_question' }, { text: '🎨 Креатив жіберу', callback_data: 'send_creative' }],
+    [{ text: '🔄 Статус', callback_data: 'status' }, { text: '👩‍💼 Маманмен байланыс', callback_data: 'contact_specialist' }],
+    [{ text: '🗓 Күн бойынша есеп', callback_data: 'report_by_date' }]
+  ]};
+}
+
+// In-memory user states for multi-step flows
+const userStates = {}; // chatId -> { state, data }
+
+async function setupBotCommands() {
+  if (!TG_TOKEN) return;
+  try {
+    await axios.post(`https://api.telegram.org/bot${TG_TOKEN}/setMyCommands`, {
+      commands: [
+        { command: 'menu', description: '📋 Негізгі мәзір' },
+        { command: 'report', description: '📊 Кешегі есеп' },
+        { command: 'month', description: '📅 Айлық шығын (YYYY-MM)' },
+        { command: 'ask', description: '🤖 AI-ға сұрақ қою' },
+        { command: 'status', description: '🔄 Статус тексеру' },
+        { command: 'help', description: '❓ Барлық командалар' }
+      ]
+    });
+    console.log('✅ Telegram bot commands орнатылды');
+  } catch(e) { console.error('Bot commands error:', e.message); }
 }
 
 // ── Meta API ──
@@ -219,6 +287,72 @@ app.post('/api/logout', async (req, res) => {
   res.json({ ok: true });
 });
 
+// Маманмен байланыс (веб-чаттан)
+app.post('/api/notify-specialist', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const user = token ? await getUserBySession(token) : null;
+  const clientName = user?.name || 'Белгісіз клиент';
+  const clientInfo = user ? `Аккаунт: ${user.meta_account_name || '—'} | Email: ${user.email}` : '';
+
+  // Telegram хабарлама
+  const ADMIN_ID = process.env.ADMIN_TG_CHAT_ID;
+  if (ADMIN_ID) {
+    await tgSend(ADMIN_ID,
+      `👤 <b>${clientName}</b> маманмен байланысқысы келеді! (веб-платформа)\n\n${clientInfo}`
+    );
+  }
+  res.json({ ok: true });
+});
+
+// Meta API: бюджетті масштабировать
+app.post('/api/meta/scale-budget', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const user = token ? await getUserBySession(token) : null;
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  const { campaign_id, factor } = req.body;
+  if (!campaign_id || !factor) return res.status(400).json({ error: 'campaign_id and factor required' });
+  const metaToken = user.meta_token || process.env.META_ACCESS_TOKEN;
+  const base = 'https://graph.facebook.com/v19.0';
+  try {
+    const adsetsRes = await axios.get(`${base}/${campaign_id}/adsets`, {
+      params: { access_token: metaToken, fields: 'id,name,daily_budget,status', limit: 20 }
+    });
+    const adsets = adsetsRes.data.data || [];
+    if (!adsets.length) return res.status(404).json({ error: 'Адсеттер табылмады' });
+    const results = [];
+    for (const adset of adsets) {
+      const currentBudget = parseInt(adset.daily_budget || 0);
+      if (!currentBudget) continue;
+      const newBudget = Math.max(100, Math.round(currentBudget * factor));
+      await axios.post(`${base}/${adset.id}`, null, {
+        params: { access_token: metaToken, daily_budget: newBudget }
+      });
+      results.push({ name: adset.name, old: (currentBudget/100).toFixed(2), new: (newBudget/100).toFixed(2) });
+    }
+    res.json({ ok: true, results });
+  } catch(e) {
+    res.status(400).json({ error: e.response?.data?.error?.message || e.message });
+  }
+});
+
+// Meta API: кампанияны тоқтату / іске қосу
+app.post('/api/meta/toggle-campaign', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const user = token ? await getUserBySession(token) : null;
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  const { campaign_id, status } = req.body;
+  if (!campaign_id || !status) return res.status(400).json({ error: 'campaign_id and status required' });
+  const metaToken = user.meta_token || process.env.META_ACCESS_TOKEN;
+  try {
+    await axios.post(`https://graph.facebook.com/v19.0/${campaign_id}`, null, {
+      params: { access_token: metaToken, status }
+    });
+    res.json({ ok: true, status });
+  } catch(e) {
+    res.status(400).json({ error: e.response?.data?.error?.message || e.message });
+  }
+});
+
 // Пароль өзгерту
 app.post('/api/change-password', async (req, res) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
@@ -331,25 +465,399 @@ app.post('/api/connect/nofb', async (req, res) => {
 });
 
 // ══════════════════════════════
+// LEADS / CRM API
+// ══════════════════════════════
+
+app.get('/api/leads', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const user = token ? await getUserBySession(token) : null;
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  const r = await pool.query(
+    'SELECT * FROM leads WHERE user_id=$1 ORDER BY created_at DESC LIMIT 300',
+    [user.id]
+  );
+  res.json({ leads: r.rows });
+});
+
+app.post('/api/leads', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const user = token ? await getUserBySession(token) : null;
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  const { name, phone, source, campaign_name, notes, status } = req.body;
+  const r = await pool.query(
+    'INSERT INTO leads (user_id,name,phone,source,campaign_name,notes,status) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *',
+    [user.id, name||'', phone||'', source||'manual', campaign_name||'', notes||'', status||'new']
+  );
+  const lead = r.rows[0];
+  // Notify admin
+  const ADMIN_ID = process.env.ADMIN_TG_CHAT_ID;
+  if (ADMIN_ID) {
+    await tgSend(ADMIN_ID,
+      `🔔 <b>Жаңа лид!</b>\n👤 ${lead.name||'—'}\n📱 ${lead.phone||'—'}\n📊 ${lead.campaign_name||'—'}\n💬 ${lead.notes||'—'}\n\n🏢 Клиент: ${user.name}`
+    );
+  }
+  // Notify user via Telegram
+  if (user.tg_chat_id) {
+    await tgSend(user.tg_chat_id,
+      `🔔 <b>Жаңа лид қосылды!</b>\n👤 ${lead.name||'—'}\n📱 ${lead.phone||'—'}\n📊 ${lead.campaign_name||'—'}`,
+      mainMenuKbd()
+    );
+  }
+  res.json({ ok: true, lead });
+});
+
+app.put('/api/leads/:id', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const user = token ? await getUserBySession(token) : null;
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  const { status, notes, name, phone, campaign_name } = req.body;
+  const r = await pool.query(
+    'UPDATE leads SET status=$1,notes=$2,name=$3,phone=$4,campaign_name=$5 WHERE id=$6 AND user_id=$7 RETURNING *',
+    [status, notes||'', name||'', phone||'', campaign_name||'', req.params.id, user.id]
+  );
+  if (!r.rows.length) return res.status(404).json({ error: 'Not found' });
+  res.json({ ok: true, lead: r.rows[0] });
+});
+
+app.delete('/api/leads/:id', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const user = token ? await getUserBySession(token) : null;
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  await pool.query('DELETE FROM leads WHERE id=$1 AND user_id=$2', [req.params.id, user.id]);
+  res.json({ ok: true });
+});
+
+// ══════════════════════════════
 // TELEGRAM БОТ
 // ══════════════════════════════
 
+// Shared report-by-date logic
+async function sendDateReport(chatId, user, reportDate) {
+  const metaToken = user.meta_token || process.env.META_ACCESS_TOKEN;
+  const accountId = user.meta_account_id;
+  const base = `https://graph.facebook.com/v19.0`;
+
+  const [campInsRes, accInsRes] = await Promise.all([
+    axios.get(`${base}/act_${accountId}/insights`, {
+      params: {
+        access_token: metaToken,
+        fields: 'campaign_id,campaign_name,spend,clicks,actions,inline_link_clicks',
+        time_range: JSON.stringify({ since: reportDate, until: reportDate }),
+        level: 'campaign', limit: 50
+      }
+    }).catch(() => ({ data: { data: [] } })),
+    axios.get(`${base}/act_${accountId}/insights`, {
+      params: {
+        access_token: metaToken,
+        fields: 'spend,clicks,impressions,inline_link_clicks,actions',
+        time_range: JSON.stringify({ since: reportDate, until: reportDate }),
+        level: 'account'
+      }
+    }).catch(() => ({ data: { data: [] } }))
+  ]);
+
+  const campData = campInsRes.data.data || [];
+  const accIns = accInsRes.data.data?.[0] || {};
+  const totalSpend = parseFloat(accIns.spend || 0);
+  const totalClicks = parseInt(accIns.inline_link_clicks || accIns.clicks || 0);
+
+  const getConv = (actions) => {
+    if (!actions) return 0;
+    return parseInt(
+      actions.find(a => a.action_type === 'onsite_conversion.messaging_conversation_started_7d')?.value ||
+      actions.find(a => a.action_type === 'onsite_conversion.messaging_first_reply')?.value ||
+      actions.find(a => a.action_type === 'onsite_conversion.lead_grouped')?.value || 0
+    );
+  };
+
+  const totalConv = getConv(accIns.actions);
+  const dateLabel = new Date(reportDate + 'T12:00:00Z').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+
+  let campLines = '';
+  if (campData.length) {
+    campLines = campData.map(c => {
+      const sp = parseFloat(c.spend || 0).toFixed(2);
+      const cl = parseInt(c.inline_link_clicks || c.clicks || 0);
+      const conv = getConv(c.actions);
+      return `  • <b>${c.campaign_name}</b>\n    💸 $${sp} · 👆 ${cl} клик${conv > 0 ? ` · 💬 ${conv} перепис.` : ''}`;
+    }).join('\n');
+  } else {
+    campLines = '  Бұл күні расход жоқ';
+  }
+
+  await tgSend(chatId,
+    `📊 <b>Есеп · ${dateLabel}</b>\n` +
+    `👤 ${user.name} · ${user.meta_account_name || accountId}\n\n` +
+    `💸 Жиынтық расход: <b>$${totalSpend.toFixed(2)}</b>\n` +
+    `👆 Кликтер: <b>${totalClicks}</b>\n` +
+    (totalConv > 0 ? `💬 Хат алмасу: <b>${totalConv}</b>\n` : '') +
+    `\n${campLines}\n\n` +
+    `🔗 <a href="${BASE_URL}/ai-targetolog-app.html">Дашборд →</a>`,
+    mainMenuKbd()
+  );
+}
+
+// Shared monthly report logic
+async function sendMonthReport(chatId, user, monthStr) {
+  // monthStr: 'YYYY-MM'
+  const [year, month] = monthStr.split('-').map(Number);
+  const since = `${monthStr}-01`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const until = `${monthStr}-${String(lastDay).padStart(2,'0')}`;
+  // Don't go past today
+  const todayStr = new Date().toISOString().slice(0,10);
+  const untilFinal = until > todayStr ? todayStr : until;
+
+  const metaToken = user.meta_token || process.env.META_ACCESS_TOKEN;
+  const accountId = user.meta_account_id;
+  const base = `https://graph.facebook.com/v19.0`;
+
+  const [campInsRes, accInsRes] = await Promise.all([
+    axios.get(`${base}/act_${accountId}/insights`, {
+      params: {
+        access_token: metaToken,
+        fields: 'campaign_name,spend,clicks,actions,inline_link_clicks',
+        time_range: JSON.stringify({ since, until: untilFinal }),
+        level: 'campaign', limit: 50
+      }
+    }).catch(() => ({ data: { data: [] } })),
+    axios.get(`${base}/act_${accountId}/insights`, {
+      params: {
+        access_token: metaToken,
+        fields: 'spend,clicks,inline_link_clicks,actions',
+        time_range: JSON.stringify({ since, until: untilFinal }),
+        level: 'account'
+      }
+    }).catch(() => ({ data: { data: [] } }))
+  ]);
+
+  const campData = campInsRes.data.data || [];
+  const accIns = accInsRes.data.data?.[0] || {};
+  const totalSpend = parseFloat(accIns.spend || 0);
+  const totalClicks = parseInt(accIns.inline_link_clicks || accIns.clicks || 0);
+
+  const getConv = (actions) => {
+    if (!actions) return 0;
+    return parseInt(
+      actions.find(a => a.action_type === 'onsite_conversion.messaging_conversation_started_7d')?.value ||
+      actions.find(a => a.action_type === 'onsite_conversion.messaging_first_reply')?.value ||
+      actions.find(a => a.action_type === 'onsite_conversion.lead_grouped')?.value || 0
+    );
+  };
+  const totalConv = getConv(accIns.actions);
+
+  const monthLabel = new Date(since + 'T12:00:00Z').toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+
+  let campLines = '';
+  if (campData.length) {
+    campLines = '\n' + campData.map(c => {
+      const sp = parseFloat(c.spend || 0).toFixed(2);
+      const cl = parseInt(c.inline_link_clicks || c.clicks || 0);
+      const conv = getConv(c.actions);
+      const cpl = conv > 0 ? '$' + (parseFloat(c.spend||0)/conv).toFixed(2) : '—';
+      return `  • <b>${c.campaign_name}</b>\n    💸 $${sp} · 👆 ${cl} · 💬 ${conv} · CPL ${cpl}`;
+    }).join('\n');
+  }
+
+  await tgSend(chatId,
+    `📅 <b>Айлық есеп · ${monthLabel}</b>\n` +
+    `👤 ${user.name} · ${user.meta_account_name || accountId}\n\n` +
+    `💸 Жалпы расход: <b>$${totalSpend.toFixed(2)}</b>\n` +
+    `👆 Кликтер: <b>${totalClicks}</b>\n` +
+    (totalConv > 0 ? `💬 Хат алмасу: <b>${totalConv}</b>\n` : '') +
+    (totalConv > 0 ? `📉 Орташа CPL: <b>$${(totalSpend/totalConv).toFixed(2)}</b>\n` : '') +
+    `\n<b>Кампания бойынша:</b>${campLines || '\n  Деректер жоқ'}\n\n` +
+    `🔗 <a href="${BASE_URL}/ai-targetolog-app.html">Дашборд →</a>`,
+    mainMenuKbd()
+  );
+}
+
 app.post(`/tg/${TG_TOKEN}`, async (req, res) => {
-  const msg = req.body?.message;
+  const body = req.body;
+
+  // ── Callback query (inline button press) ──
+  if (body.callback_query) {
+    const cb = body.callback_query;
+    const chatId = cb.message.chat.id;
+    const data = cb.data;
+    await tgAnswer(cb.id);
+
+    const userRow = await pool.query('SELECT * FROM users WHERE tg_chat_id = $1', [chatId]);
+    const user = userRow.rows[0] || null;
+
+    if (!user && data !== 'status') {
+      await tgSend(chatId, '⚠️ Алдымен платформаға кіріп Telegram-ды байланыстырыңыз.\n👉 ' + BASE_URL);
+      return res.sendStatus(200);
+    }
+
+    if (data === 'report_yesterday') {
+      if (!user.meta_account_id) return tgSend(chatId, '⚠️ Meta Ads аккаунты жоқ.');
+      await tgSend(chatId, '⏳ Жүктелуде...');
+      const d = new Date(); d.setDate(d.getDate() - 1);
+      await sendDateReport(chatId, user, d.toISOString().slice(0,10)).catch(e => tgSend(chatId, '❌ ' + e.message));
+
+    } else if (data === 'report_month') {
+      const now = new Date();
+      const thisMonth = now.toISOString().slice(0,7);
+      const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const prevMonth = prevDate.toISOString().slice(0,7);
+      await tgSend(chatId,
+        '📅 <b>Қай айдың есебін алайын?</b>',
+        { inline_keyboard: [
+          [{ text: '🗓 Осы ай', callback_data: `month_${thisMonth}` }, { text: '⬅️ Өткен ай', callback_data: `month_${prevMonth}` }],
+          [{ text: '✏️ Өз айымды енгізу', callback_data: 'month_custom' }],
+          [{ text: '◀️ Мәзір', callback_data: 'back_menu' }]
+        ]}
+      );
+
+    } else if (data.startsWith('month_')) {
+      const monthStr = data.replace('month_', '');
+      if (monthStr === 'custom') {
+        userStates[chatId] = { state: 'waiting_month' };
+        await tgSend(chatId, '✏️ Айды енгізіңіз форматта: <b>YYYY-MM</b>\nМысалы: <code>2026-05</code>');
+      } else {
+        if (!user.meta_account_id) return tgSend(chatId, '⚠️ Meta Ads аккаунты жоқ.');
+        await tgSend(chatId, '⏳ Жүктелуде...');
+        await sendMonthReport(chatId, user, monthStr).catch(e => tgSend(chatId, '❌ ' + e.message));
+      }
+
+    } else if (data === 'report_by_date') {
+      userStates[chatId] = { state: 'waiting_date' };
+      await tgSend(chatId,
+        '🗓 <b>Күнді енгізіңіз:</b>\n\nФормат: <code>YYYY-MM-DD</code>\nМысалы: <code>2026-06-15</code>',
+        { inline_keyboard: [[{ text: '◀️ Мәзір', callback_data: 'back_menu' }]] }
+      );
+
+    } else if (data === 'ask_question') {
+      userStates[chatId] = { state: 'waiting_question' };
+      await tgSend(chatId,
+        '🤖 <b>Сұрағыңызды жазыңыз:</b>\n\nMeta Ads, таргетинг, кампания — кез келген тақырыпта сұраңыз.',
+        { inline_keyboard: [[{ text: '◀️ Болдырмау', callback_data: 'back_menu' }]] }
+      );
+
+    } else if (data === 'send_creative') {
+      userStates[chatId] = { state: 'waiting_creative' };
+      await tgSend(chatId,
+        '🎨 <b>Креативіңізді жіберіңіз:</b>\n\nСуреті немесе видеосы бар хабарлама жіберіңіз. Мен оны сіздің профиліңізге сақтаймын.',
+        { inline_keyboard: [[{ text: '◀️ Болдырмау', callback_data: 'back_menu' }]] }
+      );
+
+    } else if (data === 'status') {
+      const planLabels = { free: 'Тегін', expert: 'Эксперт', agency: 'Агентство' };
+      await tgSend(chatId,
+        `🟢 <b>SmartTarget AI — Статус</b>\n\n` +
+        `👤 Аккаунт: ${user ? '✅ ' + user.name : '❌ Байланыстырылмаған'}\n` +
+        `📊 Meta Ads: ${user?.meta_account_id ? '✅ ' + (user.meta_account_name || user.meta_account_id) : '❌ Жоқ'}\n` +
+        `💎 Тариф: ${planLabels[user?.plan] || user?.plan || '—'}\n` +
+        `🖥 Сервер: ✅ Онлайн`,
+        mainMenuKbd()
+      );
+
+    } else if (data === 'contact_specialist') {
+      const clientName = user?.name || 'Белгісіз';
+      const clientInfo = `📊 Аккаунт: ${user?.meta_account_name || '—'}\n💬 Telegram Chat ID: ${chatId}`;
+      const ADMIN_ID = process.env.ADMIN_TG_CHAT_ID;
+      if (ADMIN_ID) {
+        await tgSend(ADMIN_ID,
+          `👤 <b>${clientName}</b> маманмен байланысқысы келеді!\n\n${clientInfo}\n🔗 Telegram: tg://user?id=${chatId}`
+        );
+      }
+      await tgSend(chatId,
+        `✅ <b>Хабарлама жіберілді!</b>\n\nМаман жақын арада сізге жазады.`,
+        mainMenuKbd()
+      );
+
+    } else if (data === 'back_menu') {
+      delete userStates[chatId];
+      await tgSend(chatId,
+        `📋 <b>SmartTarget AI — Мәзір</b>\n\n👤 ${user?.name || ''}`,
+        mainMenuKbd()
+      );
+    }
+
+    return res.sendStatus(200);
+  }
+
+  // ── Regular message ──
+  const msg = body.message;
   if (!msg) return res.sendStatus(200);
 
   const chatId = msg.chat.id;
   const text = (msg.text || '').trim();
+  const photo = msg.photo;
+  const video = msg.video;
+  const document = msg.document;
 
-  // Пайдаланушыны chat_id бойынша тап
   const userRow = await pool.query('SELECT * FROM users WHERE tg_chat_id = $1', [chatId]);
   const user = userRow.rows[0] || null;
 
+  // ── State machine for multi-step flows ──
+  const state = userStates[chatId]?.state;
+
+  if (state === 'waiting_question' && text && !text.startsWith('/')) {
+    delete userStates[chatId];
+    await tgSend(chatId, '⏳ AI жауап дайындауда...');
+    try {
+      const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+      if (!ANTHROPIC_KEY) throw new Error('AI кілті орнатылмаған');
+      const campCtx = user?.meta_account_id ? ` Клиент: ${user.name}, аккаунт: ${user.meta_account_name || user.meta_account_id}.` : '';
+      const r = await axios.post('https://api.anthropic.com/v1/messages', {
+        model: 'claude-sonnet-4-6',
+        max_tokens: 500,
+        system: `Сен SmartTarget AI — Meta Ads маманысың. Қысқаша, нақты жауап бер. Telegram форматы — HTML тегтерін қолданба.${campCtx}`,
+        messages: [{ role: 'user', content: text }]
+      }, {
+        headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' }
+      });
+      const answer = r.data.content[0].text;
+      await tgSend(chatId, `🤖 <b>AI жауабы:</b>\n\n${answer}`, mainMenuKbd());
+    } catch(e) {
+      await tgSend(chatId, '❌ AI қатесі: ' + e.message, mainMenuKbd());
+    }
+    return res.sendStatus(200);
+  }
+
+  if (state === 'waiting_date' && text && /^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    delete userStates[chatId];
+    if (!user?.meta_account_id) return tgSend(chatId, '⚠️ Meta Ads аккаунты жоқ.').then(() => res.sendStatus(200));
+    await tgSend(chatId, `⏳ ${text} деректер жүктелуде...`);
+    await sendDateReport(chatId, user, text).catch(e => tgSend(chatId, '❌ ' + e.message));
+    return res.sendStatus(200);
+  }
+
+  if (state === 'waiting_month' && text && /^\d{4}-\d{2}$/.test(text)) {
+    delete userStates[chatId];
+    if (!user?.meta_account_id) return tgSend(chatId, '⚠️ Meta Ads аккаунты жоқ.').then(() => res.sendStatus(200));
+    await tgSend(chatId, `⏳ ${text} айының деректері жүктелуде...`);
+    await sendMonthReport(chatId, user, text).catch(e => tgSend(chatId, '❌ ' + e.message));
+    return res.sendStatus(200);
+  }
+
+  if (state === 'waiting_creative' && (photo || video || document)) {
+    delete userStates[chatId];
+    const type = photo ? 'сурет' : video ? 'видео' : 'файл';
+    const ADMIN_ID = process.env.ADMIN_TG_CHAT_ID;
+    if (ADMIN_ID) {
+      // Forward to admin with context
+      await tgSend(ADMIN_ID, `🎨 <b>Жаңа креатив</b>\n👤 ${user?.name || chatId} клиенттен ${type} жіберді.`);
+      try {
+        await axios.post(`https://api.telegram.org/bot${TG_TOKEN}/forwardMessage`, {
+          chat_id: ADMIN_ID, from_chat_id: chatId, message_id: msg.message_id
+        });
+      } catch(e) {}
+    }
+    await tgSend(chatId,
+      `✅ <b>Креативіңіз қабылданды!</b>\n\nМенеджер қарайды және дайын болғанда хабарлайды.`,
+      mainMenuKbd()
+    );
+    return res.sendStatus(200);
+  }
+
+  // ── Commands ──
   if (text.startsWith('/start')) {
     const startCode = text.split(' ')[1]?.trim().toUpperCase();
 
     if (startCode) {
-      // Deep link арқылы келді — кодты автоматты тексер
       const linkRow = await pool.query('SELECT * FROM tg_link_tokens WHERE token = $1', [startCode]);
       if (linkRow.rows.length) {
         const userId = linkRow.rows[0].user_id;
@@ -359,25 +867,21 @@ app.post(`/tg/${TG_TOKEN}`, async (req, res) => {
         await tgSend(chatId,
           `✅ <b>Байланысты!</b>\n\n` +
           `👤 ${linkedUser.rows[0]?.name || 'Клиент'}\n\n` +
-          `Енді күн сайын рекламаңыздың нәтижесін жіберіп тұрамын.\n\n` +
-          `📊 /report — статистика\n` +
-          `ℹ️ /status — күй тексеру`
+          `Енді күн сайын рекламаңыздың нәтижесін жіберіп тұрамын.`,
+          mainMenuKbd()
         );
         return res.sendStatus(200);
       }
     }
 
-    // Жай /start — қош келдің хабары
     await tgSend(chatId,
       `👋 <b>SmartTarget AI</b>\n\n` +
-      `Мен сіздің AI-таргетологыңызбын.\n\n` +
-      `📊 Күн сайын рекламаңыздың нәтижесін жіберіп тұрамын.\n\n` +
+      `Мен сіздің AI-таргетологыңызбын. Күн сайын рекламаңыздың нәтижесін жіберіп тұрамын.\n\n` +
       `Платформаға кіріп, Telegram-ды байланыстырыңыз:\n` +
-      `👉 <a href="${BASE_URL}/ai-targetolog-onboarding.html">SmartTarget AI →</a>`
+      `👉 <a href="${BASE_URL}/ai-targetolog-app.html">SmartTarget AI →</a>`
     );
 
   } else if (text.startsWith('/link ')) {
-    // Пайдаланушы платформадан алған 4 таңбалы кодын жібереді
     const code = text.replace('/link ', '').trim().toUpperCase();
     const linkRow = await pool.query('SELECT * FROM tg_link_tokens WHERE token = $1', [code]);
     if (!linkRow.rows.length) {
@@ -388,53 +892,76 @@ app.post(`/tg/${TG_TOKEN}`, async (req, res) => {
     await pool.query('DELETE FROM tg_link_tokens WHERE token = $1', [code]);
     const linkedUser = await pool.query('SELECT name FROM users WHERE id = $1', [userId]);
     await tgSend(chatId,
-      `✅ <b>Байланысты!</b>\n\n` +
-      `👤 ${linkedUser.rows[0]?.name || 'Клиент'}\n\n` +
-      `📊 /report — статистика алу\n` +
-      `ℹ️ /status — күй тексеру`
+      `✅ <b>Байланысты!</b>\n\n👤 ${linkedUser.rows[0]?.name || 'Клиент'}`,
+      mainMenuKbd()
     );
 
-  } else if (text === '/report') {
+  } else if (text === '/menu') {
+    await tgSend(chatId,
+      `📋 <b>SmartTarget AI — Мәзір</b>\n\n👤 ${user?.name || 'Қош келдіңіз!'}`,
+      mainMenuKbd()
+    );
+
+  } else if (text === '/report' || text.startsWith('/report ')) {
     if (!user) return tgSend(chatId, '⚠️ Алдымен платформаға кіріп Telegram-ды байланыстырыңыз.');
-    if (!user.meta_token) return tgSend(chatId, '⚠️ Meta Ads байланыстырылмаған. Платформада орнатыңыз.');
-    await tgSend(chatId, '⏳ Деректер жүктелуде...');
-    try {
-      const { campaigns, insights: i } = await getMetaData(user.meta_token, user.meta_account_id);
-      const active = campaigns.filter(c => c.status === 'ACTIVE');
-      const campLines = active.length
-        ? active.map(c => `  • ${c.name}`).join('\n')
-        : '  Активті кампания жоқ';
-      await tgSend(chatId,
-        `📊 <b>Күнделікті есеп</b>\n` +
-        `👤 ${user.name} · ${user.meta_account_name}\n\n` +
-        `💰 Шығын бүгін: <b>$${parseFloat(i.spend||0).toFixed(2)}</b>\n` +
-        `👆 Клик: <b>${i.clicks||0}</b>\n` +
-        `👁 Көрсету: <b>${parseInt(i.impressions||0).toLocaleString()}</b>\n` +
-        `💵 CPC: <b>$${parseFloat(i.cpc||0).toFixed(2)}</b>\n` +
-        `📈 CTR: <b>${parseFloat(i.ctr||0).toFixed(2)}%</b>\n\n` +
-        `▶️ Активті кампания (${active.length}):\n${campLines}\n\n` +
-        `🔗 <a href="${BASE_URL}/ai-targetolog-app.html">Дашборд →</a>`
-      );
-    } catch(e) { await tgSend(chatId, '❌ Қате: ' + e.message); }
+    if (!user.meta_account_id) return tgSend(chatId, '⚠️ Meta Ads аккаунты байланыстырылмаған.');
+    const datePart = text.replace('/report', '').trim();
+    let reportDate;
+    if (datePart && /^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+      reportDate = datePart;
+    } else {
+      const d = new Date(); d.setDate(d.getDate() - 1);
+      reportDate = d.toISOString().slice(0,10);
+    }
+    await tgSend(chatId, `⏳ ${reportDate} деректер жүктелуде...`);
+    await sendDateReport(chatId, user, reportDate).catch(e => tgSend(chatId, '❌ ' + e.message));
+
+  } else if (text === '/month' || text.startsWith('/month ')) {
+    if (!user) return tgSend(chatId, '⚠️ Алдымен платформаға кіріп Telegram-ды байланыстырыңыз.');
+    if (!user.meta_account_id) return tgSend(chatId, '⚠️ Meta Ads аккаунты байланыстырылмаған.');
+    const mPart = text.replace('/month', '').trim();
+    const monthStr = (mPart && /^\d{4}-\d{2}$/.test(mPart)) ? mPart : new Date().toISOString().slice(0,7);
+    await tgSend(chatId, `⏳ ${monthStr} айының деректері жүктелуде...`);
+    await sendMonthReport(chatId, user, monthStr).catch(e => tgSend(chatId, '❌ ' + e.message));
+
+  } else if (text === '/ask') {
+    userStates[chatId] = { state: 'waiting_question' };
+    await tgSend(chatId, '🤖 Сұрағыңызды жазыңыз:',
+      { inline_keyboard: [[{ text: '◀️ Болдырмау', callback_data: 'back_menu' }]] }
+    );
 
   } else if (text === '/status') {
+    const planLabels = { free: 'Тегін', expert: 'Эксперт', agency: 'Агентство' };
     await tgSend(chatId,
       `🟢 <b>SmartTarget AI</b>\n\n` +
-      `Аккаунт: ${user ? '✅ ' + user.name : '❌ Байланыстырылмаған'}\n` +
-      `Meta Ads: ${user?.meta_token ? '✅ ' + user.meta_account_name : '❌ Жоқ'}\n` +
-      `Сервер: ✅ Онлайн`
+      `👤 Аккаунт: ${user ? '✅ ' + user.name : '❌ Байланыстырылмаған'}\n` +
+      `📊 Meta Ads: ${user?.meta_account_id ? '✅ ' + (user.meta_account_name || user.meta_account_id) : '❌ Жоқ'}\n` +
+      `💎 Тариф: ${planLabels[user?.plan] || user?.plan || '—'}\n` +
+      `🖥 Сервер: ✅ Онлайн`,
+      mainMenuKbd()
     );
 
   } else if (text === '/help') {
     await tgSend(chatId,
       `📋 <b>Командалар:</b>\n\n` +
-      `/link КОД — платформамен байланыстыру\n` +
-      `/report — бүгінгі статистика\n` +
+      `/menu — негізгі мәзір\n` +
+      `/report — кешегі есеп\n` +
+      `/report 2026-06-27 — белгілі күн\n` +
+      `/month — осы айдың шығыны\n` +
+      `/month 2026-05 — белгілі ай\n` +
+      `/ask — AI-ға сұрақ\n` +
       `/status — байланыс күйі\n` +
-      `/help — көмек`
+      `/link КОД — платформамен байланыстыру`
+    );
+
+  } else if (text && !text.startsWith('/')) {
+    // Unknown text — show menu
+    await tgSend(chatId,
+      `❓ Мәзірден таңдаңыз немесе /ask деп жазып AI-ға сұрақ қойыңыз.`,
+      mainMenuKbd()
     );
   } else {
-    await tgSend(chatId, `❓ /help деп жазыңыз.`);
+    await tgSend(chatId, `❓ /menu деп жазыңыз немесе /help — барлық командалар.`);
   }
 
   res.sendStatus(200);
@@ -620,7 +1147,8 @@ async function setupWebhook() {
   if (!TG_TOKEN) return;
   try {
     await axios.post(`https://api.telegram.org/bot${TG_TOKEN}/setWebhook`, {
-      url: `${BASE_URL}/tg/${TG_TOKEN}`
+      url: `${BASE_URL}/tg/${TG_TOKEN}`,
+      allowed_updates: ['message', 'callback_query']
     });
     console.log('✅ Telegram webhook орнатылды');
   } catch(e) { console.error('Webhook error:', e.message); }
@@ -869,5 +1397,6 @@ app.listen(PORT, async () => {
   console.log(`SmartTarget AI server running on port ${PORT}`);
   await initDB();
   await setupWebhook();
+  await setupBotCommands();
   await scheduleDailyReports();
 });
