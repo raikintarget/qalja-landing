@@ -3226,7 +3226,7 @@ function selectBillingPlan(plan){
   const planName=planNames[plan]||plan;
   const userName=localStorage.getItem('st_name')||'';
   const msg=encodeURIComponent(`Сәлем! Мен "${planName}" тарифіне өткім келеді.${userName?' Атым: '+userName:''}`);
-  window.open('https://wa.me/87016153305?text='+msg,'_blank');
+  window.open('https://wa.me/87018143695?text='+msg,'_blank');
 }
 
 async function metaPayDebt(btn){
@@ -3263,7 +3263,7 @@ function _showPayFailUI(reason){
   // Менеджерге WhatsApp
   const userName = localStorage.getItem('st_name')||'';
   const msg = encodeURIComponent(`Сәлем! Meta аккаунтымда ошибка оплаты бар, автоматты төлем өтпеді.${userName?' Атым: '+userName:''}`);
-  const waUrl = 'https://wa.me/87016153305?text='+msg;
+  const waUrl = 'https://wa.me/87018143695?text='+msg;
 
   // Баннер ішіне менеджер батырмасын қос
   const warnEl = document.getElementById('accountWarningBanner');
