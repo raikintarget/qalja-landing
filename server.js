@@ -1395,12 +1395,28 @@ app.post('/api/meta/create-campaign', async (req, res) => {
   const accountId = user.meta_account_id || process.env.META_AD_ACCOUNT_ID;
   if (!metaToken || !accountId) return res.status(400).json({ error: 'Meta аккаунт қосылмаған' });
 
-  const { name, objective = 'OUTCOME_ENGAGEMENT', daily_budget, dest, wa_phone, page_id, ig_account_id, geo_cities, age_min = 18, age_max = 65, gender = 0, ad_text, ad_headline, image_hash, video_id, wa_template, geo } = req.body;
+  let { name, objective = 'OUTCOME_ENGAGEMENT', daily_budget, dest, wa_phone, page_id, ig_account_id, geo_cities, age_min = 18, age_max = 65, gender = 0, ad_text, ad_headline, image_hash, video_id, wa_template, geo } = req.body;
 
   if (!name) return res.status(400).json({ error: 'Кампания атауы (name) міндетті' });
-  const budgetVal = daily_budget || 5; // default $5 if not provided
+  const budgetVal = daily_budget || 5;
 
   const base = `https://graph.facebook.com/v19.0`;
+
+  // WhatsApp/Direct үшін page_id автоматты алу (егер берілмесе)
+  if (!page_id && (dest === 'wa' || dest === 'direct')) {
+    try {
+      const pagesRes = await axios.get(`${base}/me/accounts`, {
+        params: { access_token: metaToken, limit: 5 }
+      });
+      const pages = pagesRes.data?.data || [];
+      if (pages.length > 0) {
+        page_id = pages[0].id;
+        console.log(`Auto page_id: ${page_id} (${pages[0].name})`);
+      }
+    } catch(pe) {
+      console.log('page_id auto-fetch failed:', pe?.response?.data?.error?.message || pe.message);
+    }
+  }
 
   try {
     // 1. Кампания
@@ -1527,9 +1543,11 @@ app.post('/api/meta/create-campaign', async (req, res) => {
 
     res.json({ ok: true, campaign_id: campaignId, adset_id: adsetId, ad_id: adId });
   } catch (e) {
-    const msg = e.response?.data?.error?.message || e.message;
-    console.error('create-campaign error:', msg);
-    res.status(400).json({ error: msg });
+    const errData = e.response?.data?.error || {};
+    const msg = errData.message || e.message;
+    const details = errData.error_user_msg || errData.error_subcode || '';
+    console.error('create-campaign error:', msg, details, JSON.stringify(errData));
+    res.status(400).json({ error: msg + (details ? ` (${details})` : '') });
   }
 });
 
