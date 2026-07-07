@@ -4,7 +4,9 @@ const crypto = require('crypto');
 const { Pool } = require('pg');
 const multer = require('multer');
 const FormData = require('form-data');
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 30 * 1024 * 1024 } });
+let stripe;
+try { stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || ''); } catch(e) { console.log('Stripe not installed'); }
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 200 * 1024 * 1024 } }); // 200MB (видео үшін)
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -38,6 +40,11 @@ async function initDB() {
     );
     ALTER TABLE users ADD COLUMN IF NOT EXISTS settings JSONB DEFAULT '{}';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS last_balance_alert TIMESTAMP;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_expires_at TIMESTAMP;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS payment_warned_at TIMESTAMP;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT false;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(255);
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR(255);
     CREATE TABLE IF NOT EXISTS sessions (
       token TEXT PRIMARY KEY,
       user_id INTEGER REFERENCES users(id),
@@ -149,25 +156,40 @@ async function setupBotCommands() {
 
 // ── Meta API ──
 async function getMetaData(token, accountId) {
-  const [campsRes, insRes, accRes, adsetsRes, campInsRes] = await Promise.all([
+  const [campsRes, insRes, accRes, adsetsRes, campInsRes, todayInsRes, campTodayRes] = await Promise.all([
     axios.get(`https://graph.facebook.com/v19.0/act_${accountId}/campaigns`, {
       params: { access_token: token, fields: 'id,name,status,objective,daily_budget', limit: 20 }
     }),
+    // Account-level insights: last 3 days
     axios.get(`https://graph.facebook.com/v19.0/act_${accountId}/insights`, {
-      params: { access_token: token, fields: 'impressions,clicks,spend,cpc,ctr,inline_link_clicks,actions', date_preset: 'yesterday', level: 'account' }
+      params: { access_token: token, fields: 'impressions,clicks,spend,cpc,ctr,cpm,inline_link_clicks,actions', date_preset: 'last_3d', level: 'account' }
     }),
     axios.get(`https://graph.facebook.com/v19.0/act_${accountId}`, {
-      params: { access_token: token, fields: 'id,name,currency,amount_spent,balance' }
+      params: { access_token: token, fields: 'id,name,currency,amount_spent,balance,account_status,disable_reason,funding_source_details' }
     }),
     axios.get(`https://graph.facebook.com/v19.0/act_${accountId}/adsets`, {
       params: { access_token: token, fields: 'id,name,campaign_id,daily_budget,status', limit: 50 }
     }).catch(() => ({ data: { data: [] } })),
-    // Campaign-level insights: spend, clicks, actions (conversations) last 30 days
+    // Campaign-level insights: last 3 days
     axios.get(`https://graph.facebook.com/v19.0/act_${accountId}/insights`, {
       params: {
         access_token: token,
         fields: 'campaign_id,campaign_name,spend,clicks,impressions,inline_link_clicks,actions',
-        date_preset: 'yesterday',
+        date_preset: 'last_3d',
+        level: 'campaign',
+        limit: 50
+      }
+    }).catch(() => ({ data: { data: [] } })),
+    // Account-level insights: TODAY
+    axios.get(`https://graph.facebook.com/v19.0/act_${accountId}/insights`, {
+      params: { access_token: token, fields: 'impressions,clicks,spend,cpc,ctr,actions', date_preset: 'today', level: 'account' }
+    }).catch(() => ({ data: { data: [] } })),
+    // Campaign-level insights: TODAY
+    axios.get(`https://graph.facebook.com/v19.0/act_${accountId}/insights`, {
+      params: {
+        access_token: token,
+        fields: 'campaign_id,campaign_name,spend,clicks,impressions,inline_link_clicks,actions',
+        date_preset: 'today',
         level: 'campaign',
         limit: 50
       }
@@ -183,32 +205,56 @@ async function getMetaData(token, accountId) {
     }
   }
 
-  // Build campaign-level insights map
+  // Helper: extract conversations from actions array
+  function extractConversations(actions = []) {
+    return parseInt(
+      actions.find(a => a.action_type === 'onsite_conversion.messaging_conversation_started_7d')?.value ||
+      actions.find(a => a.action_type === 'onsite_conversion.messaging_first_reply')?.value ||
+      actions.find(a => a.action_type === 'onsite_conversion.lead_grouped')?.value || 0
+    );
+  }
+
+  // Build campaign-level insights map (last 3 days)
   const campInsights = {};
   for (const ci of (campInsRes.data.data || [])) {
-    // Extract conversations from actions array
-    const actions = ci.actions || [];
-    const conversations = actions.find(a => a.action_type === 'onsite_conversion.messaging_conversation_started_7d')?.value
-      || actions.find(a => a.action_type === 'onsite_conversion.messaging_first_reply')?.value
-      || actions.find(a => a.action_type === 'onsite_conversion.lead_grouped')?.value
-      || 0;
-    campInsights[ci.campaign_id] = { ...ci, conversations: parseInt(conversations) };
+    campInsights[ci.campaign_id] = { ...ci, conversations: extractConversations(ci.actions) };
+  }
+
+  // Build campaign-level insights map (today)
+  const campTodayInsights = {};
+  for (const ci of (campTodayRes.data.data || [])) {
+    campTodayInsights[ci.campaign_id] = { ...ci, conversations: extractConversations(ci.actions) };
   }
 
   const campaigns = (campsRes.data.data || []).map(c => ({
     ...c,
     daily_budget: c.daily_budget || budgetByCampaign[c.id] || 0,
+    // last_3d data
     spend: parseFloat(campInsights[c.id]?.spend || 0),
     clicks: parseInt(campInsights[c.id]?.clicks || 0),
     impressions: parseInt(campInsights[c.id]?.impressions || 0),
     conversations: campInsights[c.id]?.conversations || 0,
     link_clicks: parseInt(campInsights[c.id]?.inline_link_clicks || 0),
+    // today data
+    today_spend: parseFloat(campTodayInsights[c.id]?.spend || 0),
+    today_clicks: parseInt(campTodayInsights[c.id]?.clicks || 0),
+    today_conversations: campTodayInsights[c.id]?.conversations || 0,
   }));
+
+  const accountData = accRes.data;
+  // account_status: 1=Active, 2=Disabled, 3=Unsettled, 7=PendingRiskReview, 9=InGracePeriod, 100=PendingClosure, 101=Closed, 201=AnyActiveAdSets, 202=DisabledScimProvisioning
+  const accountStatus = accountData.account_status;
+  const accountWarning = accountStatus === 2 ? 'DISABLED' :
+    accountStatus === 3 ? 'PAYMENT_ERROR' :
+    accountStatus === 9 ? 'GRACE_PERIOD' :
+    accountStatus === 100 ? 'PENDING_CLOSURE' :
+    accountStatus === 101 ? 'CLOSED' : null;
 
   return {
     campaigns,
     insights: insRes.data.data?.[0] || {},
-    account: accRes.data
+    todayInsights: todayInsRes.data.data?.[0] || {},
+    account: { ...accountData, accountWarning }
   };
 }
 
@@ -222,9 +268,13 @@ app.post('/api/register', async (req, res) => {
   if (!email || !password) return res.status(400).json({ error: 'email and password required' });
   try {
     const hash = hashPassword(password);
+    // AI тариф — 2 күн тегін, Expert/Agency — бірден белсенді (қолмен растайды)
+    const planName = plan || 'free';
+    const trialDays = planName === 'free' || planName === 'ai' ? 2 : 30;
+    const expiresAt = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000);
     const r = await pool.query(
-      'INSERT INTO users (email, name, password_hash, plan) VALUES ($1, $2, $3, $4) RETURNING id, email, name, plan',
-      [email.toLowerCase(), name || '', hash, plan || 'free']
+      'INSERT INTO users (email, name, password_hash, plan, plan_expires_at) VALUES ($1, $2, $3, $4, $5) RETURNING id, email, name, plan, plan_expires_at',
+      [email.toLowerCase(), name || '', hash, planName, expiresAt]
     );
     const user = r.rows[0];
     const token = generateToken();
@@ -263,6 +313,7 @@ app.get('/api/me', async (req, res) => {
   const user = await getUserBySession(token);
   if (!user) return res.status(401).json({ error: 'Invalid session' });
   res.json({ id: user.id, email: user.email, name: user.name, plan: user.plan,
+    is_admin: user.is_admin || false,
     meta_connected: !!user.meta_token, meta_account_name: user.meta_account_name,
     meta_account_id: user.meta_account_id,
     tg_connected: !!user.tg_chat_id,
@@ -731,7 +782,8 @@ app.post(`/tg/${TG_TOKEN}`, async (req, res) => {
     const cb = body.callback_query;
     const chatId = cb.message.chat.id;
     const data = cb.data;
-    await tgAnswer(cb.id);
+    const callbackId = cb.id;
+    await tgAnswer(callbackId);
 
     const userRow = await pool.query('SELECT * FROM users WHERE tg_chat_id = $1', [chatId]);
     const user = userRow.rows[0] || null;
@@ -832,7 +884,8 @@ app.post(`/tg/${TG_TOKEN}`, async (req, res) => {
         );
       }
       await tgSend(chatId,
-        `✅ <b>Сұрауыңыз жіберілді!</b>\n\nМаман Meta-дан төлем сілтемесін алып, жақын арада жібереді.`,
+        `✅ <b>Сұрауыңыз жіберілді!</b>\n\nМаман Meta-дан төлем сілтемесін алып, жақын арада жібереді.\n\n` +
+        `💡 <b>Кеңес:</b> Бюджет салмас бұрын картаңызға лимит қойыңыз — мысалы $50 немесе $100. Сонда Meta одан артық ала алмайды.`,
         mainMenuKbd()
       );
 
@@ -844,6 +897,74 @@ app.post(`/tg/${TG_TOKEN}`, async (req, res) => {
         `📤 <b>Alipay+ сілтемесін жіберіңіз:</b>\n\nMeta-дан алған төлем URL-ін осы жерге жіберіңіз — бот клиентке автоматты жеткізеді.`,
         { inline_keyboard: [[{ text: '❌ Болдырмау', callback_data: 'back_menu' }]] }
       );
+
+    } else if (data.startsWith('confirm_payment_')) {
+      // Тек админ
+      if (String(chatId) !== String(ADMIN_TG_CHAT_ID)) { await tgAnswer(callbackId, '❌'); return res.sendStatus(200); }
+      const parts = data.replace('confirm_payment_', '').split('_');
+      const userId = parts[0];
+      const clientChatId = parts[1];
+      const newExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      const confirmed = await pool.query(
+        "UPDATE users SET plan = CASE WHEN plan = 'suspended' OR plan = 'free' THEN 'ai' ELSE plan END, plan_expires_at = $1, payment_warned_at = NULL WHERE id = $2 RETURNING *",
+        [newExpiry, userId]
+      );
+      const cu = confirmed.rows[0];
+      await tgAnswer(callbackId, '✅ Доступ ашылды');
+      await tgSend(chatId, `✅ <b>${cu?.name || cu?.email}</b> — төлем расталды, доступ 30 күнге ашылды.`);
+      // Клиентке онбординг хабарламасы
+      if (clientChatId) {
+        await tgSend(clientChatId,
+          `✅ <b>Төлемді растадық! Доступ ашылды.</b>\n\n` +
+          `🚀 Енді SmartTarget AI платформасын пайдалана аласыз!\n\n` +
+          `Келесі қадамдар:\n` +
+          `1️⃣ Платформаға кіріңіз\n` +
+          `2️⃣ ⚙️ Настройки → Meta Ads аккаунтыңызды жалғаңыз\n` +
+          `3️⃣ Телеграмды платформамен байланыстырыңыз\n` +
+          `4️⃣ Бірінші кампанияны жасаңыз — AI өзі оңтайландырады!\n\n` +
+          `Сұрақ болса — маманмен байланысыңыз.`,
+          { inline_keyboard: [[
+            { text: '🚀 Платформаға кіру', url: process.env.APP_URL || 'https://smarttarget.up.railway.app' },
+            { text: '👩‍💼 Маман', url: `https://t.me/${process.env.ADMIN_TG_USERNAME || 'smarttarget_support'}` }
+          ]]}
+        );
+      }
+
+    } else if (data.startsWith('reject_payment_')) {
+      if (String(chatId) !== String(ADMIN_TG_CHAT_ID)) { await tgAnswer(callbackId, '❌'); return res.sendStatus(200); }
+      const clientChatId = data.replace('reject_payment_', '');
+      await tgAnswer(callbackId, '❌ Қабылданбады');
+      await tgSend(chatId, `❌ Төлем қабылданбады.`);
+      if (clientChatId) {
+        await tgSend(clientChatId,
+          `❌ <b>Төлемді растай алмадық.</b>\n\nЧекті қайта жіберіңіз немесе маманмен байланысыңыз.`,
+          { inline_keyboard: [[{ text: '👩‍💼 Маманмен байланыс', url: `https://t.me/${process.env.ADMIN_TG_USERNAME || 'smarttarget_support'}` }]] }
+        );
+      }
+
+    } else if (data.startsWith('restore_sub_')) {
+      // Тек админ қолдана алады
+      if (String(chatId) !== String(ADMIN_TG_CHAT_ID)) {
+        await tgAnswer(callbackId, '❌ Тек админ');
+        return res.sendStatus(200);
+      }
+      const userId = data.replace('restore_sub_', '');
+      // 30 күнге жаңарту
+      const newExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      const restored = await pool.query(
+        "UPDATE users SET plan = 'ai', plan_expires_at = $1, payment_warned_at = NULL WHERE id = $2 RETURNING *",
+        [newExpiry, userId]
+      );
+      const restoredUser = restored.rows[0];
+      await tgAnswer(callbackId, '✅ Қалпына келтірілді');
+      await tgSend(chatId, `✅ <b>${restoredUser?.name || restoredUser?.email}</b> — жазылым 30 күнге жаңартылды.`);
+      // Клиентке хабарлама
+      if (restoredUser?.tg_chat_id) {
+        await tgSend(restoredUser.tg_chat_id,
+          `✅ <b>Жазылымыңыз қалпына келтірілді!</b>\n\nТөлемді растадық. Рекламаларыңыз іске қосылады.\n\n🚀 SmartTarget AI жұмысын жалғастырды!`,
+          mainMenuKbd()
+        );
+      }
 
     } else if (data === 'back_menu') {
       delete userStates[chatId];
@@ -926,6 +1047,30 @@ app.post(`/tg/${TG_TOKEN}`, async (req, res) => {
     if (!user?.meta_account_id) return tgSend(chatId, '⚠️ Meta Ads аккаунты жоқ.').then(() => res.sendStatus(200));
     await tgSend(chatId, `⏳ ${text} айының деректері жүктелуде...`);
     await sendMonthReport(chatId, user, text).catch(e => tgSend(chatId, '❌ ' + e.message));
+    return res.sendStatus(200);
+  }
+
+  // Клиент төлем чегін жіберді (фото немесе документ)
+  const ADMIN_TG_ID = process.env.ADMIN_TG_CHAT_ID;
+  if (!state && (photo || document) && String(chatId) !== String(ADMIN_TG_ID)) {
+    if (ADMIN_TG_ID) {
+      const clientInfo = user
+        ? `👤 Клиент: <b>${user.name || user.email || chatId}</b>\n📋 Тариф: ${user.plan || '—'}\n🆔 User ID: ${user.id}`
+        : `👤 Telegram ID: <b>${chatId}</b> (платформада тіркелмеген)`;
+      await tgSend(ADMIN_TG_ID,
+        `💳 <b>Төлем чегі келді!</b>\n\n${clientInfo}\n\nЧекті тексеріп, төлемді растаңыз:`,
+        { inline_keyboard: [[
+          { text: '✅ Төленді — доступ ашу', callback_data: `confirm_payment_${user?.id || 0}_${chatId}` },
+          { text: '❌ Қабылдамау', callback_data: `reject_payment_${chatId}` }
+        ]]}
+      );
+      try {
+        await axios.post(`https://api.telegram.org/bot${TG_TOKEN}/forwardMessage`, {
+          chat_id: ADMIN_TG_ID, from_chat_id: chatId, message_id: msg.message_id
+        });
+      } catch(e) {}
+    }
+    await tgSend(chatId, `✅ <b>Чегіңіз қабылданды!</b>\n\nМенеджер тексеріп, доступты ашады. Жақын арада хабарлаймыз.`);
     return res.sendStatus(200);
   }
 
@@ -1082,12 +1227,160 @@ app.post('/api/ai', async (req, res) => {
         'x-api-key': ANTHROPIC_KEY,
         'anthropic-version': '2023-06-01',
         'Content-Type': 'application/json'
-      }
+      },
+      timeout: 120000
     });
     res.json({ text: r.data.content[0].text });
   } catch (e) {
+    const msg = e.response?.data?.error?.message || e.code || e.message || 'Anthropic API error';
+    res.status(502).json({ error: msg });
+  }
+});
+
+// ── API: Creative Image Generation (OpenAI DALL-E 3) ──
+app.post('/api/creative/image', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  const user = await getUserBySession(token);
+  if (!user) return res.status(401).json({ error: 'Invalid session' });
+
+  const OPENAI_KEY = process.env.OPENAI_API_KEY;
+  if (!OPENAI_KEY) return res.status(500).json({ error: 'OpenAI API key not configured. Add OPENAI_API_KEY to env.' });
+
+  const { prompt, aspect = '9:16' } = req.body;
+  if (!prompt) return res.status(400).json({ error: 'Prompt required' });
+
+  // Map aspect ratio to DALL-E 3 sizes
+  const sizeMap = { '1:1': '1024x1024', '4:5': '1024x1024', '9:16': '1024x1792', '16:9': '1792x1024' };
+  const size = sizeMap[aspect] || '1024x1792';
+
+  try {
+    const r = await axios.post('https://api.openai.com/v1/images/generations', {
+      model: 'dall-e-3',
+      prompt,
+      n: 1,
+      size,
+      quality: 'hd'
+    }, {
+      headers: { 'Authorization': `Bearer ${OPENAI_KEY}`, 'Content-Type': 'application/json' },
+      timeout: 60000
+    });
+    const imageUrl = r.data.data[0].url;
+    const revisedPrompt = r.data.data[0].revised_prompt;
+    res.json({ url: imageUrl, revised_prompt: revisedPrompt });
+  } catch (e) {
     const msg = e.response?.data?.error?.message || e.message;
     res.status(502).json({ error: msg });
+  }
+});
+
+// ── API: Meta кампания дублдеу ──
+app.post('/api/meta/duplicate-campaign', async (req, res) => {
+  const sessionToken = req.headers.authorization?.replace('Bearer ', '');
+  if (!sessionToken) return res.status(401).json({ error: 'Unauthorized' });
+  const user = await getUserBySession(sessionToken);
+  if (!user) return res.status(401).json({ error: 'Invalid session' });
+
+  const metaToken = user.meta_token || process.env.META_ACCESS_TOKEN;
+  const accountId = user.meta_account_id || process.env.META_AD_ACCOUNT_ID;
+  if (!metaToken || !accountId) return res.status(400).json({ error: 'Meta аккаунт қосылмаған' });
+
+  const { campaign_id, new_name } = req.body;
+  if (!campaign_id) return res.status(400).json({ error: 'campaign_id міндетті' });
+
+  try {
+    const r = await axios.post(
+      `https://graph.facebook.com/v19.0/${campaign_id}/copies`,
+      { rename_options: JSON.stringify({ rename_suffix: new_name ? '' : ' — Дубль', rename_prefix: '' }), access_token: metaToken, ...(new_name ? { name: new_name } : {}) },
+      { timeout: 30000 }
+    );
+    res.json({ ok: true, new_campaign_id: r.data.copied_campaign_id || r.data.id });
+  } catch (e) {
+    const msg = e.response?.data?.error?.message || e.message;
+    res.status(502).json({ error: msg });
+  }
+});
+
+// ── API: Кампанияның адсеттері мен объявлениелерін алу ──
+app.get('/api/meta/campaign-details/:campaignId', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const user = token ? await getUserBySession(token) : null;
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  const metaToken = user.meta_token || process.env.META_ACCESS_TOKEN;
+  const { campaignId } = req.params;
+  const base = 'https://graph.facebook.com/v19.0';
+  try {
+    const adsetsRes = await axios.get(`${base}/${campaignId}/adsets`, {
+      params: { access_token: metaToken, fields: 'id,name,daily_budget,status,lifetime_budget', limit: 30 }
+    });
+    const adsets = adsetsRes.data.data || [];
+    const result = [];
+    for (const adset of adsets) {
+      const adsRes = await axios.get(`${base}/${adset.id}/ads`, {
+        params: { access_token: metaToken, fields: 'id,name,status,insights{spend,cpm,ctr,actions}', limit: 30 }
+      });
+      result.push({ ...adset, ads: adsRes.data.data || [] });
+    }
+    res.json({ ok: true, adsets: result });
+  } catch(e) {
+    res.status(502).json({ error: e.response?.data?.error?.message || e.message });
+  }
+});
+
+// ── API: Адсет дубльдеу (басқа кампанияға) ──
+app.post('/api/meta/duplicate-adset', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const user = token ? await getUserBySession(token) : null;
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  const metaToken = user.meta_token || process.env.META_ACCESS_TOKEN;
+  const { adset_id, campaign_id, new_name } = req.body;
+  if (!adset_id) return res.status(400).json({ error: 'adset_id міндетті' });
+  const base = 'https://graph.facebook.com/v19.0';
+  try {
+    const body = { access_token: metaToken, status_option: 'PAUSED' };
+    if (campaign_id) body.campaign_id = campaign_id;
+    if (new_name) body.rename_options = JSON.stringify({ rename_suffix: '', rename_prefix: '' });
+    const r = await axios.post(`${base}/${adset_id}/copies`, body, { timeout: 30000 });
+    res.json({ ok: true, new_adset_id: r.data.copied_adset_id || r.data.id });
+  } catch(e) {
+    res.status(502).json({ error: e.response?.data?.error?.message || e.message });
+  }
+});
+
+// ── API: Объявление дубльдеу (басқа адсетке) ──
+app.post('/api/meta/duplicate-ad', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const user = token ? await getUserBySession(token) : null;
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  const metaToken = user.meta_token || process.env.META_ACCESS_TOKEN;
+  const { ad_id, adset_id } = req.body;
+  if (!ad_id) return res.status(400).json({ error: 'ad_id міндетті' });
+  const base = 'https://graph.facebook.com/v19.0';
+  try {
+    const body = { access_token: metaToken, status_option: 'PAUSED' };
+    if (adset_id) body.adset_id = adset_id;
+    const r = await axios.post(`${base}/${ad_id}/copies`, body, { timeout: 30000 });
+    res.json({ ok: true, new_ad_id: r.data.copied_ad_id || r.data.id });
+  } catch(e) {
+    res.status(502).json({ error: e.response?.data?.error?.message || e.message });
+  }
+});
+
+// ── API: Объявление / Адсет өшіру / қосу ──
+app.post('/api/meta/toggle-ad', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const user = token ? await getUserBySession(token) : null;
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  const metaToken = user.meta_token || process.env.META_ACCESS_TOKEN;
+  const { id, type = 'ad', status } = req.body; // type: 'ad' | 'adset'
+  if (!id || !status) return res.status(400).json({ error: 'id және status міндетті' });
+  try {
+    await axios.post(`https://graph.facebook.com/v19.0/${id}`, null, {
+      params: { access_token: metaToken, status }
+    });
+    res.json({ ok: true });
+  } catch(e) {
+    res.status(502).json({ error: e.response?.data?.error?.message || e.message });
   }
 });
 
@@ -1102,9 +1395,10 @@ app.post('/api/meta/create-campaign', async (req, res) => {
   const accountId = user.meta_account_id || process.env.META_AD_ACCOUNT_ID;
   if (!metaToken || !accountId) return res.status(400).json({ error: 'Meta аккаунт қосылмаған' });
 
-  const { name, objective = 'OUTCOME_ENGAGEMENT', daily_budget, dest, wa_phone, page_id, ig_account_id, geo_cities, age_min = 18, age_max = 65, gender = 0, ad_text, ad_headline, image_hash, wa_template, geo } = req.body;
+  const { name, objective = 'OUTCOME_ENGAGEMENT', daily_budget, dest, wa_phone, page_id, ig_account_id, geo_cities, age_min = 18, age_max = 65, gender = 0, ad_text, ad_headline, image_hash, video_id, wa_template, geo } = req.body;
 
-  if (!name || !daily_budget) return res.status(400).json({ error: 'name және daily_budget міндетті' });
+  if (!name) return res.status(400).json({ error: 'Кампания атауы (name) міндетті' });
+  const budgetVal = daily_budget || 5; // default $5 if not provided
 
   const base = `https://graph.facebook.com/v19.0`;
 
@@ -1161,7 +1455,7 @@ app.post('/api/meta/create-campaign', async (req, res) => {
     const adsetBody = {
       name: `${name} — Ad Set`,
       campaign_id: campaignId,
-      daily_budget: Math.round(daily_budget * 100), // центтерде
+      daily_budget: Math.round(budgetVal * 100), // центтерде
       billing_event: 'IMPRESSIONS',
       optimization_goal: optimizationGoal,
       bid_strategy: 'LOWEST_COST_WITHOUT_CAP',
@@ -1180,24 +1474,41 @@ app.post('/api/meta/create-campaign', async (req, res) => {
 
     // 3. Ad Creative (тек page_id болса)
     let adId = null;
-    if (page_id && (ad_text || ad_headline)) {
-      const linkData = {
-        message: ad_text || '',
-        name: ad_headline || name,
-        call_to_action: dest === 'wa'
-          ? { type: 'WHATSAPP_MESSAGE', value: {
-              app_destination: 'WHATSAPP',
-              ...(wa_phone ? { whatsapp_number: wa_phone.replace(/\D/g,'') } : {}),
-              ...(wa_template ? { link: `https://wa.me/?text=${encodeURIComponent(wa_template)}` } : {})
-            }}
-          : { type: 'LEARN_MORE' }
-      };
-      // Сурет бар болса қос
-      if (image_hash) linkData.image_hash = image_hash;
+    if (page_id && (ad_text || ad_headline || image_hash || video_id)) {
+      const ctaWa = dest === 'wa'
+        ? { type: 'WHATSAPP_MESSAGE', value: {
+            app_destination: 'WHATSAPP',
+            ...(wa_phone ? { whatsapp_number: wa_phone.replace(/\D/g,'') } : {}),
+            ...(wa_template ? { link: `https://wa.me/?text=${encodeURIComponent(wa_template)}` } : {})
+          }}
+        : { type: 'LEARN_MORE' };
+
+      let storySpec;
+      if (video_id) {
+        // Видео креатив
+        storySpec = {
+          page_id,
+          video_data: {
+            video_id,
+            title: ad_headline || name,
+            message: ad_text || '',
+            call_to_action: ctaWa
+          }
+        };
+      } else {
+        // Сурет креатив
+        const linkData = {
+          message: ad_text || '',
+          name: ad_headline || name,
+          call_to_action: ctaWa
+        };
+        if (image_hash) linkData.image_hash = image_hash;
+        storySpec = { page_id, link_data: linkData };
+      }
 
       const creativeBody = {
         name: `${name} — Creative`,
-        object_story_spec: { page_id, link_data: linkData },
+        object_story_spec: storySpec,
         access_token: metaToken
       };
       const creR = await axios.post(`${base}/act_${accountId}/adcreatives`, creativeBody);
@@ -1266,7 +1577,7 @@ async function buildDailyReport(u) {
   const yIso = yesterday.toISOString().slice(0, 10);
 
   const base = `https://graph.facebook.com/v19.0`;
-  const [campInsRes, accInsRes] = await Promise.all([
+  const [campInsRes, accInsRes, accStatusRes] = await Promise.all([
     axios.get(`${base}/act_${accountId}/insights`, {
       params: {
         access_token: metaToken,
@@ -1282,11 +1593,20 @@ async function buildDailyReport(u) {
         time_range: JSON.stringify({ since: yIso, until: yIso }),
         level: 'account'
       }
-    }).catch(() => ({ data: { data: [] } }))
+    }).catch(() => ({ data: { data: [] } })),
+    axios.get(`${base}/act_${accountId}`, {
+      params: { access_token: metaToken, fields: 'account_status,name' }
+    }).catch(() => ({ data: {} }))
   ]);
 
   const campData = campInsRes.data.data || [];
   const accIns = accInsRes.data.data?.[0] || {};
+
+  // Аккаунт мәртебесін тексер
+  const accStatus = accStatusRes.data?.account_status;
+  const accWarningLine = accStatus === 3 ? '\n🚨 <b>АККАУНТ ТОҚТАП ҚАЛДЫ — ОШИБКА ОПЛАТЫ!</b>\nMeta Billing-те төлем деректерін жаңартыңыз:\n<a href="https://business.facebook.com/billing">business.facebook.com/billing</a>\n' :
+    accStatus === 2 ? '\n🚫 <b>АККАУНТ ӨШІРІЛГЕН!</b> Meta Business Manager-де тексеріңіз.\n' :
+    accStatus === 9 ? '\n⚠️ <b>Аккаунт Grace Period-та</b> — жақын арада тоқтауы мүмкін. Төлемді жаңартыңыз.\n' : '';
 
   const totalSpend = parseFloat(accIns.spend || 0);
   const totalClicks = parseInt(accIns.inline_link_clicks || accIns.clicks || 0);
@@ -1303,84 +1623,225 @@ async function buildDailyReport(u) {
 
   const totalConv = getConv(accIns.actions);
 
-  let campLines = '';
-  if (campData.length) {
-    campLines = campData.map(c => {
-      const sp = parseFloat(c.spend || 0).toFixed(2);
-      const cl = parseInt(c.inline_link_clicks || c.clicks || 0);
-      const conv = getConv(c.actions);
-      return `  • <b>${c.campaign_name}</b>\n    💸 $${sp} · 👆 ${cl} клик${conv > 0 ? ` · 💬 ${conv} перепис.` : ''}`;
-    }).join('\n');
-  } else {
-    campLines = '  Кешегі расход жоқ';
-  }
+  // Өткен аптамен салыстыру
+  const weekAgo = new Date(yesterday); weekAgo.setDate(weekAgo.getDate() - 7);
+  const weekAgoIso = weekAgo.toISOString().slice(0, 10);
+  const prevInsRes = await axios.get(`${base}/act_${accountId}/insights`, {
+    params: {
+      access_token: metaToken,
+      fields: 'spend,actions,inline_link_clicks',
+      time_range: JSON.stringify({ since: weekAgoIso, until: weekAgoIso }),
+      level: 'account'
+    }
+  }).catch(() => ({ data: { data: [] } }));
+  const prevIns = prevInsRes.data.data?.[0] || {};
+  const prevSpend = parseFloat(prevIns.spend || 0);
+  const prevConv = getConv(prevIns.actions);
 
   const dateLabel = yesterday.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
 
+  // CPL есептеу
+  const cpl = totalConv > 0 ? (totalSpend / totalConv) : 0;
+  const prevCpl = prevConv > 0 ? (prevSpend / prevConv) : 0;
+  const cplTrend = prevCpl > 0 && cpl > 0 ? Math.round((prevCpl - cpl) / prevCpl * 100) : 0;
+
+  // Кампаниялар бойынша жолдар
+  const scaleCamps = [];
+  const goodCamps = [];
+  const badCamps = [];
+
+  campData.forEach(c => {
+    const sp = parseFloat(c.spend || 0);
+    const conv = getConv(c.actions);
+    const campCpl = conv > 0 ? sp / conv : 0;
+    if (conv >= 3) scaleCamps.push({ name: c.campaign_name, sp, conv, cpl: campCpl });
+    else if (conv > 0) goodCamps.push({ name: c.campaign_name, sp, conv, cpl: campCpl });
+    else if (sp > 5) badCamps.push({ name: c.campaign_name, sp });
+  });
+
+  let campLines = '';
+
+  if (scaleCamps.length) {
+    campLines += scaleCamps.map(c =>
+      `🚀 <b>${c.name}</b>\n   ${c.conv} заявка · CPL $${c.cpl.toFixed(2)} · расход $${c.sp.toFixed(2)}`
+    ).join('\n') + '\n';
+  }
+  if (goodCamps.length) {
+    campLines += goodCamps.map(c =>
+      `✅ <b>${c.name}</b>\n   ${c.conv} заявка · CPL $${c.cpl.toFixed(2)} · расход $${c.sp.toFixed(2)}`
+    ).join('\n') + '\n';
+  }
+  if (badCamps.length) {
+    campLines += badCamps.map(c =>
+      `⏸ <b>${c.name}</b>\n   Заявок нет · расход $${c.sp.toFixed(2)} — AI мониторингінде`
+    ).join('\n') + '\n';
+  }
+  if (!campLines) campLines = '📋 Кешегі белсенді кампания жоқ\n';
+
+  // Тренд жолы
+  const spendTrend = prevSpend > 0
+    ? (totalSpend > prevSpend ? `📈 +${((totalSpend-prevSpend)/prevSpend*100).toFixed(0)}%` : `📉 -${((prevSpend-totalSpend)/prevSpend*100).toFixed(0)}%`)
+    : '';
+  const cplTrendStr = cplTrend > 0 ? `⬇️ CPL ${cplTrend}% арзандады` : cplTrend < 0 ? `⬆️ CPL ${Math.abs(cplTrend)}% өсті` : '';
+
   const msg =
-    `📊 <b>Күнделікті есеп · ${dateLabel}</b>\n` +
-    `👤 ${u.name} · ${u.meta_account_name || accountId}\n\n` +
-    `💸 Жиынтық расход: <b>$${totalSpend.toFixed(2)}</b>\n` +
-    `👆 Кликтер: <b>${totalClicks}</b>\n` +
-    (totalConv > 0 ? `💬 Хат алмасу: <b>${totalConv}</b>\n` : '') +
-    `\n${campLines}\n\n` +
-    `🔗 <a href="${BASE_URL}/ai-targetolog-app.html">Дашборд →</a>`;
+    `📊 <b>SmartTarget AI · ${dateLabel}</b>\n` +
+    `👤 ${u.name}\n` +
+    (accWarningLine || '') +
+    `\n💰 Расход: <b>$${totalSpend.toFixed(2)}</b>${spendTrend ? ' ' + spendTrend : ''}\n` +
+    `💬 Заявок: <b>${totalConv}</b>${totalConv > 0 ? ` · CPL <b>$${cpl.toFixed(2)}</b>` : ''}${cplTrendStr ? ' · ' + cplTrendStr : ''}\n` +
+    `👆 Кликтер: <b>${totalClicks}</b>\n\n` +
+    campLines + '\n' +
+    `🤖 AI 24/7 жұмыс жасауда — барлығы бақылауда\n` +
+    `🔗 <a href="${BASE_URL}/ai-targetolog-app.html">Толық дашборд →</a>`;
 
   return { msg, totalSpend, totalClicks, totalConv, campCount: campData.length };
 }
 
-async function scheduleDailyReports() {
+// ── Мерзімі өткен клиенттерді тексеру ──
+async function checkSubscriptions() {
   const now = new Date();
-  // 03:00 UTC = 08:00 Алматы (UTC+5)
-  const next = new Date();
-  next.setUTCHours(3, 0, 0, 0);
-  if (next <= now) next.setDate(next.getDate() + 1);
+  const warnThreshold = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 1 күн қалды
 
-  console.log(`📅 Күнделікті есеп жоспарланды: ${next.toISOString()}`);
+  // 1. Ескерту: 1 күн қалғандар (plan_expires_at 24 сағат ішінде)
+  const toWarn = await pool.query(
+    `SELECT * FROM users WHERE tg_chat_id IS NOT NULL
+     AND plan_expires_at IS NOT NULL
+     AND plan_expires_at BETWEEN NOW() AND $1
+     AND (payment_warned_at IS NULL OR payment_warned_at < NOW() - INTERVAL '20 hours')`,
+    [warnThreshold]
+  );
+  for (const u of toWarn.rows) {
+    const hoursLeft = Math.round((new Date(u.plan_expires_at) - now) / 3600000);
+    await tgSend(u.tg_chat_id,
+      `⚠️ <b>Мерзімі аяқталуға жақын!</b>\n\n` +
+      `Сіздің SmartTarget жазылымыңыз <b>${hoursLeft} сағат</b> ішінде аяқталады.\n\n` +
+      `💳 Төлем жасамасаңыз — рекламаларыңыз автоматты түрде тоқтатылады.\n\n` +
+      `Kaspi QR арқылы төлеңіз немесе маманмен байланысыңыз.`,
+      { inline_keyboard: [[
+        { text: '💳 Kaspi QR арқылы төлеу', url: 'https://pay.kaspi.kz/pay/pqtnvdax' },
+        { text: '👩‍💼 Маманмен байланыс', url: `https://t.me/${process.env.ADMIN_TG_USERNAME || 'smarttarget_support'}` }
+      ]]}
+    );
+    await pool.query('UPDATE users SET payment_warned_at = NOW() WHERE id = $1', [u.id]);
+    console.log(`⚠️ Subscription warning sent: ${u.email}`);
+  }
 
-  setTimeout(async () => {
-    const sendAll = async () => {
-      const dateLabel = new Date(Date.now() - 86400000).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
-      console.log(`📨 Күнделікті есептер жіберілуде (${dateLabel})...`);
-
-      // tg_chat_id бар барлық клиенттерге жіберу (meta_token жоқта да — system user токенімен)
-      const clients = await pool.query(
-        'SELECT * FROM users WHERE tg_chat_id IS NOT NULL AND meta_account_id IS NOT NULL'
-      );
-
-      const results = [];
-
-      for (const u of clients.rows) {
-        try {
-          const report = await buildDailyReport(u);
-          if (!report) { results.push({ name: u.name, status: '⏭ аккаунт жоқ' }); continue; }
-          if (report.totalSpend === 0 && report.campCount === 0) {
-            results.push({ name: u.name, status: '⏭ расход жоқ' }); continue;
+  // 2. Мерзімі өткендер — Meta кампанияларын өшіру
+  const expired = await pool.query(
+    `SELECT * FROM users WHERE plan_expires_at IS NOT NULL AND plan_expires_at < NOW() AND plan != 'suspended'`
+  );
+  for (const u of expired.rows) {
+    // Meta кампанияларын PAUSED ету
+    if (u.meta_token && u.meta_account_id) {
+      try {
+        const camps = await axios.get(`https://graph.facebook.com/v19.0/act_${u.meta_account_id}/campaigns`, {
+          params: { access_token: u.meta_token, fields: 'id,status', limit: 50 }
+        });
+        for (const camp of (camps.data?.data || [])) {
+          if (camp.status === 'ACTIVE') {
+            await axios.post(`https://graph.facebook.com/v19.0/${camp.id}`, null, {
+              params: { access_token: u.meta_token, status: 'PAUSED' }
+            }).catch(() => {});
           }
-          await tgSend(u.tg_chat_id, report.msg);
-          results.push({ name: u.name, status: `✅ жіберілді ($${report.totalSpend.toFixed(2)})` });
-        } catch(e) {
-          console.error(`Daily report error for ${u.email}:`, e.message);
-          results.push({ name: u.name, status: `❌ қате: ${e.message.slice(0, 60)}` });
         }
+      } catch(e) { console.error(`Meta pause error for ${u.email}:`, e.message); }
+    }
+    // Пайдаланушыны suspended ету
+    await pool.query("UPDATE users SET plan = 'suspended' WHERE id = $1", [u.id]);
+    // Telegram хабарлама
+    if (u.tg_chat_id) {
+      await tgSend(u.tg_chat_id,
+        `🔴 <b>Жазылым аяқталды</b>\n\n` +
+        `Барлық рекламаларыңыз тоқтатылды.\n\n` +
+        `Жазылымды жаңарту үшін Kaspi QR арқылы төлеңіз немесе маманмен байланысыңыз.`,
+        { inline_keyboard: [[
+          { text: '💳 Kaspi QR арқылы төлеу', url: 'https://pay.kaspi.kz/pay/pqtnvdax' },
+          { text: '👩‍💼 Маманмен байланыс', url: `https://t.me/${process.env.ADMIN_TG_USERNAME || 'smarttarget_support'}` }
+        ]]}
+      );
+    }
+    // Админге хабарлама
+    if (ADMIN_TG_CHAT_ID) {
+      await tgSend(ADMIN_TG_CHAT_ID,
+        `🔴 <b>Мерзімі өтті: ${u.name || u.email}</b>\n\nРекламалары тоқтатылды. Төлем растасаңыз — аккаунтын қалпына келтіріңіз.`,
+        { inline_keyboard: [[{ text: '✅ Төлем расталды — қалпына келтіру', callback_data: `restore_sub_${u.id}` }]] }
+      );
+    }
+    console.log(`🔴 Subscription expired + campaigns paused: ${u.email}`);
+  }
+}
+
+async function scheduleSubscriptionCheck() {
+  // Күніне 2 рет тексеру: 08:00 және 20:00 Алматы (03:00 және 15:00 UTC)
+  const runCheck = async () => {
+    try { await checkSubscriptions(); } catch(e) { console.error('Subscription check error:', e.message); }
+  };
+  await runCheck();
+  setInterval(runCheck, 12 * 60 * 60 * 1000);
+}
+
+// Соңғы жіберілген күнді жадта сақтаймыз (сервер рестарт болса da дубль болмасын)
+let lastReportDate = '';
+
+async function sendAllDailyReports() {
+  const dateLabel = new Date(Date.now() - 86400000).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+  const todayKey = new Date().toISOString().slice(0, 10); // "2026-07-03"
+
+  if (lastReportDate === todayKey) {
+    console.log(`📅 Есеп бүгін жіберілді (${todayKey}), өткізіп жіберу`);
+    return;
+  }
+
+  console.log(`📨 Күнделікті есептер жіберілуде (${dateLabel})...`);
+  lastReportDate = todayKey;
+
+  const clients = await pool.query(
+    'SELECT * FROM users WHERE tg_chat_id IS NOT NULL AND meta_account_id IS NOT NULL'
+  );
+
+  const results = [];
+  for (const u of clients.rows) {
+    try {
+      const report = await buildDailyReport(u);
+      if (!report) { results.push({ name: u.name, status: '⏭ аккаунт жоқ' }); continue; }
+      if (report.totalSpend === 0 && report.campCount === 0) {
+        results.push({ name: u.name, status: '⏭ расход жоқ' }); continue;
       }
+      await tgSend(u.tg_chat_id, report.msg);
+      results.push({ name: u.name, status: `✅ жіберілді ($${report.totalSpend.toFixed(2)})` });
+    } catch(e) {
+      console.error(`Daily report error for ${u.email}:`, e.message);
+      results.push({ name: u.name, status: `❌ қате: ${e.message.slice(0, 60)}` });
+    }
+  }
 
-      // Супер-админге жалпы нәтиже жіберу
-      if (ADMIN_TG_CHAT_ID) {
-        const summary = results.length
-          ? results.map(r => `${r.status} — ${r.name}`).join('\n')
-          : 'Клиент жоқ';
-        await tgSend(ADMIN_TG_CHAT_ID,
-          `🤖 <b>SmartTarget — Есеп жіберу нәтижесі · ${dateLabel}</b>\n\n${summary}\n\nЖалпы: ${results.length} клиент`
-        ).catch(() => {});
-      }
+  if (ADMIN_TG_CHAT_ID) {
+    const summary = results.length ? results.map(r => `${r.status} — ${r.name}`).join('\n') : 'Клиент жоқ';
+    await tgSend(ADMIN_TG_CHAT_ID,
+      `🤖 <b>SmartTarget — Есеп жіберу нәтижесі · ${dateLabel}</b>\n\n${summary}\n\nЖалпы: ${results.length} клиент`
+    ).catch(() => {});
+  }
 
-      console.log(`✅ Күнделікті есептер аяқталды: ${results.length} клиент`);
-    };
+  console.log(`✅ Күнделікті есептер аяқталды: ${results.length} клиент`);
+}
 
-    await sendAll();
-    setInterval(sendAll, 24 * 60 * 60 * 1000);
-  }, next - now);
+async function scheduleDailyReports() {
+  // Сағат сайын тексер: 03:00 UTC (= 08:00 Алматы UTC+5) болса — жібер
+  const check = async () => {
+    const now = new Date();
+    const utcHour = now.getUTCHours();
+    const utcMin = now.getUTCMinutes();
+    // 03:00–03:59 UTC аралығында жібер
+    if (utcHour === 3) {
+      await sendAllDailyReports().catch(e => console.error('Daily report error:', e.message));
+    }
+  };
+
+  // Бірден бір рет тексер, содан сайын сағат сайын
+  await check();
+  setInterval(check, 60 * 60 * 1000); // сағат сайын
+  console.log(`📅 Күнделікті есеп жоспарланды: сағат сайын тексеріледі (03:00 UTC = 08:00 Алматы)`);
 }
 
 // ── API: Рекламалық сурет жүктеу (Meta Ad Images) ──
@@ -1421,6 +1882,37 @@ app.post('/api/meta/upload-image', upload.single('image'), async (req, res) => {
   } catch (e) {
     const msg = e.response?.data?.error?.message || e.message;
     console.error('upload-image error:', msg);
+    res.status(400).json({ error: msg });
+  }
+});
+
+// ── Meta: Видео жүктеу ──
+app.post('/api/meta/upload-video', upload.single('video'), async (req, res) => {
+  const sessionToken = req.headers.authorization?.replace('Bearer ', '');
+  if (!sessionToken) return res.status(401).json({ error: 'Unauthorized' });
+  const user = await getUserBySession(sessionToken);
+  if (!user) return res.status(401).json({ error: 'Invalid session' });
+
+  const metaToken = user.meta_token || process.env.META_ACCESS_TOKEN;
+  const accountId = user.meta_account_id || process.env.META_AD_ACCOUNT_ID;
+  if (!metaToken || !accountId) return res.status(400).json({ error: 'Meta аккаунт қосылмаған' });
+  if (!req.file) return res.status(400).json({ error: 'Файл жоқ' });
+
+  try {
+    const form = new FormData();
+    form.append('source', req.file.buffer, { filename: req.file.originalname, contentType: req.file.mimetype });
+    form.append('access_token', metaToken);
+
+    const r = await axios.post(
+      `https://graph.facebook.com/v19.0/act_${accountId}/advideos`,
+      form,
+      { headers: form.getHeaders(), maxBodyLength: Infinity, maxContentLength: Infinity }
+    );
+
+    res.json({ ok: true, video_id: r.data.id });
+  } catch (e) {
+    const msg = e.response?.data?.error?.message || e.message;
+    console.error('upload-video error:', msg);
     res.status(400).json({ error: msg });
   }
 });
@@ -1489,10 +1981,287 @@ app.post('/api/admin/send-report', async (req, res) => {
   }
 });
 
+// ══════════════════════════════
+// ADMIN (token-based)
+// ══════════════════════════════
+
+// GET /api/admin/clients-auth - Admin: барлық клиенттерді көру (token auth)
+app.get('/api/admin/clients-auth', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const user = await getUserBySession(token);
+  if (!user || !user.is_admin) return res.status(403).json({ error: 'Тек админ' });
+  const r = await pool.query(`
+    SELECT id, email, name, plan, plan_expires_at, meta_account_name, meta_account_id,
+           tg_chat_id, created_at, is_admin
+    FROM users ORDER BY created_at DESC
+  `);
+  res.json({ clients: r.rows });
+});
+
+// POST /api/admin/set-admin - Пайдаланушыны админ ету
+app.post('/api/admin/set-admin', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const user = await getUserBySession(token);
+  if (!user || !user.is_admin) return res.status(403).json({ error: 'Тек админ' });
+  const { user_id, is_admin } = req.body;
+  await pool.query('UPDATE users SET is_admin=$1 WHERE id=$2', [is_admin, user_id]);
+  res.json({ ok: true });
+});
+
+// POST /api/admin/set-plan - Клиентке тариф орнату
+app.post('/api/admin/set-plan-auth', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const user = await getUserBySession(token);
+  if (!user || !user.is_admin) return res.status(403).json({ error: 'Тек админ' });
+  const { user_id, plan, days } = req.body;
+  const expires = new Date(Date.now() + (days||30)*24*60*60*1000);
+  await pool.query('UPDATE users SET plan=$1, plan_expires_at=$2 WHERE id=$3', [plan, expires, user_id]);
+  res.json({ ok: true });
+});
+
+// ══════════════════════════════
+// BILLING / CLOUDPAYMENTS
+// ══════════════════════════════
+const CP_PUBLIC_ID = process.env.CP_PUBLIC_ID || '';
+const CP_API_SECRET = process.env.CP_API_SECRET || '';
+
+const PLAN_AMOUNTS = {
+  ai:     { amount: 49990,  currency: 'KZT', monthly: true },
+  expert: { amount: 150000, currency: 'KZT', monthly: true },
+  agency: { amount: 300000, currency: 'KZT', monthly: false }
+};
+
+// Публичный конфиг для фронтенда
+app.get('/api/config', (req, res) => {
+  res.json({ cpPublicId: CP_PUBLIC_ID });
+});
+
+// Создать заказ (получить параметры для виджета)
+app.post('/api/billing/create-order', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const user = await getUserBySession(token);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  const { plan } = req.body;
+  const planInfo = PLAN_AMOUNTS[plan];
+  if (!planInfo) return res.status(400).json({ error: 'Жарамды тариф емес' });
+  const orderId = `smt_${user.id}_${plan}_${Date.now()}`;
+  res.json({
+    publicId: CP_PUBLIC_ID,
+    orderId,
+    amount: planInfo.amount,
+    currency: planInfo.currency,
+    userId: user.id,
+    email: user.email,
+    name: user.name || ''
+  });
+});
+
+// Подтвердить оплату (CloudPayments webhook)
+app.post('/webhook/cloudpayments', express.urlencoded({ extended: true }), async (req, res) => {
+  // Верификация HMAC от CloudPayments
+  if (CP_API_SECRET) {
+    const receivedHmac = req.headers['x-content-hmac'] || '';
+    // CP считает HMAC от тела запроса
+    const rawBody = new URLSearchParams(req.body).toString();
+    const expectedHmac = crypto.createHmac('sha256', CP_API_SECRET)
+      .update(rawBody).digest('base64');
+    if (receivedHmac && receivedHmac !== expectedHmac) {
+      console.log('CP HMAC mismatch');
+      return res.json({ code: 13, message: 'Invalid HMAC' });
+    }
+  }
+
+  const { Amount, AccountId, Data, Status, TransactionId, CardFirstSix, CardLastFour, CardType } = req.body;
+  if (Status !== 'Completed') return res.json({ code: 0 }); // принять, не обрабатывать
+
+  try {
+    let data = {};
+    try { data = typeof Data === 'string' ? JSON.parse(Data) : (Data || {}); } catch(e){}
+
+    const { plan, userId } = data;
+    if (!userId || !plan) return res.json({ code: 10, message: 'No user/plan data' });
+
+    const planInfo = PLAN_AMOUNTS[plan];
+    const planNames = { ai: 'AI Таргетолог', expert: 'Эксперт', agency: 'Премиум' };
+    const expires = planInfo?.monthly ? new Date(Date.now() + 31 * 24 * 60 * 60 * 1000) : null;
+
+    const updated = await pool.query(
+      'UPDATE users SET plan=$1, plan_expires_at=$2, payment_warned_at=NULL WHERE id=$3 RETURNING *',
+      [plan, expires, userId]
+    );
+    const u = updated.rows[0];
+
+    console.log(`✅ CloudPayments: user ${userId} → plan ${plan}, txn ${TransactionId}`);
+
+    // Telegram хабарлама пайдаланушыға
+    if (u?.tg_chat_id) {
+      const expiryStr = expires ? ` (${expires.toLocaleDateString('ru-RU')} дейін)` : ' (тұрақты)';
+      await tgSend(u.tg_chat_id,
+        `✅ <b>Төлем сәтті өтті!</b>\n\nТариф: <b>${planNames[plan] || plan}</b>${expiryStr}\nСумма: ${Number(Amount).toLocaleString('ru')} тг\nKарточка: ${CardType || ''} ****${CardLastFour || ''}\n\nСіздің SmartTarget AI аккаунтыңыз белсендірілді! 🎉`
+      ).catch(()=>{});
+    }
+
+    // Telegram хабарлама админге
+    const ADMIN_TG_ID = process.env.ADMIN_TG_CHAT_ID;
+    if (ADMIN_TG_ID) {
+      await tgSend(ADMIN_TG_ID,
+        `💳 <b>Жаңа төлем!</b>\n\nПайдаланушы: ${u?.name || AccountId}\nEmail: ${AccountId}\nТариф: <b>${planNames[plan] || plan}</b>\nСумма: ${Number(Amount).toLocaleString('ru')} тг\nTxn: ${TransactionId}`
+      ).catch(()=>{});
+    }
+
+    res.json({ code: 0 });
+  } catch(e) {
+    console.error('CP webhook error:', e);
+    res.json({ code: 13, message: e.message });
+  }
+});
+
+app.get('/api/billing/status', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const user = await getUserBySession(token);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  const planLimits = {
+    free: { maxCampaigns: 3, autopilot: true, studio: true },
+    ai: { maxCampaigns: 10, autopilot: true, studio: true },
+    expert: { maxCampaigns: 999, autopilot: true, studio: true },
+    agency: { maxCampaigns: 999, autopilot: true, studio: true, isAgency: true }
+  };
+  res.json({
+    plan: user.plan || 'free',
+    expiresAt: user.plan_expires_at,
+    limits: planLimits[user.plan || 'free'] || planLimits.free
+  });
+});
+
+// Report data: нақты Meta деректері белгілі кезең үшін
+app.get('/api/report-data', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const user = await getUserBySession(token);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { since, until } = req.query;
+  if (!since || !until) return res.status(400).json({ error: 'since and until required' });
+
+  const metaToken = user.meta_token || process.env.META_ACCESS_TOKEN;
+  const accountId = user.meta_account_id;
+  if (!metaToken || !accountId) return res.status(400).json({ error: 'Meta not configured' });
+
+  const base = `https://graph.facebook.com/v19.0`;
+  try {
+    const [campInsRes, accInsRes] = await Promise.all([
+      axios.get(`${base}/act_${accountId}/insights`, {
+        params: {
+          access_token: metaToken,
+          fields: 'campaign_id,campaign_name,spend,clicks,inline_link_clicks,actions',
+          time_range: JSON.stringify({ since, until }),
+          level: 'campaign', limit: 50
+        }
+      }),
+      axios.get(`${base}/act_${accountId}/insights`, {
+        params: {
+          access_token: metaToken,
+          fields: 'spend,clicks,inline_link_clicks,actions',
+          time_range: JSON.stringify({ since, until }),
+          level: 'account'
+        }
+      })
+    ]);
+
+    const getConv = (actions=[]) => parseInt(
+      actions.find(a=>a.action_type==='onsite_conversion.messaging_conversation_started_7d')?.value ||
+      actions.find(a=>a.action_type==='onsite_conversion.messaging_first_reply')?.value ||
+      actions.find(a=>a.action_type==='onsite_conversion.lead_grouped')?.value || 0
+    );
+
+    const accIns = accInsRes.data.data?.[0] || {};
+    const campaigns = (campInsRes.data.data || []).map(c => ({
+      campaign_name: c.campaign_name,
+      spend: parseFloat(c.spend || 0),
+      conversations: getConv(c.actions),
+      clicks: parseInt(c.inline_link_clicks || c.clicks || 0)
+    }));
+
+    res.json({
+      campaigns,
+      totalSpend: parseFloat(accIns.spend || 0),
+      totalLeads: getConv(accIns.actions),
+      totalClicks: parseInt(accIns.inline_link_clicks || accIns.clicks || 0)
+    });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Meta billing: байланған картамен қарызды өтеу
+app.post('/api/meta/pay-debt', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const user = await getUserBySession(token);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+  const metaToken = user.meta_token;
+  const accountId = user.meta_account_id;
+  if (!metaToken || !accountId) return res.status(400).json({ error: 'Meta байланмаған' });
+
+  try {
+    // Аккаунт жағдайын алу (қарыз сомасы, валюта)
+    const accRes = await axios.get(`https://graph.facebook.com/v19.0/act_${accountId}`, {
+      params: {
+        fields: 'balance,amount_spent,account_status,currency,outstanding_balance',
+        access_token: metaToken
+      }
+    });
+    const acc = accRes.data;
+    const currency = acc.currency || 'KZT';
+    const outstanding = parseFloat(acc.outstanding_balance || 0) / 100;
+    const balance = parseFloat(acc.balance || 0) / 100;
+
+    // Meta API арқылы billing cycle trigger жасауға тырыс
+    let triggered = false;
+    try {
+      await axios.post(
+        `https://graph.facebook.com/v19.0/act_${accountId}/adsbillingcycles`,
+        { access_token: metaToken }
+      );
+      triggered = true;
+      console.log(`✅ Meta billing triggered for act_${accountId}`);
+    } catch(trigErr) {
+      // Кейбір аккаунттарда бұл API жұмыс жасамауы мүмкін — billing URL-ге redirect
+      console.log(`Meta billing trigger failed: ${trigErr?.response?.data?.error?.message || trigErr.message}`);
+    }
+
+    // Meta Billing URL — тікелей төлем бетіне
+    const billingUrl = `https://business.facebook.com/billing_hub/accounts/?act=${accountId}`;
+
+    res.json({ ok: true, triggered, outstanding, balance, currency, billingUrl });
+  } catch(e) {
+    const errMsg = e?.response?.data?.error?.message || e.message;
+    res.status(502).json({ error: errMsg });
+  }
+});
+
+// Account warning — Telegram-ға жібер
+app.post('/api/account-warning', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const user = await getUserBySession(token);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  const { warning, message } = req.body;
+  if (user.tg_chat_id) {
+    try {
+      await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        chat_id: user.tg_chat_id,
+        text: `🚨 *АККАУНТ МӘСЕЛЕСІ*\n\n${message}\n\nMeta Billing: https://business.facebook.com/billing`,
+        parse_mode: 'Markdown'
+      });
+    } catch(e) {}
+  }
+  res.json({ ok: true });
+});
+
 app.listen(PORT, async () => {
   console.log(`SmartTarget AI server running on port ${PORT}`);
   await initDB();
   await setupWebhook();
   await setupBotCommands();
   await scheduleDailyReports();
+  await scheduleSubscriptionCheck();
 });

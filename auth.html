@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="kk">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SmartTarget AI — Вход и регистрация</title>
+<title>SmartTarget AI — Кіру және тіркелу</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#0E0D0B;--surface:#181613;--surface-2:#221F19;--line:#2F2A22;
@@ -25,7 +25,7 @@ body::before{content:"";position:fixed;inset:0;background-image:url("data:image/
 
 /* ── TOP BAR ── */
 .topbar{position:fixed;top:0;left:0;right:0;height:56px;display:flex;align-items:center;padding:0 24px;background:rgba(14,13,11,.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--line);z-index:100}
-.brand{display:flex;align-items:center;gap:8px;font-family:"Unbounded";font-weight:700;font-size:14px;color:var(--gold-soft)}
+.brand{display:flex;align-items:center;gap:8px;font-family:"Montserrat";font-weight:700;font-size:14px;color:var(--gold-soft)}
 .brand .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px rgba(217,164,65,.2)}
 .back-link{margin-left:auto;font-size:13px;color:var(--text-dim);display:flex;align-items:center;gap:5px;transition:.15s}
 .back-link:hover{color:var(--gold-soft)}
@@ -60,14 +60,14 @@ body::before{content:"";position:fixed;inset:0;background-image:url("data:image/
 .plan-card.selected .plan-radio{border-color:var(--gold);background:var(--gold)}
 .plan-card.selected .plan-radio::after{content:"";width:6px;height:6px;border-radius:50%;background:#1a1104}
 .plan-card .plan-info{flex:1;min-width:0}
-.plan-card .plan-info .pname{font-family:"Unbounded";font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:8px;margin-bottom:3px}
+.plan-card .plan-info .pname{font-family:"Montserrat";font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:8px;margin-bottom:3px}
 .plan-card .plan-info .pdesc{font-size:12px;color:var(--text-dim)}
 .plan-card .plan-price-tag{font-family:"JetBrains Mono";font-weight:500;font-size:14px;color:var(--gold-soft);flex:none;text-align:right}
 .plan-card .plan-price-tag small{display:block;font-size:10px;color:var(--muted);font-weight:400}
-.plan-recommend-badge{font-family:"Unbounded";font-size:9px;font-weight:700;background:var(--gold);color:#1a1104;padding:2px 7px;border-radius:99px}
+.plan-recommend-badge{font-family:"Montserrat";font-size:9px;font-weight:700;background:var(--gold);color:#1a1104;padding:2px 7px;border-radius:99px}
 
 /* ── FORM ── */
-.form-title{font-family:"Unbounded";font-weight:700;font-size:20px;margin-bottom:6px}
+.form-title{font-family:"Montserrat";font-weight:700;font-size:20px;margin-bottom:6px}
 .form-sub{font-size:13.5px;color:var(--text-dim);margin-bottom:24px;line-height:1.55}
 .fl{margin-bottom:14px}
 .fl label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:5px;font-weight:600}
@@ -89,7 +89,7 @@ body::before{content:"";position:fixed;inset:0;background-image:url("data:image/
 .checkbox-row a{color:var(--gold-soft);border-bottom:1px solid rgba(217,164,65,.3)}
 
 /* ── BUTTONS ── */
-.btn-full{appearance:none;cursor:pointer;width:100%;padding:14px;border-radius:11px;font-family:"Unbounded";font-weight:700;font-size:13px;background:linear-gradient(135deg,#EBC155,var(--gold),#C4892A);border:none;color:#1a1104;transition:filter .15s,transform .1s;box-shadow:0 4px 20px rgba(217,164,65,.3)}
+.btn-full{appearance:none;cursor:pointer;width:100%;padding:14px;border-radius:11px;font-family:"Montserrat";font-weight:700;font-size:13px;background:linear-gradient(135deg,#EBC155,var(--gold),#C4892A);border:none;color:#1a1104;transition:filter .15s,transform .1s;box-shadow:0 4px 20px rgba(217,164,65,.3)}
 .btn-full:hover{filter:brightness(1.06);transform:translateY(-1px)}
 .btn-full:active{transform:translateY(0)}
 .btn-full:disabled{opacity:.45;cursor:default;transform:none;filter:none}
@@ -141,7 +141,7 @@ body::before{content:"";position:fixed;inset:0;background-image:url("data:image/
 .success-screen{text-align:center;padding:20px 0}
 .checkmark{width:80px;height:80px;border-radius:50%;background:rgba(134,179,117,.12);border:2px solid var(--ok);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:38px;animation:popIn .5s var(--ease) .1s both}
 @keyframes popIn{from{transform:scale(0);opacity:0}60%{transform:scale(1.1)}to{transform:scale(1);opacity:1}}
-.success-name{font-family:"Unbounded";font-weight:700;font-size:22px;margin-bottom:8px}
+.success-name{font-family:"Montserrat";font-weight:700;font-size:22px;margin-bottom:8px}
 .success-sub{font-size:14px;color:var(--text-dim);line-height:1.6;margin-bottom:28px}
 .success-items{display:flex;flex-direction:column;gap:8px;text-align:left;margin-bottom:28px;background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:16px}
 .success-item{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--text-dim)}
@@ -169,7 +169,7 @@ body::before{content:"";position:fixed;inset:0;background-image:url("data:image/
 <!-- TOP BAR -->
 <div class="topbar">
   <a href="landing.html" class="brand"><span class="dot"></span>SmartTarget AI</a>
-  <a href="landing.html" class="back-link">← Вернуться на главную</a>
+  <a href="landing.html" class="back-link">← Басты бетке оралу</a>
 </div>
 
 <!-- MAIN WRAP -->
@@ -178,15 +178,15 @@ body::before{content:"";position:fixed;inset:0;background-image:url("data:image/
 
     <!-- ══════════════ SCREEN: LOGIN ══════════════ -->
     <div class="screen" id="screen-login">
-      <div class="form-title">Добро пожаловать</div>
-      <div class="form-sub">Войдите в ваш аккаунт SmartTarget AI</div>
+      <div class="form-title">Қош келдіңіз</div>
+      <div class="form-sub">SmartTarget AI аккаунтыңызға кіріңіз</div>
 
       <div class="fl">
         <label>Email</label>
         <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email">
       </div>
       <div class="fl">
-        <label>Пароль</label>
+        <label>Құпия сөз</label>
         <div class="password-wrap">
           <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
           <button class="toggle-pw" onclick="togglePassword('loginPassword', this)" tabindex="-1">👁</button>
@@ -194,28 +194,28 @@ body::before{content:"";position:fixed;inset:0;background-image:url("data:image/
       </div>
 
       <div style="text-align:right;margin-bottom:20px">
-        <a href="#" style="font-size:12.5px;color:var(--text-dim)" onclick="showScreen('screen-forgot')">Забыли пароль?</a>
+        <a href="#" style="font-size:12.5px;color:var(--text-dim)" onclick="showScreen('screen-forgot')">Құпия сөзді ұмыттыңыз ба?</a>
       </div>
 
-      <button class="btn-full" onclick="doLogin()">Войти</button>
+      <button class="btn-full" onclick="doLogin()">Кіру</button>
 
-      <div class="divider">или</div>
+      <div class="divider">немесе</div>
 
       <div class="link-row">
-        Нет аккаунта? <a onclick="showScreen('screen-plans')">Зарегистрироваться</a>
+        Аккаунт жоқ па? <a onclick="showScreen('screen-plans')">Тіркелу</a>
       </div>
     </div>
 
     <!-- ══════════════ SCREEN: FORGOT ══════════════ -->
     <div class="screen" id="screen-forgot">
-      <div class="form-title">Восстановление</div>
-      <div class="form-sub">Введите email — пришлём ссылку для сброса пароля.</div>
+      <div class="form-title">Құпия сөзді қалпына келтіру</div>
+      <div class="form-sub">Email енгізіңіз — сілтеме жіберіледі.</div>
       <div class="fl">
         <label>Email</label>
         <input type="email" id="forgotEmail" placeholder="you@example.com">
       </div>
-      <button class="btn-full" onclick="doForgot()">Отправить ссылку</button>
-      <div class="link-row" style="margin-top:12px"><a onclick="showScreen('screen-login')">← Назад к входу</a></div>
+      <button class="btn-full" onclick="doForgot()">Сілтеме жіберу</button>
+      <div class="link-row" style="margin-top:12px"><a onclick="showScreen('screen-login')">← Кіруге оралу</a></div>
     </div>
 
     <!-- ══════════════ SCREEN: PLANS ══════════════ -->
@@ -231,43 +231,43 @@ body::before{content:"";position:fixed;inset:0;background-image:url("data:image/
       </div>
       <div class="step-labels">
         <span class="step-label active" id="sl-label-1">Тариф</span>
-        <span class="step-label" id="sl-label-2">Данные</span>
-        <span class="step-label" id="sl-label-3">Оплата</span>
-        <span class="step-label" id="sl-label-4">Готово!</span>
+        <span class="step-label" id="sl-label-2">Деректер</span>
+        <span class="step-label" id="sl-label-3">Төлем</span>
+        <span class="step-label" id="sl-label-4">Дайын!</span>
       </div>
 
-      <div class="form-title">Выберите тариф</div>
-      <div class="form-sub">2 дня бесплатно на любом тарифе. Без скрытых платежей.</div>
+      <div class="form-title">Тарифті таңдаңыз</div>
+      <div class="form-sub">Кез келген тарифте алғашқы 2 күн тегін. Жасырын төлемдерсіз.</div>
 
       <div class="plan-cards">
         <div class="plan-card selected" data-plan="ai" onclick="selectPlan('ai')" style="border-color:var(--gold);background:rgba(217,164,65,.06)">
           <div class="plan-radio" style="border-color:var(--gold);background:var(--gold)"></div>
           <div class="plan-info">
             <div class="pname">AI-таргетолог <span class="plan-recommend-badge" style="background:var(--gold);color:#1a1104">🔥 Хит</span></div>
-            <div class="pdesc">До 15 кампаний · AI полностью автономно · Telegram</div>
+            <div class="pdesc">15 кампанияға дейін · AI толық автономды · Telegram</div>
           </div>
-          <div class="plan-price-tag" style="color:var(--gold-soft)">49 990 ₸<small>/мес</small></div>
+          <div class="plan-price-tag" style="color:var(--gold-soft)">49 990 ₸<small>/ай</small></div>
         </div>
         <div class="plan-card" data-plan="expert" onclick="selectPlan('expert')">
           <div class="plan-radio"></div>
           <div class="plan-info">
             <div class="pname">Expert-тариф</div>
-            <div class="pdesc">До 30 кампаний · AI + Стратег · 4 креатива/мес</div>
+            <div class="pdesc">30 кампанияға дейін · AI + Стратег · айына 4 креатив</div>
           </div>
-          <div class="plan-price-tag">149 990 ₸<small>/мес</small></div>
+          <div class="plan-price-tag">149 990 ₸<small>/ай</small></div>
         </div>
         <div class="plan-card" data-plan="agency" onclick="selectPlan('agency')">
           <div class="plan-radio"></div>
           <div class="plan-info">
             <div class="pname">Agency</div>
-            <div class="pdesc">До 100 кампаний · White Label · 10 креативов/мес</div>
+            <div class="pdesc">100 кампанияға дейін · Разборлар · Сценарийлер · Кездесулер</div>
           </div>
-          <div class="plan-price-tag">249 990 ₸<small>/мес</small></div>
+          <div class="plan-price-tag">249 990 ₸<small>/ай</small></div>
         </div>
       </div>
 
-      <button class="btn-full" id="planNextBtn" onclick="goToRegister()">Выбрать план →</button>
-      <div class="link-row">Уже есть аккаунт? <a onclick="showScreen('screen-login')">Войти</a></div>
+      <button class="btn-full" id="planNextBtn" onclick="goToRegister()">Жоспарды таңдау →</button>
+      <div class="link-row">Аккаунт бар ма? <a onclick="showScreen('screen-login')">Кіру</a></div>
     </div>
 
     <!-- ══════════════ SCREEN: REGISTER ══════════════ -->
@@ -283,21 +283,21 @@ body::before{content:"";position:fixed;inset:0;background-image:url("data:image/
       </div>
       <div class="step-labels">
         <span class="step-label done">Тариф</span>
-        <span class="step-label active">Данные</span>
-        <span class="step-label">Оплата</span>
-        <span class="step-label">Готово!</span>
+        <span class="step-label active">Деректер</span>
+        <span class="step-label">Төлем</span>
+        <span class="step-label">Дайын!</span>
       </div>
 
-      <div class="form-title">Ваши данные</div>
-      <div class="form-sub">Создайте аккаунт — займёт 2 минуты.</div>
+      <div class="form-title">Деректеріңіз</div>
+      <div class="form-sub">Аккаунт жасаңыз — 2 минут кетеді.</div>
 
       <div class="fl">
-        <label>Полное имя</label>
-        <input type="text" id="regName" placeholder="Айгерим Садыкова" autocomplete="name">
+        <label>Толық аты-жөні</label>
+        <input type="text" id="regName" placeholder="Айгерім Садықова" autocomplete="name">
       </div>
       <div class="row2">
         <div class="fl">
-          <label>Номер телефона</label>
+          <label>Телефон нөмірі</label>
           <input type="tel" id="regPhone" placeholder="+7 777 000 00 00" autocomplete="tel">
         </div>
         <div class="fl">
@@ -306,19 +306,19 @@ body::before{content:"";position:fixed;inset:0;background-image:url("data:image/
         </div>
       </div>
       <div class="fl">
-        <label>Название бизнеса</label>
-        <input type="text" id="regBiz" placeholder="Клиника Aura / My Store KZ">
+        <label>Бизнес атауы</label>
+        <input type="text" id="regBiz" placeholder="Aura клиникасы / My Store KZ">
       </div>
       <div class="row2">
         <div class="fl">
-          <label>Пароль</label>
+          <label>Құпия сөз</label>
           <div class="password-wrap">
-            <input type="password" id="regPass" placeholder="Минимум 8 символов">
+            <input type="password" id="regPass" placeholder="Кемінде 8 таңба">
             <button class="toggle-pw" onclick="togglePassword('regPass', this)" tabindex="-1">👁</button>
           </div>
         </div>
         <div class="fl">
-          <label>Повторите пароль</label>
+          <label>Құпия сөзді қайталаңыз</label>
           <div class="password-wrap">
             <input type="password" id="regPass2" placeholder="••••••••">
             <button class="toggle-pw" onclick="togglePassword('regPass2', this)" tabindex="-1">👁</button>
@@ -328,11 +328,11 @@ body::before{content:"";position:fixed;inset:0;background-image:url("data:image/
 
       <label class="checkbox-row">
         <input type="checkbox" id="agreeTerms">
-        <span>Я принимаю <a href="#">Условия использования</a> и <a href="#">Политику конфиденциальности</a> SmartTarget AI</span>
+        <span>Мен SmartTarget AI <a href="#">Қолдану шарттарымен</a> және <a href="#">Құпиялылық саясатымен</a> келісемін</span>
       </label>
 
-      <button class="btn-full" onclick="goToPayment()">Далее → Оплата</button>
-      <button class="btn-ghost-full" onclick="showScreen('screen-plans')">← Назад к тарифам</button>
+      <button class="btn-full" onclick="goToPayment()">Төлемге өту →</button>
+      <button class="btn-ghost-full" onclick="showScreen('screen-plans')">← Тарифтерге оралу</button>
     </div>
 
     <!-- ══════════════ SCREEN: PAYMENT ══════════════ -->
@@ -348,116 +348,67 @@ body::before{content:"";position:fixed;inset:0;background-image:url("data:image/
       </div>
       <div class="step-labels">
         <span class="step-label done">Тариф</span>
-        <span class="step-label done">Данные</span>
-        <span class="step-label active">Оплата</span>
-        <span class="step-label">Готово!</span>
+        <span class="step-label done">Деректер</span>
+        <span class="step-label active">Төлем</span>
+        <span class="step-label">Дайын!</span>
       </div>
 
-      <div class="form-title">Оплата</div>
+      <div class="form-title">Төлем</div>
 
-      <!-- Trial badge -->
-      <div class="trial-badge">✅ 2 дня бесплатно · списание после пробного периода</div>
+      <!-- Trial badge — тек AI тарифі -->
+      <div class="trial-badge" id="trialBadge">✅ 2 күн тегін · сынақ кезеңінен кейін алынады</div>
 
       <!-- Order Summary -->
       <div class="order-box">
         <div class="order-row">
           <span id="payPlanName" style="font-weight:600">Expert-тариф</span>
-          <span id="payPlanPeriod" style="color:var(--text-dim);font-size:12px">в месяц</span>
+          <span id="payPlanPeriod" style="color:var(--text-dim);font-size:12px">айына</span>
         </div>
-        <div class="order-row">
-          <span style="color:var(--text-dim)">Пробный период</span>
-          <span style="color:var(--ok);font-weight:600">2 дня — бесплатно</span>
+        <div class="order-row" id="trialRow">
+          <span style="color:var(--text-dim)">Сынақ кезеңі</span>
+          <span style="color:var(--ok);font-weight:600">2 күн — тегін</span>
         </div>
         <div class="order-row total">
-          <span>Сейчас к оплате</span>
+          <span>Қазір төлем</span>
           <span class="val" id="payAmount">0 ₸</span>
         </div>
       </div>
 
-      <!-- FREE TRIAL block — показывается если сейчас к оплате = 0 -->
+      <!-- FREE TRIAL block — тек AI тарифі -->
       <div id="trialBlock" style="display:none;text-align:center;padding:20px 0 10px">
         <div style="font-size:40px;margin-bottom:12px">🎁</div>
-        <div style="font-family:'Unbounded',sans-serif;font-weight:700;font-size:17px;margin-bottom:8px;color:var(--gold-soft)">Сейчас платить не нужно</div>
-        <div style="font-size:13.5px;color:var(--text-dim);line-height:1.6;margin-bottom:20px">Первые 2 дня — бесплатно.<br>Способ оплаты добавите после пробного периода.</div>
-        <button class="btn-full" onclick="startFreeTrial()" style="font-size:15px;padding:16px">Начать 2 дня бесплатно →</button>
-        <div style="font-size:12px;color:var(--muted);margin-top:10px">После пробного периода — автоматическое списание.<br>Отменить можно в любой момент без штрафов.</div>
+        <div style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:17px;margin-bottom:8px;color:var(--gold-soft)">Қазір төлеудің қажеті жоқ</div>
+        <div style="font-size:13.5px;color:var(--text-dim);line-height:1.6;margin-bottom:20px">Алғашқы 2 күн — тегін.<br>Тіркелгеннен кейін бірден қол жеткізу ашылады.</div>
+        <button class="btn-full" onclick="startFreeTrial()" style="font-size:15px;padding:16px">2 күн тегін бастау →</button>
       </div>
 
-      <!-- Payment Tabs — показываются только если к оплате > 0 -->
-      <div id="paymentBlock">
+      <!-- KASPI PAYMENT block — Expert және Agency -->
+      <div id="kaspiPayBlock" style="display:none;text-align:center;padding:10px 0">
+        <img src="/kaspi-qr.png" alt="Kaspi QR" style="width:220px;height:auto;border-radius:12px;display:inline-block;margin-bottom:18px">
+        <div style="font-size:14px;color:var(--text-dim);line-height:1.7;margin-bottom:20px">
+          Kaspi QR арқылы төлеңіз, содан кейін<br>
+          <b style="color:var(--text)">чекті Telegram-ға жіберіңіз</b> — біз қол жеткізуді ашамыз.
+        </div>
+        <a href="https://t.me/smarttargetai_bot" target="_blank" class="btn-full" style="display:block;text-align:center;margin-bottom:10px;text-decoration:none;padding:14px;font-size:15px">📨 Чекті Telegram-ға жіберу</a>
+        <a href="https://wa.me/77016153305" target="_blank" style="display:block;text-align:center;padding:13px;border:1px solid var(--line);border-radius:12px;color:var(--text);text-decoration:none;font-size:14px">💬 WhatsApp-та менеджерге жазу</a>
+      </div>
+
+      <!-- Payment Tabs — жасырын (пайдаланылмайды) -->
+      <div id="paymentBlock" style="display:none">
       <div class="payment-tabs">
         <button class="pay-tab active" onclick="switchPayTab('kaspi')">💚 Kaspi Pay</button>
-        <button class="pay-tab" onclick="switchPayTab('card')">💳 Банковская карта</button>
+        <button class="pay-tab" onclick="switchPayTab('card')">💳 Банк картасы</button>
       </div>
 
       <!-- KASPI PAY -->
       <div class="pay-pane active" id="pane-kaspi">
-        <p style="font-size:13px;color:var(--text-dim);text-align:center;margin-bottom:16px;line-height:1.55">Отсканируйте QR-код в приложении Kaspi.kz или введите номер телефона ниже</p>
-
-        <div class="qr-wrap">
-          <!-- CSS QR art simulation -->
-          <div class="qr-code">
-            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">
-              <!-- Corner squares -->
-              <rect x="5" y="5" width="30" height="30" fill="none" stroke="#0E0D0B" stroke-width="3"/>
-              <rect x="11" y="11" width="18" height="18" fill="#0E0D0B"/>
-              <rect x="65" y="5" width="30" height="30" fill="none" stroke="#0E0D0B" stroke-width="3"/>
-              <rect x="71" y="11" width="18" height="18" fill="#0E0D0B"/>
-              <rect x="5" y="65" width="30" height="30" fill="none" stroke="#0E0D0B" stroke-width="3"/>
-              <rect x="11" y="71" width="18" height="18" fill="#0E0D0B"/>
-              <!-- Data modules (simplified) -->
-              <rect x="40" y="5" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="50" y="5" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="60" y="5" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="40" y="15" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="55" y="15" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="40" y="25" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="50" y="25" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="5" y="40" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="15" y="40" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="25" y="40" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="40" y="40" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="50" y="40" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="60" y="40" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="70" y="40" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="80" y="40" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="90" y="40" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="5" y="50" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="20" y="50" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="35" y="50" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="45" y="50" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="55" y="50" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="70" y="50" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="85" y="50" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="10" y="60" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="25" y="60" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="40" y="60" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="55" y="60" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="65" y="60" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="80" y="60" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="90" y="60" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="40" y="70" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="55" y="70" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="70" y="70" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="85" y="70" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="40" y="80" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="50" y="80" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="65" y="80" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="80" y="80" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="40" y="90" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="55" y="90" width="5" height="5" fill="#0E0D0B"/>
-              <rect x="70" y="90" width="5" height="5" fill="#0E0D0B"/>
-            </svg>
-          </div>
-          <div class="qr-label">
-            <strong style="color:var(--text)">Откройте Kaspi.kz</strong><br>
-            Главная → Оплатить → QR
-          </div>
+        <div style="text-align:center;margin-bottom:16px">
+          <img src="/kaspi-qr.png" alt="Kaspi QR" style="width:220px;height:auto;border-radius:12px;display:inline-block">
         </div>
 
         <div style="display:flex;align-items:center;gap:10px;margin:0 0 10px;color:var(--muted);font-size:12px">
           <div style="flex:1;height:1px;background:var(--line)"></div>
-          или по номеру телефона
+          немесе телефон нөмірімен
           <div style="flex:1;height:1px;background:var(--line)"></div>
         </div>
 
@@ -466,13 +417,13 @@ body::before{content:"";position:fixed;inset:0;background-image:url("data:image/
           <input type="tel" id="kaspiPhone" placeholder="777 000 00 00" maxlength="13">
         </div>
 
-        <button class="btn-full" onclick="doKaspiPay()">Я оплатил в Kaspi ✓</button>
+        <button class="btn-full" onclick="doKaspiPay()">Kaspi-де төледім ✓</button>
       </div>
 
       <!-- CARD -->
       <div class="pay-pane" id="pane-card">
         <div class="fl">
-          <label>Номер карты</label>
+          <label>Карта нөмірі</label>
           <div class="card-number-wrap">
             <input type="text" id="cardNum" placeholder="0000 0000 0000 0000" maxlength="19" oninput="formatCard(this)" style="font-family:'JetBrains Mono';letter-spacing:.05em">
             <div class="card-icons">
@@ -483,8 +434,8 @@ body::before{content:"";position:fixed;inset:0;background-image:url("data:image/
         </div>
         <div class="row2">
           <div class="fl">
-            <label>Срок действия</label>
-            <input type="text" id="cardExp" placeholder="ММ/ГГ" maxlength="5" oninput="formatExpiry(this)" style="font-family:'JetBrains Mono'">
+            <label>Жарамдылық мерзімі</label>
+            <input type="text" id="cardExp" placeholder="АА/ЖЖ" maxlength="5" oninput="formatExpiry(this)" style="font-family:'JetBrains Mono'">
           </div>
           <div class="fl">
             <label>CVV</label>
@@ -492,12 +443,12 @@ body::before{content:"";position:fixed;inset:0;background-image:url("data:image/
           </div>
         </div>
         <div class="fl">
-          <label>Имя держателя карты</label>
+          <label>Карта иесінің аты</label>
           <input type="text" id="cardName" placeholder="AIGERIM SADYKOVA" style="text-transform:uppercase;font-family:'JetBrains Mono'">
         </div>
 
         <button class="btn-full" id="payCardBtn" onclick="doCardPay()">
-          Оплатить <span id="payAmountCard">0 ₸</span>
+          Төлеу <span id="payAmountCard">0 ₸</span>
         </button>
       </div>
 
@@ -516,8 +467,8 @@ body::before{content:"";position:fixed;inset:0;background-image:url("data:image/
         <div style="width:64px;height:64px;border-radius:50%;background:rgba(217,164,65,.1);border:2px solid rgba(217,164,65,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;animation:spin .8s linear infinite">
           <span style="font-size:28px">⚙️</span>
         </div>
-        <div style="font-family:'Unbounded';font-weight:700;font-size:17px;margin-bottom:8px">Обрабатываем оплату</div>
-        <div style="font-size:13.5px;color:var(--text-dim);line-height:1.55">Пожалуйста, не закрывайте страницу.<br>Это займёт несколько секунд...</div>
+        <div style="font-family:'Montserrat';font-weight:700;font-size:17px;margin-bottom:8px">Өңделуде</div>
+        <div style="font-size:13.5px;color:var(--text-dim);line-height:1.55">Бетті жаппаңыз.<br>Бірнеше секунд кетеді...</div>
       </div>
     </div>
 
@@ -525,20 +476,20 @@ body::before{content:"";position:fixed;inset:0;background-image:url("data:image/
     <div class="screen" id="screen-success">
       <div class="success-screen">
         <div class="checkmark">✅</div>
-        <div class="success-name">Добро пожаловать, <span id="successName">!</span></div>
-        <div class="success-sub">Оплата прошла успешно. Ваш аккаунт активирован.<br>AI-таргетолог готов к работе.</div>
+        <div class="success-name">Қош келдіңіз, <span id="successName">!</span></div>
+        <div class="success-sub">Аккаунтыңыз белсендірілді.<br>AI-таргетолог жұмысқа дайын.</div>
 
         <div class="success-items">
-          <div class="success-item"><span class="ic">📩</span>Отчёт в Telegram начнёт приходить с завтрашнего утра</div>
-          <div class="success-item"><span class="ic">🤖</span>Первый анализ кампаний — сегодня после подключения</div>
-          <div class="success-item"><span class="ic">🎁</span>2 дня бесплатного пробного периода активированы</div>
-          <div class="success-item"><span class="ic">📋</span>Инструкция по подключению Meta Ads отправлена на email</div>
+          <div class="success-item"><span class="ic">📩</span>Telegram-дағы есеп ертеңгі таңертеңнен бастап келеді</div>
+          <div class="success-item"><span class="ic">🤖</span>Кампанияларды алғашқы талдау — қосылғаннан кейін бүгін</div>
+          <div class="success-item"><span class="ic">🎁</span>2 күндік тегін сынақ кезеңі белсендірілді</div>
+          <div class="success-item"><span class="ic">📋</span>Meta Ads қосу нұсқаулығы email-ға жіберілді</div>
         </div>
 
         <button class="btn-full" onclick="goToDashboard()">
-          Начать настройку AI-таргетолога →
+          AI-таргетологты баптауды бастау →
         </button>
-        <div style="margin-top:12px;font-size:12px;color:var(--muted);text-align:center">Вы будете перенаправлены в личный кабинет</div>
+        <div style="margin-top:12px;font-size:12px;color:var(--muted);text-align:center">Жеке кабинетке бағытталасыз</div>
       </div>
     </div>
 
@@ -614,7 +565,7 @@ function selectPlan(planKey) {
 
 function goToRegister() {
   if (!state.plan) {
-    alert('Пожалуйста, выберите тариф.');
+    alert('Тарифті таңдаңыз.');
     return;
   }
   showScreen('screen-register');
@@ -632,13 +583,13 @@ function goToPayment() {
   const pass2 = document.getElementById('regPass2').value;
   const agree = document.getElementById('agreeTerms').checked;
 
-  if (!name) { alert('Введите полное имя'); document.getElementById('regName').focus(); return; }
-  if (!phone) { alert('Введите номер телефона'); document.getElementById('regPhone').focus(); return; }
-  if (!email || !email.includes('@')) { alert('Введите корректный email'); document.getElementById('regEmail').focus(); return; }
-  if (!biz) { alert('Введите название бизнеса'); document.getElementById('regBiz').focus(); return; }
-  if (pass.length < 8) { alert('Пароль должен быть не менее 8 символов'); document.getElementById('regPass').focus(); return; }
-  if (pass !== pass2) { alert('Пароли не совпадают'); document.getElementById('regPass2').focus(); return; }
-  if (!agree) { alert('Необходимо принять условия использования'); return; }
+  if (!name) { alert('Толық аты-жөніңізді енгізіңіз'); document.getElementById('regName').focus(); return; }
+  if (!phone) { alert('Телефон нөмірін енгізіңіз'); document.getElementById('regPhone').focus(); return; }
+  if (!email || !email.includes('@')) { alert('Дұрыс email енгізіңіз'); document.getElementById('regEmail').focus(); return; }
+  if (!biz) { alert('Бизнес атауын енгізіңіз'); document.getElementById('regBiz').focus(); return; }
+  if (pass.length < 8) { alert('Құпия сөз кемінде 8 таңба болуы керек'); document.getElementById('regPass').focus(); return; }
+  if (pass !== pass2) { alert('Құпия сөздер сәйкес келмеді'); document.getElementById('regPass2').focus(); return; }
+  if (!agree) { alert('Қолдану шарттарымен келісу қажет'); return; }
 
   state.name = name;
   state.email = email;
@@ -646,13 +597,16 @@ function goToPayment() {
   // Update payment screen
   const plan = PLANS[state.plan];
   document.getElementById('payPlanName').textContent = plan.fullName;
-  document.getElementById('payAmount').textContent = 'Бесплатно';
-  document.getElementById('payAmountCard').textContent = 'Бесплатно';
 
-  // Пробный период — скрыть форму оплаты, показать триал-блок
-  const isTrial = true; // первые 2 дня всегда бесплатно
-  document.getElementById('trialBlock').style.display = isTrial ? 'block' : 'none';
-  document.getElementById('paymentBlock').style.display = isTrial ? 'none' : 'block';
+  const isPaid = state.plan === 'expert' || state.plan === 'agency';
+
+  // Показываем нужный блок
+  document.getElementById('trialBadge').style.display = isPaid ? 'none' : 'block';
+  document.getElementById('trialRow').style.display = isPaid ? 'none' : 'flex';
+  document.getElementById('payAmount').textContent = isPaid ? plan.price.toLocaleString('ru-RU') + ' ₸' : 'Тегін';
+  document.getElementById('trialBlock').style.display = isPaid ? 'none' : 'block';
+  document.getElementById('kaspiPayBlock').style.display = isPaid ? 'block' : 'none';
+  document.getElementById('paymentBlock').style.display = 'none';
 
   showScreen('screen-payment');
 }
@@ -700,10 +654,10 @@ function doCardPay() {
   const cvv = document.getElementById('cardCvv').value;
   const name = document.getElementById('cardName').value.trim();
 
-  if (num.length < 16) { alert('Введите полный номер карты (16 цифр)'); return; }
-  if (!exp || exp.length < 5) { alert('Введите срок действия карты (ММ/ГГ)'); return; }
-  if (cvv.length < 3) { alert('Введите CVV/CVC код'); return; }
-  if (!name) { alert('Введите имя держателя карты'); return; }
+  if (num.length < 16) { alert('Карта нөмірін толық енгізіңіз (16 сан)'); return; }
+  if (!exp || exp.length < 5) { alert('Карта жарамдылық мерзімін енгізіңіз (АА/ЖЖ)'); return; }
+  if (cvv.length < 3) { alert('CVV/CVC кодын енгізіңіз'); return; }
+  if (!name) { alert('Карта иесінің атын енгізіңіз'); return; }
 
   processPayment();
 }
@@ -723,11 +677,11 @@ function processPayment() {
 async function doLogin() {
   const email = document.getElementById('loginEmail').value.trim();
   const pass = document.getElementById('loginPassword').value;
-  if (!email) { alert('Введите email'); return; }
-  if (!pass) { alert('Введите пароль'); return; }
+  if (!email) { alert('Email енгізіңіз'); return; }
+  if (!pass) { alert('Құпия сөзді енгізіңіз'); return; }
 
   const btn = document.querySelector('#screen-login .btn-full');
-  btn.innerHTML = '<span class="spinner"></span> Входим...';
+  btn.innerHTML = '<span class="spinner"></span> Кіруде...';
   btn.disabled = true;
 
   try {
@@ -738,24 +692,24 @@ async function doLogin() {
     });
     const data = await r.json();
     if (!r.ok) {
-      btn.innerHTML = 'Войти';
+      btn.innerHTML = 'Кіру';
       btn.disabled = false;
-      return alert(data.error || 'Ошибка входа');
+      return alert(data.error || 'Кіру қатесі');
     }
     localStorage.setItem('st_token', data.token);
     localStorage.setItem('st_user', JSON.stringify(data.user));
     window.location.href = 'ai-targetolog-app.html';
   } catch(e) {
-    btn.innerHTML = 'Войти';
+    btn.innerHTML = 'Кіру';
     btn.disabled = false;
-    alert('Ошибка соединения');
+    alert('Байланыс қатесі');
   }
 }
 
 function doForgot() {
   const email = document.getElementById('forgotEmail').value.trim();
-  if (!email) { alert('Введите email'); return; }
-  alert(`Ссылка для сброса пароля отправлена на ${email}`);
+  if (!email) { alert('Email енгізіңіз'); return; }
+  alert(`Құпия сөзді қалпына келтіру сілтемесі ${email} мекенжайына жіберілді`);
   showScreen('screen-login');
 }
 

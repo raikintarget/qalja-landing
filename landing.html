@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="kk">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SmartTarget AI — AI ведёт рекламу. Вы видите результат.</title>
-<meta name="description" content="AI-таргетолог для Meta Ads. Автоматическая оптимизация, ежедневные отчёты, масштабирование победителей. Без ручной работы.">
+<title data-i18n-title="page-title">SmartTarget AI — AI жарнаманы жүргізеді. Сіз нәтижені көресіз.</title>
+<meta name="description" content="Meta Ads үшін AI-таргетолог. Автоматты оңтайландыру, күнделікті есептер, жеңімпаздарды масштабтау. Қолмен жұмыссыз.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#0E0D0B;--surface:#181613;--surface-2:#221F19;--line:#2F2A22;
@@ -28,7 +28,7 @@ body::before{content:"";position:fixed;inset:0;background-image:url("data:image/
 /* ── NAV ── */
 .nav{position:fixed;top:0;left:0;right:0;z-index:100;height:64px;display:flex;align-items:center;padding:0 clamp(16px,4vw,48px);background:rgba(14,13,11,.85);backdrop-filter:blur(20px);border-bottom:1px solid transparent;transition:border-color .3s}
 .nav.scrolled{border-bottom-color:var(--line)}
-.nav-brand{display:flex;align-items:center;gap:9px;font-family:"Unbounded";font-weight:700;font-size:15px;color:var(--gold-soft);flex:none}
+.nav-brand{display:flex;align-items:center;gap:9px;font-family:"Montserrat";font-weight:700;font-size:15px;color:var(--gold-soft);flex:none}
 .nav-brand .dot{width:9px;height:9px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px rgba(217,164,65,.2),0 0 12px rgba(217,164,65,.4);animation:pulse-dot 2s infinite}
 @keyframes pulse-dot{0%,100%{box-shadow:0 0 0 4px rgba(217,164,65,.2),0 0 12px rgba(217,164,65,.4)}50%{box-shadow:0 0 0 8px rgba(217,164,65,.08),0 0 20px rgba(217,164,65,.25)}}
 .nav-links{display:flex;align-items:center;gap:4px;margin-left:32px;flex:1}
@@ -38,7 +38,7 @@ body::before{content:"";position:fixed;inset:0;background-image:url("data:image/
 .nav-actions{display:flex;align-items:center;gap:8px;margin-left:auto;flex:none}
 .btn-ghost{appearance:none;cursor:pointer;background:transparent;border:1px solid var(--line);border-radius:9px;padding:8px 16px;font-family:"Manrope";font-size:13.5px;color:var(--text-dim);transition:.15s}
 .btn-ghost:hover{color:var(--text);border-color:var(--gold-dim)}
-.btn-primary{appearance:none;cursor:pointer;background:linear-gradient(135deg,#E8B84B,var(--gold),#C4892A);border:none;border-radius:9px;padding:9px 18px;font-family:"Unbounded";font-weight:600;font-size:12px;color:#1a1104;transition:filter .15s,transform .1s;box-shadow:0 4px 20px rgba(217,164,65,.3)}
+.btn-primary{appearance:none;cursor:pointer;background:linear-gradient(135deg,#E8B84B,var(--gold),#C4892A);border:none;border-radius:9px;padding:9px 18px;font-family:"Montserrat";font-weight:600;font-size:12px;color:#1a1104;transition:filter .15s,transform .1s;box-shadow:0 4px 20px rgba(217,164,65,.3)}
 .btn-primary:hover{filter:brightness(1.08);transform:translateY(-1px)}
 .btn-primary:active{transform:translateY(0)}
 
@@ -49,18 +49,18 @@ body::before{content:"";position:fixed;inset:0;background-image:url("data:image/
 .hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(217,164,65,.08);border:1px solid rgba(217,164,65,.25);border-radius:99px;padding:7px 14px;font-size:12px;color:var(--gold-soft);margin-bottom:28px;font-weight:600}
 .hero-badge .live-dot{width:6px;height:6px;border-radius:50%;background:var(--ok);animation:blink 1.5s infinite}
 @keyframes blink{50%{opacity:.2}}
-.hero h1{font-family:"Unbounded";font-weight:800;font-size:clamp(36px,7vw,80px);line-height:1.0;letter-spacing:-.03em;margin-bottom:12px}
+.hero h1{font-family:"Montserrat";font-weight:800;font-size:clamp(36px,7vw,80px);line-height:1.0;letter-spacing:-.03em;margin-bottom:12px}
 .hero h1 .line2{display:block;color:var(--gold-soft);background:linear-gradient(90deg,var(--gold),var(--gold-soft),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .hero-sub{font-size:clamp(15px,2vw,19px);color:var(--text-dim);line-height:1.65;max-width:58ch;margin:0 auto 36px;font-weight:500}
 .hero-sub b{color:var(--text)}
 .hero-ctas{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:52px}
-.btn-hero-main{appearance:none;cursor:pointer;background:linear-gradient(135deg,#EBC155,var(--gold),#B8821F);border:none;border-radius:12px;padding:16px 28px;font-family:"Unbounded";font-weight:700;font-size:14px;color:#130e01;transition:filter .15s,transform .12s,box-shadow .15s;box-shadow:0 6px 30px rgba(217,164,65,.4)}
+.btn-hero-main{appearance:none;cursor:pointer;background:linear-gradient(135deg,#EBC155,var(--gold),#B8821F);border:none;border-radius:12px;padding:16px 28px;font-family:"Montserrat";font-weight:700;font-size:14px;color:#130e01;transition:filter .15s,transform .12s,box-shadow .15s;box-shadow:0 6px 30px rgba(217,164,65,.4)}
 .btn-hero-main:hover{filter:brightness(1.06);transform:translateY(-2px);box-shadow:0 10px 40px rgba(217,164,65,.5)}
 .btn-hero-secondary{appearance:none;cursor:pointer;background:transparent;border:1px solid rgba(242,236,221,.2);border-radius:12px;padding:15px 26px;font-family:"Manrope";font-weight:600;font-size:15px;color:var(--text);transition:.15s}
 .btn-hero-secondary:hover{border-color:var(--gold-dim);background:rgba(217,164,65,.04)}
 .hero-stats{display:flex;align-items:center;gap:clamp(16px,4vw,40px);flex-wrap:wrap;justify-content:center;padding:22px clamp(20px,4vw,40px);background:var(--surface);border:1px solid var(--line);border-radius:16px;backdrop-filter:blur(10px)}
 .hero-stat{text-align:center}
-.hero-stat .val{font-family:"Unbounded";font-weight:700;font-size:clamp(18px,3vw,26px);color:var(--gold-soft);display:block}
+.hero-stat .val{font-family:"Montserrat";font-weight:700;font-size:clamp(18px,3vw,26px);color:var(--gold-soft);display:block}
 .hero-stat .lbl{font-size:11.5px;color:var(--text-dim);margin-top:3px}
 .hero-stat-sep{width:1px;height:36px;background:var(--line)}
 @media(max-width:480px){.hero-stat-sep{display:none}.hero-stats{gap:20px}}
@@ -68,8 +68,8 @@ body::before{content:"";position:fixed;inset:0;background-image:url("data:image/
 /* ── SECTION BASE ── */
 section{position:relative;padding:clamp(60px,10vw,110px) clamp(16px,5vw,64px)}
 .container{max-width:1140px;margin:0 auto}
-.section-eyebrow{font-family:"Unbounded";font-weight:500;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:14px}
-.section-title{font-family:"Unbounded";font-weight:700;font-size:clamp(26px,4.5vw,46px);line-height:1.1;letter-spacing:-.02em;margin-bottom:16px}
+.section-eyebrow{font-family:"Montserrat";font-weight:500;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:14px}
+.section-title{font-family:"Montserrat";font-weight:700;font-size:clamp(26px,4.5vw,46px);line-height:1.1;letter-spacing:-.02em;margin-bottom:16px}
 .section-sub{font-size:clamp(14px,1.8vw,17px);color:var(--text-dim);line-height:1.65;max-width:54ch}
 .section-header{margin-bottom:clamp(36px,6vw,60px)}
 .text-center{text-align:center}
@@ -85,9 +85,9 @@ section{position:relative;padding:clamp(60px,10vw,110px) clamp(16px,5vw,64px)}
 .step{padding:32px 28px;position:relative;background:var(--surface);border:1px solid var(--line);border-radius:18px;transition:border-color .3s,transform .3s}
 .step:nth-child(2){margin-top:0}
 .step.reveal-up:not(.visible){transform:translateY(30px);opacity:0}
-.step .step-num{font-family:"Unbounded";font-weight:700;font-size:11px;letter-spacing:.15em;color:var(--gold-dim);margin-bottom:16px;text-transform:uppercase}
+.step .step-num{font-family:"Montserrat";font-weight:700;font-size:11px;letter-spacing:.15em;color:var(--gold-dim);margin-bottom:16px;text-transform:uppercase}
 .step .step-icon{width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,rgba(217,164,65,.12),rgba(217,164,65,.04));border:1px solid rgba(217,164,65,.2);display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:18px}
-.step h3{font-family:"Unbounded";font-weight:600;font-size:18px;margin-bottom:8px;line-height:1.2}
+.step h3{font-family:"Montserrat";font-weight:600;font-size:18px;margin-bottom:8px;line-height:1.2}
 .step p{font-size:14px;color:var(--text-dim);line-height:1.65}
 .step:hover{border-color:var(--gold-dim);transform:translateY(-4px)}
 
@@ -104,7 +104,7 @@ section{position:relative;padding:clamp(60px,10vw,110px) clamp(16px,5vw,64px)}
 .feat-icon.bad{background:rgba(204,106,92,.1);border:1px solid rgba(204,106,92,.2)}
 .feat-icon.info{background:rgba(123,167,201,.1);border:1px solid rgba(123,167,201,.2)}
 .feat-icon.warn{background:rgba(224,164,54,.1);border:1px solid rgba(224,164,54,.2)}
-.feat h4{font-family:"Unbounded";font-weight:600;font-size:15px;margin-bottom:8px;line-height:1.25}
+.feat h4{font-family:"Montserrat";font-weight:600;font-size:15px;margin-bottom:8px;line-height:1.25}
 .feat p{font-size:13.5px;color:var(--text-dim);line-height:1.65}
 
 /* ── PRICING ── */
@@ -116,11 +116,11 @@ section{position:relative;padding:clamp(60px,10vw,110px) clamp(16px,5vw,64px)}
 @media(max-width:860px){.plan.recommended{transform:none}}
 .plan.reveal-up:not(.visible){transform:translateY(28px);opacity:0}
 .plan.recommended.reveal-up:not(.visible){transform:scale(1.02) translateY(28px)}
-.plan-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--gold);color:#1a1104;font-family:"Unbounded";font-weight:700;font-size:10px;padding:5px 14px;border-radius:99px;white-space:nowrap}
-.plan-name{font-family:"Unbounded";font-weight:700;font-size:17px;margin-bottom:6px}
+.plan-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--gold);color:#1a1104;font-family:"Montserrat";font-weight:700;font-size:10px;padding:5px 14px;border-radius:99px;white-space:nowrap}
+.plan-name{font-family:"Montserrat";font-weight:700;font-size:17px;margin-bottom:6px}
 .plan-desc{font-size:13px;color:var(--text-dim);margin-bottom:24px;line-height:1.55}
 .plan-price{display:flex;align-items:baseline;gap:5px;margin-bottom:6px}
-.plan-price .amount{font-family:"Unbounded";font-weight:800;font-size:32px;color:var(--gold-soft)}
+.plan-price .amount{font-family:"Montserrat";font-weight:800;font-size:32px;color:var(--gold-soft)}
 .plan-price .cur{font-family:"JetBrains Mono";font-size:14px;color:var(--text-dim)}
 .plan-price .per{font-size:12px;color:var(--muted);margin-left:2px}
 .plan-note{font-size:11.5px;color:var(--muted);margin-bottom:22px}
@@ -130,7 +130,7 @@ section{position:relative;padding:clamp(60px,10vw,110px) clamp(16px,5vw,64px)}
 .plan-features li::before{content:"✓";color:var(--ok);font-weight:700;flex:none;margin-top:1px}
 .plan-features li.neg{color:var(--muted)}
 .plan-features li.neg::before{content:"—";color:var(--muted)}
-.btn-plan{appearance:none;cursor:pointer;width:100%;padding:13px;border-radius:11px;font-family:"Unbounded";font-weight:600;font-size:13px;transition:.15s;text-align:center;display:block}
+.btn-plan{appearance:none;cursor:pointer;width:100%;padding:13px;border-radius:11px;font-family:"Montserrat";font-weight:600;font-size:13px;transition:.15s;text-align:center;display:block}
 .btn-plan.primary{background:linear-gradient(135deg,#EBC155,var(--gold));border:none;color:#1a1104;box-shadow:0 4px 16px rgba(217,164,65,.3)}
 .btn-plan.primary:hover{filter:brightness(1.06);transform:translateY(-1px)}
 .btn-plan.ghost{background:transparent;border:1px solid var(--line);color:var(--text)}
@@ -167,7 +167,7 @@ section{position:relative;padding:clamp(60px,10vw,110px) clamp(16px,5vw,64px)}
 .cta-section{padding:clamp(60px,10vw,100px) clamp(16px,5vw,64px)}
 .cta-box{background:linear-gradient(135deg,rgba(217,164,65,.1) 0%,rgba(217,164,65,.04) 50%,rgba(134,179,117,.06) 100%);border:1px solid rgba(217,164,65,.3);border-radius:24px;padding:clamp(40px,6vw,72px);text-align:center;position:relative;overflow:hidden}
 .cta-box::before{content:"";position:absolute;top:-50%;left:-20%;width:60%;height:200%;background:radial-gradient(ellipse,rgba(217,164,65,.08) 0%,transparent 60%);pointer-events:none}
-.cta-box h2{font-family:"Unbounded";font-weight:800;font-size:clamp(24px,4vw,42px);line-height:1.1;margin-bottom:14px}
+.cta-box h2{font-family:"Montserrat";font-weight:800;font-size:clamp(24px,4vw,42px);line-height:1.1;margin-bottom:14px}
 .cta-box p{font-size:16px;color:var(--text-dim);margin-bottom:32px;max-width:48ch;margin-left:auto;margin-right:auto}
 .cta-badges{display:flex;align-items:center;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:20px}
 .cta-badge{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-dim)}
@@ -178,10 +178,10 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:48px c
 .footer-grid{display:grid;grid-template-columns:1.8fr 1fr 1fr 1fr;gap:32px;margin-bottom:40px}
 @media(max-width:720px){.footer-grid{grid-template-columns:1fr 1fr;gap:24px}}
 @media(max-width:440px){.footer-grid{grid-template-columns:1fr}}
-.footer-brand{font-family:"Unbounded";font-weight:700;font-size:15px;color:var(--gold-soft);display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.footer-brand{font-family:"Montserrat";font-weight:700;font-size:15px;color:var(--gold-soft);display:flex;align-items:center;gap:8px;margin-bottom:12px}
 .footer-brand .dot{width:8px;height:8px;border-radius:50%;background:var(--gold)}
 .footer-desc{font-size:13px;color:var(--text-dim);line-height:1.65;max-width:28ch}
-.footer-heading{font-family:"Unbounded";font-weight:600;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-dim);margin-bottom:14px}
+.footer-heading{font-family:"Montserrat";font-weight:600;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-dim);margin-bottom:14px}
 .footer-links{list-style:none;display:flex;flex-direction:column;gap:8px}
 .footer-links a{font-size:13.5px;color:var(--text-dim);transition:.15s}
 .footer-links a:hover{color:var(--gold-soft)}
@@ -222,6 +222,10 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:48px c
   *{animation:none!important;transition:none!important}
   .reveal-up:not(.visible){opacity:1;transform:none!important}
 }
+
+/* ── LANG TOGGLE ── */
+.lang-toggle{appearance:none;cursor:pointer;background:none;border:1px solid var(--line);border-radius:6px;padding:4px 9px;font-size:11px;font-weight:700;color:var(--text-dim);font-family:"Manrope";transition:.15s}
+.lang-toggle.active{background:var(--gold);border-color:var(--gold);color:#000}
 </style>
 </head>
 <body>
@@ -232,27 +236,31 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:48px c
     <span class="dot"></span>SmartTarget AI
   </a>
   <div class="nav-links">
-    <a href="#features">Возможности</a>
-    <a href="#pricing">Тарифы</a>
+    <a href="#features" data-i18n="nav-features">Мүмкіндіктер</a>
+    <a href="#pricing" data-i18n="nav-pricing">Тарифтер</a>
     <a href="#demo">Demo</a>
-    <a href="#faq">FAQ</a>
+    <a href="#faq" data-i18n="nav-faq">Сұрақтар</a>
   </div>
   <div class="nav-actions">
-    <a href="auth.html?mode=login" class="btn-ghost" style="display:none" id="loginBtn">Войти</a>
-    <a href="auth.html?mode=login" class="btn-ghost">Войти</a>
-    <a href="auth.html?plan=free" class="btn-primary">Начать бесплатно</a>
+    <div style="display:flex;gap:4px;align-items:center;margin-right:8px">
+      <button onclick="setLang('kk')" id="lBtnKk" class="lang-toggle active">ҚАЗ</button>
+      <button onclick="setLang('ru')" id="lBtnRu" class="lang-toggle">RU</button>
+    </div>
+    <a href="auth.html?mode=login" class="btn-ghost" style="display:none" id="loginBtn" data-i18n="nav-login">Кіру</a>
+    <a href="auth.html?mode=login" class="btn-ghost" data-i18n="nav-login">Кіру</a>
+    <a href="auth.html?plan=free" class="btn-primary" data-i18n="nav-signup">Тегін бастау</a>
   </div>
   <button class="nav-mobile-btn" id="mobileToggle" onclick="toggleMobile()">☰</button>
 </nav>
 
 <div class="mobile-menu" id="mobileMenu">
-  <a href="#features" onclick="closeMobile()">Возможности</a>
-  <a href="#pricing" onclick="closeMobile()">Тарифы</a>
+  <a href="#features" onclick="closeMobile()" data-i18n="nav-features">Мүмкіндіктер</a>
+  <a href="#pricing" onclick="closeMobile()" data-i18n="nav-pricing">Тарифтер</a>
   <a href="#demo" onclick="closeMobile()">Demo</a>
-  <a href="#faq" onclick="closeMobile()">FAQ</a>
+  <a href="#faq" onclick="closeMobile()" data-i18n="nav-faq">Сұрақтар</a>
   <div class="sep"></div>
-  <a href="auth.html?mode=login">Войти</a>
-  <a href="auth.html?plan=free" style="color:var(--gold-soft);font-weight:700">→ Начать бесплатно</a>
+  <a href="auth.html?mode=login" data-i18n="nav-login">Кіру</a>
+  <a href="auth.html?plan=free" style="color:var(--gold-soft);font-weight:700" data-i18n="nav-signup-mobile">→ Тегін бастау</a>
 </div>
 
 <!-- ══════════════ HERO ══════════════ -->
@@ -262,47 +270,47 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:48px c
 
   <div class="hero-badge">
     <span class="live-dot"></span>
-    Работает прямо сейчас для бизнесов КЗ и РФ
+    <span data-i18n="hero-badge">Қазақстан бизнесі үшін жұмыс жасайды</span>
   </div>
 
   <h1>
-    AI ведёт рекламу.<br>
-    <span class="line2">Вы видите результат.</span>
+    <span data-i18n="hero-h1-line1">AI жарнаманы жүргізеді.</span><br>
+    <span class="line2" data-i18n="hero-h1-line2">Сіз нәтижені көресіз.</span>
   </h1>
 
-  <p class="hero-sub">
-    <b>Автоматическая оптимизация Meta Ads</b> каждое утро — без вас. AI отключает вампиров, масштабирует победителей и присылает <b>ежедневный отчёт в Telegram.</b>
+  <p class="hero-sub" data-i18n-html="hero-sub">
+    <b>Meta Ads-ты күн сайын таңертең автоматты оңтайландырады</b> — сіздің қатысуыңызсыз. AI вампирлерді өшіреді, жеңімпаздарды масштабтайды және <b>Telegram-ға күнделікті есеп жібереді.</b>
   </p>
 
   <div class="hero-ctas">
     <a href="auth.html?plan=ai">
-      <button class="btn-hero-main">🤖 Подключить AI-таргетолога — 49 990 ₸</button>
+      <button class="btn-hero-main" data-i18n="hero-cta-main">🤖 AI-таргетолог қосу — 49 990 ₸</button>
     </a>
     <a href="#demo">
-      <button class="btn-hero-secondary">▶ Смотреть как работает AI</button>
+      <button class="btn-hero-secondary" data-i18n="hero-cta-secondary">▶ AI қалай жұмыс жасайтынын көру</button>
     </a>
   </div>
-  <p style="font-size:12.5px;color:var(--muted);margin-top:-16px;margin-bottom:0">2 дня бесплатно · потом 49 990 ₸/мес · отмена в любой момент</p>
+  <p style="font-size:12.5px;color:var(--muted);margin-top:-16px;margin-bottom:0" data-i18n="hero-trial-note">2 күн тегін · содан кейін 49 990 ₸/ай · кез келген уақытта тоқтату</p>
 
   <div class="hero-stats">
     <div class="hero-stat">
       <span class="val" id="statCampaigns">47</span>
-      <span class="lbl">кампаний оптимизировано сегодня</span>
+      <span class="lbl" data-i18n="stat-campaigns">кампания бүгін оңтайландырылды</span>
     </div>
     <div class="hero-stat-sep"></div>
     <div class="hero-stat">
       <span class="val" id="statCpl">38%</span>
-      <span class="lbl">среднее снижение CPL</span>
+      <span class="lbl" data-i18n="stat-cpl">CPL орташа төмендеуі</span>
     </div>
     <div class="hero-stat-sep"></div>
     <div class="hero-stat">
       <span class="val" id="statClients">12</span>
-      <span class="lbl">клиентов онлайн</span>
+      <span class="lbl" data-i18n="stat-clients">клиент онлайн</span>
     </div>
     <div class="hero-stat-sep"></div>
     <div class="hero-stat">
       <span class="val">$1.90</span>
-      <span class="lbl">средний CPL по всем нишам</span>
+      <span class="lbl" data-i18n="stat-avg-cpl">барлық нишалар бойынша орташа CPL</span>
     </div>
   </div>
 </section>
@@ -311,60 +319,32 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:48px c
 <section id="demo" class="bg-surface">
   <div class="container">
     <div class="section-header text-center">
-      <div class="section-eyebrow reveal-up">Как это работает</div>
-      <h2 class="section-title reveal-up reveal-delay-1">Три шага — и реклама<br>работает без вас</h2>
-      <p class="section-sub reveal-up reveal-delay-2">Не нужен таргетолог. Не нужно следить за кабинетом. AI делает всё сам — вы только получаете заявки.</p>
+      <div class="section-eyebrow reveal-up" data-i18n="how-eyebrow">Қалай жұмыс жасайды</div>
+      <h2 class="section-title reveal-up reveal-delay-1" data-i18n-html="how-title">Үш қадам — және жарнама<br>сіздің қатысуыңызсыз жұмыс жасайды</h2>
+      <p class="section-sub reveal-up reveal-delay-2" data-i18n="how-sub">Таргетолог қажет емес. Кабинетті бақылау қажет емес. AI бәрін өзі жасайды — сіз тек өтінімдерді аласыз.</p>
     </div>
 
     <div class="steps">
       <div class="step reveal-up reveal-delay-1">
-        <div class="step-num">Шаг 01</div>
+        <div class="step-num" data-i18n="step1-num">Қадам 01</div>
         <div class="step-icon">🔗</div>
-        <h3>Подключите Meta Ads кабинет</h3>
-        <p>Выдаёте доступ за 5 минут по нашей инструкции. Никакие пароли нам не нужны — только токен рекламного кабинета.</p>
+        <h3 data-i18n="step1-title">Meta Ads кабинетін қосыңыз</h3>
+        <p data-i18n="step1-desc">Нұсқаулығымыз бойынша 5 минутта қол жеткізу беріңіз. Бізге ешқандай құпия сөз қажет емес — тек жарнама кабинетінің токені.</p>
       </div>
       <div class="step reveal-up reveal-delay-2">
-        <div class="step-num">Шаг 02</div>
+        <div class="step-num" data-i18n="step2-num">Қадам 02</div>
         <div class="step-icon">🤖</div>
-        <h3>AI анализирует кампании каждое утро</h3>
-        <p>Ровно в 08:00 AI проверяет все рекламные связки — CPL, ROAS, фазу обучения. Принимает решения и применяет их автоматически.</p>
+        <h3 data-i18n="step2-title">AI кампанияларды күн сайын таңертең талдайды</h3>
+        <p data-i18n="step2-desc">Дәл 08:00-де AI барлық жарнамалық байланыстарды тексереді — CPL, ROAS, оқыту фазасы. Шешімдер қабылдап, оларды автоматты түрде қолданады.</p>
       </div>
       <div class="step reveal-up reveal-delay-3">
-        <div class="step-num">Шаг 03</div>
+        <div class="step-num" data-i18n="step3-num">Қадам 03</div>
         <div class="step-icon">📩</div>
-        <h3>Получаете отчёт в Telegram</h3>
-        <p>Ежедневно — что сделал AI, какие кампании победители, что отключено и почему. Понятно, как новости.</p>
+        <h3 data-i18n="step3-title">Telegram-ға есеп аласыз</h3>
+        <p data-i18n="step3-desc">Күн сайын — AI не жасады, қандай кампаниялар жеңімпаз, не өшірілді және неліктен. Жаңалықтар сияқты түсінікті.</p>
       </div>
     </div>
 
-    <!-- Telegram preview -->
-    <div id="demo" style="margin-top:52px;display:flex;justify-content:center">
-      <div style="background:var(--surface-2);border:1px solid var(--line);border-radius:20px;padding:16px;max-width:380px;width:100%">
-        <div style="display:flex;align-items:center;gap:10px;padding-bottom:12px;border-bottom:1px solid var(--line);margin-bottom:14px">
-          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#1a3a5c,#0d6efd22);border:2px solid #0d6efd55;display:flex;align-items:center;justify-content:center;font-size:18px">🤖</div>
-          <div>
-            <div style="font-family:'Unbounded';font-size:12px;font-weight:700;color:var(--gold-soft)">SmartTarget AI</div>
-            <div style="font-size:11px;color:var(--ok)">● онлайн</div>
-          </div>
-          <div style="margin-left:auto;font-size:10px;color:var(--muted);font-family:'JetBrains Mono'">08:03</div>
-        </div>
-        <div style="background:var(--surface);border:1px solid var(--line);border-radius:6px 14px 14px 14px;padding:13px 14px;font-size:12.5px;line-height:1.7;color:var(--text);white-space:pre-wrap">📊 <b>Отчёт за 25 июня</b>
-
-✅ Масштабировал: <b>Ботокс Алматы</b>
-   +30% бюджет → CPL был $2.40
-
-❌ Отключил: <b>Контурная пластика</b>
-   0 заявок за 3 дня, $180 потрачено
-
-🔄 Тест запущен: <b>Лазер 25-34</b>
-   Новая аудитория, жду 3 дня
-
-💰 Итого: <b>$340 → 18 заявок</b>
-   CPL: <span style="color:var(--ok)">$18.90</span> (↓ на 22% vs прошлая нед.)
-
-<span style="color:var(--muted)">Следующий анализ: завтра 08:00</span></div>
-      </div>
-    </div>
   </div>
 </section>
 
@@ -372,41 +352,41 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:48px c
 <section id="features">
   <div class="container">
     <div class="section-header">
-      <div class="section-eyebrow reveal-up">Возможности</div>
-      <h2 class="section-title reveal-up reveal-delay-1">Всё что делает таргетолог —<br>только без выходных</h2>
-      <p class="section-sub reveal-up reveal-delay-2">AI работает 24/7, не болеет, не уходит в отпуск и не просит повышения.</p>
+      <div class="section-eyebrow reveal-up" data-i18n="feat-eyebrow">Мүмкіндіктер</div>
+      <h2 class="section-title reveal-up reveal-delay-1" data-i18n-html="feat-title">Таргетолог жасайтынның бәрі —<br>демалыссыз</h2>
+      <p class="section-sub reveal-up reveal-delay-2" data-i18n="feat-sub">AI 24/7 жұмыс жасайды, ауырмайды, демалысқа шықпайды.</p>
     </div>
 
     <div class="features-grid">
       <div class="feat reveal-up reveal-delay-1">
         <div class="feat-icon gold">🌅</div>
-        <h4>Анализ каждое утро в 08:00</h4>
-        <p>AI проверяет все рекламные связки каждое утро. Никаких пропусков — даже в праздники и выходные дни.</p>
+        <h4 data-i18n="feat1-title">Күн сайын таңертең 08:00-де талдау</h4>
+        <p data-i18n="feat1-desc">AI барлық жарнамалық байланыстарды күн сайын таңертең тексереді. Мереке және демалыс күндері де ешқандай үзіліссіз.</p>
       </div>
       <div class="feat reveal-up reveal-delay-2">
         <div class="feat-icon bad">🧛</div>
-        <h4>Отключает вампиров</h4>
-        <p>Кампании с высоким CPL и нулём заявок? AI их находит и отключает автоматически. Деньги перестают утекать.</p>
+        <h4 data-i18n="feat2-title">Вампирлерді өшіреді</h4>
+        <p data-i18n="feat2-desc">Жоғары CPL және нөлдік өтінімі бар кампаниялар? AI оларды тауып, автоматты өшіреді. Ақша ағып кетуін тоқтатады.</p>
       </div>
       <div class="feat reveal-up reveal-delay-3">
         <div class="feat-icon ok">🚀</div>
-        <h4>Масштабирует победителей</h4>
-        <p>Если кампания показывает отличный CPL — AI автоматически увеличивает бюджет на 20–30%, сохраняя фазу обучения.</p>
+        <h4 data-i18n="feat3-title">Жеңімпаздарды масштабтайды</h4>
+        <p data-i18n="feat3-desc">Егер кампания тамаша CPL көрсетсе — AI оқыту фазасын сақтай отырып, бюджетті автоматты 20–30%-ға арттырады.</p>
       </div>
       <div class="feat reveal-up reveal-delay-1">
         <div class="feat-icon info">📩</div>
-        <h4>Telegram-отчёты каждый день</h4>
-        <p>Ежедневный отчёт: что сделал AI, сколько потрачено, сколько заявок. Читается за 30 секунд.</p>
+        <h4 data-i18n="feat4-title">Telegram-есептер күн сайын</h4>
+        <p data-i18n="feat4-desc">Күнделікті есеп: AI не жасады, қанша жұмсалды, қанша өтінім келді. 30 секундта оқылады.</p>
       </div>
       <div class="feat reveal-up reveal-delay-2">
         <div class="feat-icon warn">🧪</div>
-        <h4>Автоматические A/B тесты</h4>
-        <p>AI самостоятельно тестирует новые аудитории и форматы. Всегда есть резерв роста — следующий победитель уже тестируется.</p>
+        <h4 data-i18n="feat5-title">Автоматты A/B тесттер</h4>
+        <p data-i18n="feat5-desc">AI жаңа аудиториялар мен форматтарды өздігінен тестілейді. Әрқашан өсу резерві бар — келесі жеңімпаз қазірдің өзінде тестілінуде.</p>
       </div>
       <div class="feat reveal-up reveal-delay-3">
         <div class="feat-icon gold">🧠</div>
-        <h4>Уважает фазу обучения Meta</h4>
-        <p>Самая частая ошибка — ломать алгоритм ежедневными правками. AI знает это и действует аккуратно, без сброса обучения.</p>
+        <h4 data-i18n="feat6-title">Meta оқыту фазасын құрметтейді</h4>
+        <p data-i18n="feat6-desc">Ең жиі қате — күнделікті түзетулермен алгоритмді бұзу. AI мұны біледі және оқытуды қайта іске қоспай, абайлап әрекет етеді.</p>
       </div>
     </div>
   </div>
@@ -416,89 +396,91 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:48px c
 <section id="pricing" class="pricing-section bg-gradient">
   <div class="container">
     <div class="section-header text-center">
-      <div class="section-eyebrow reveal-up">Тарифы</div>
-      <h2 class="section-title reveal-up reveal-delay-1">Прозрачные цены,<br>без скрытых доплат</h2>
-      <p class="section-sub reveal-up reveal-delay-2">Первые 2 дня бесплатно на любом тарифе. Потом — автоматическое продление. Отменить можно в любой момент.</p>
+      <div class="section-eyebrow reveal-up" data-i18n="pricing-eyebrow">Тарифтер</div>
+      <h2 class="section-title reveal-up reveal-delay-1" data-i18n-html="pricing-title">Ашық бағалар,<br>жасырын төлемдерсіз</h2>
+      <p class="section-sub reveal-up reveal-delay-2" data-i18n="pricing-sub">Кез келген тарифте алғашқы 2 күн тегін. Содан кейін — автоматты жаңарту. Кез келген уақытта тоқтатуға болады.</p>
     </div>
 
     <div class="pricing-grid">
 
-      <!-- AI Plan — ХИТ ПРОДАЖ -->
+      <!-- AI Таргетолог — ХИТ -->
       <div class="plan recommended reveal-up reveal-delay-1">
-        <div class="plan-badge">🔥 Хит продаж</div>
-        <div class="plan-name" style="color:var(--gold-soft)">AI-таргетолог</div>
-        <div class="plan-desc">AI сам ведёт рекламу. Вы только наблюдаете за результатом.</div>
+        <div class="plan-badge">🔥 Хит</div>
+        <div class="plan-name" style="color:var(--gold-soft)">AI Таргетолог</div>
+        <div class="plan-desc">AI жарнаманы өзі жүргізеді. Сіз тек нәтижені бақылайсыз.</div>
         <div class="plan-price">
           <span class="amount">49 990</span>
           <span class="cur">₸</span>
-          <span class="per">/мес</span>
+          <span class="per">/ай</span>
         </div>
-        <div class="plan-note">≈ $110 · 2 дня бесплатно</div>
+        <div class="plan-note">2 күн тегін · кез келген уақытта тоқтату</div>
         <div class="plan-divider"></div>
         <ul class="plan-features">
-          <li>До 15 активных кампаний</li>
-          <li>Анализ и оптимизация каждое утро в 08:00</li>
-          <li>Автоматическое отключение вампиров</li>
-          <li>Масштабирование победителей +30%</li>
-          <li>Telegram-отчёт каждый день</li>
-          <li>A/B тестирование аудиторий</li>
-          <li>Защита фазы обучения Meta</li>
-          <li>Без ручной работы — AI делает всё сам</li>
+          <li>AI кампания Builder</li>
+          <li>Ad Copy генератор</li>
+          <li>Автопилот + оңтайландыру</li>
+          <li>Күнделікті Telegram есеп (08:00)</li>
+          <li>PDF/CSV Export</li>
+          <li>Creative Analyzer</li>
+          <li>Pixel Assistant</li>
+          <li>Landing анализ</li>
         </ul>
-        <a href="auth.html?plan=ai" class="btn-plan primary" style="font-size:14px;padding:16px">Подключить AI-таргетолога →</a>
+        <a href="https://wa.me/87016153305?text=%22AI+%D0%A2%D0%B0%D1%80%D0%B3%D0%B5%D1%82%D0%BE%D0%BB%D0%BE%D0%B3+%E2%80%94+49+990+%D1%82%D0%B3%2F%D0%B0%D0%B9%22+%D1%82%D0%B0%D1%80%D0%B8%D1%84%D1%96%D0%BD%D0%B5+%D3%A9%D1%82%D0%BA%D1%96%D0%BC+%D0%BA%D0%B5%D0%BB%D0%B5%D0%B4%D1%96" target="_blank" class="btn-plan primary" style="font-size:14px;padding:16px">AI Таргетолог қосу →</a>
       </div>
 
-      <!-- Expert Plan -->
+      <!-- Эксперт -->
       <div class="plan reveal-up reveal-delay-2">
-        <div class="plan-name">Expert-тариф</div>
-        <div class="plan-desc">AI + стратег-эксперт + готовые креативы от команды.</div>
+        <div class="plan-name">Эксперт</div>
+        <div class="plan-desc">AI + эксперт таргетолог + дайын креативтер.</div>
         <div class="plan-price">
-          <span class="amount">149 990</span>
+          <span class="amount">150 000</span>
           <span class="cur">₸</span>
-          <span class="per">/мес</span>
+          <span class="per">/ай</span>
         </div>
-        <div class="plan-note">≈ $330 · 2 дня бесплатно</div>
+        <div class="plan-note">AI Таргетолог мүмкіндіктері + қосымша</div>
         <div class="plan-divider"></div>
         <ul class="plan-features">
-          <li>До 30 активных кампаний</li>
-          <li>Всё из AI-тарифа</li>
-          <li>Стратег-эксперт на связи</li>
-          <li>Еженедельный разбор кампаний</li>
-          <li>4 готовых креатива в месяц от команды</li>
-          <li>Приоритетная поддержка 24/7</li>
+          <li>AI Таргетолог мүмкіндіктері</li>
+          <li>Шексіз кампания</li>
+          <li>Lookalike Builder</li>
+          <li>A/B тестілеу</li>
+          <li>Масштаб орталығы</li>
+          <li>Видео скрипт генератор</li>
+          <li>🎨 Айына 5 креатив (таргетологтан)</li>
+          <li>Басымдықты қолдау</li>
         </ul>
-        <a href="auth.html?plan=expert" class="btn-plan ghost">Начать бесплатно →</a>
+        <a href="https://wa.me/87016153305?text=%22%D0%AD%D0%BA%D1%81%D0%BF%D0%B5%D1%80%D1%82+%E2%80%94+150+000+%D1%82%D0%B3%2F%D0%B0%D0%B9%22+%D1%82%D0%B0%D1%80%D0%B8%D1%84%D1%96%D0%BD%D0%B5+%D3%A9%D1%82%D0%BA%D1%96%D0%BC+%D0%BA%D0%B5%D0%BB%D0%B5%D0%B4%D1%96" target="_blank" class="btn-plan ghost">Эксперт қосу →</a>
       </div>
 
-      <!-- Agency Plan -->
+      <!-- Премиум -->
       <div class="plan reveal-up reveal-delay-3">
-        <div class="plan-name">Agency</div>
-        <div class="plan-desc">Для агентств и крупного бизнеса с несколькими кабинетами.</div>
+        <div class="plan-name">Премиум</div>
+        <div class="plan-desc">Бизнесті толық цифрландыру — бір рет төлем.</div>
         <div class="plan-price">
-          <span class="amount">249 990</span>
+          <span class="amount">300 000</span>
           <span class="cur">₸</span>
-          <span class="per">/мес</span>
         </div>
-        <div class="plan-note">≈ $550 · 2 дня бесплатно</div>
+        <div class="plan-note">Бір рет төлем · барлығы кіреді</div>
         <div class="plan-divider"></div>
         <ul class="plan-features">
-          <li>До 100 активных кампаний</li>
-          <li>Несколько рекламных аккаунтов</li>
-          <li>10 готовых креативов в месяц от команды</li>
-          <li>Белая метка (White Label)</li>
-          <li>Командный доступ (до 5 человек)</li>
-          <li>Всё из Expert-тарифа</li>
-          <li>Выделенный аккаунт-менеджер</li>
-          <li>Кастомные интеграции по запросу</li>
+          <li>Эксперт тарифінің бәрі</li>
+          <li>🌐 Сайт жасау</li>
+          <li>🤖 Telegram бот</li>
+          <li>💬 WhatsApp бот</li>
+          <li>📋 Квиз жасау</li>
+          <li>🎨 Айына 10 креатив (таргетологтан)</li>
+          <li>📞 Созвон (онлайн кездесу)</li>
+          <li>Арнайы менеджер</li>
         </ul>
-        <a href="auth.html?plan=agency" class="btn-plan ghost">Начать бесплатно →</a>
+        <a href="https://wa.me/87016153305?text=%22%D0%9F%D1%80%D0%B5%D0%BC%D0%B8%D1%83%D0%BC+%E2%80%94+300+000+%D1%82%D0%B3%22+%D1%82%D0%B0%D1%80%D0%B8%D1%84%D1%96%D0%BD%D0%B5+%D3%A9%D1%82%D0%BA%D1%96%D0%BC+%D0%BA%D0%B5%D0%BB%D0%B5%D0%B4%D1%96" target="_blank" class="btn-plan ghost">Премиум қосу →</a>
       </div>
 
     </div>
 
     <p class="pricing-note">
-      <span>2 дня бесплатно</span> · потом автоматическое списание · отменить можно в любой момент без штрафов
+      AI Таргетолог — 2 күн тегін · Эксперт және Премиум — алдын ала төлеммен
     </p>
+
   </div>
 </section>
 
@@ -506,45 +488,42 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:48px c
 <section class="bg-surface">
   <div class="container">
     <div class="section-header text-center">
-      <div class="section-eyebrow reveal-up">Результаты клиентов</div>
-      <h2 class="section-title reveal-up reveal-delay-1">Реальные бизнесы.<br>Реальные цифры.</h2>
-      <p class="section-sub reveal-up reveal-delay-2">Наши клиенты — малый и средний бизнес Казахстана и России, которые тратили время на рекламу. Теперь они тратят только деньги.</p>
+      <div class="section-eyebrow reveal-up" data-i18n="proof-eyebrow">Клиенттер нәтижесі</div>
+      <h2 class="section-title reveal-up reveal-delay-1" data-i18n-html="proof-title">Нақты бизнес.<br>Нақты сандар.</h2>
+      <p class="section-sub reveal-up reveal-delay-2" data-i18n="proof-sub">Біздің клиенттер — жарнамаға уақыт жұмсаған Қазақстанның шағын және орта бизнесі. Енді олар тек ақша жұмсайды.</p>
     </div>
 
     <div class="testimonials-grid">
 
       <div class="testi reveal-up reveal-delay-1">
-        <p class="testi-quote">Раньше сама следила за рекламой каждый день, меняла бюджеты, писала таргетологу. Теперь просто читаю отчёт в телефоне за завтраком. Заявок стало больше, трачу меньше.</p>
-        <div class="testi-result">↓ CPL с $4.20 → $1.80</div>
+        <p class="testi-quote" data-i18n="testi1-quote">Бұрын күн сайын жарнаманы өзім бақыладым, бюджеттерді өзгерттім, таргетологқа жаздым. Енді таңертең таңғы астымда телефонда есепті оқимын. Өтінімдер көбейді, аз жұмсаймын.</p>
+        <div class="testi-result">↓ CPL $4.20 → $1.80</div>
         <div class="testi-author">
           <div class="testi-avatar">💆</div>
           <div>
-            <span class="testi-name">Айгерим Садыкова</span>
-            <span class="testi-biz">Клиника красоты Aura, Алматы</span>
+            <span class="testi-biz" data-i18n="testi1-biz">Сұлулық клиникасы, Алматы</span>
           </div>
         </div>
       </div>
 
       <div class="testi reveal-up reveal-delay-2">
-        <p class="testi-quote">Мы интернет-магазин детских товаров. Запускали рекламу сами, каждая заявка стоила 2 500 тенге. После SmartTarget AI — меньше 900 тенге. AI сам нашёл аудиторию, которую мы никогда бы не попробовали.</p>
-        <div class="testi-result">↓ Стоимость заявки в 2.8 раза</div>
+        <p class="testi-quote" data-i18n="testi2-quote">Жарнаманы өзіміз іске қостық, әр өтінім 2 500 теңгеге түсті. SmartTarget AI-дан кейін — 900 теңгеден аз. AI біз ешқашан қолданбаған аудиторияны өзі тапты.</p>
+        <div class="testi-result" data-i18n="testi2-result">↓ Өтінім құны 2.8 есе</div>
         <div class="testi-author">
           <div class="testi-avatar">🛒</div>
           <div>
-            <span class="testi-name">Данияр Ергалиев</span>
-            <span class="testi-biz">KidStore.kz, Нур-Султан</span>
+            <span class="testi-biz" data-i18n="testi2-biz">Балалар тауарлары интернет-дүкені</span>
           </div>
         </div>
       </div>
 
       <div class="testi reveal-up reveal-delay-3">
-        <p class="testi-quote">У нас юридические услуги — конкурентная ниша. Пробовали разных таргетологов, каждый говорил "дайте время". AI за первые 2 недели уже показал результат, и никаких отговорок — всё прозрачно в отчёте.</p>
-        <div class="testi-result">+240% заявок за месяц</div>
+        <p class="testi-quote" data-i18n="testi3-quote">Бәсекелі ниша. Әртүрлі таргетологтарды сынадық, әрқайсысы "уақыт беріңіз" деді. AI алғашқы 2 аптада нәтиже көрсетті — бәрі есепте мөлдір.</p>
+        <div class="testi-result" data-i18n="testi3-result">+240% өтінім айына</div>
         <div class="testi-author">
           <div class="testi-avatar">⚖️</div>
           <div>
-            <span class="testi-name">Марат Ахметов</span>
-            <span class="testi-biz">LexGroup, Алматы</span>
+            <span class="testi-biz" data-i18n="testi3-biz">Заң қызметтері, Алматы</span>
           </div>
         </div>
       </div>
@@ -557,67 +536,67 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:48px c
 <section id="faq">
   <div class="container">
     <div class="section-header text-center">
-      <div class="section-eyebrow reveal-up">Вопросы и ответы</div>
-      <h2 class="section-title reveal-up reveal-delay-1">Частые вопросы</h2>
+      <div class="section-eyebrow reveal-up" data-i18n="faq-eyebrow">Сұрақтар мен жауаптар</div>
+      <h2 class="section-title reveal-up reveal-delay-1" data-i18n="faq-title">Жиі қойылатын сұрақтар</h2>
     </div>
 
     <div class="faq-list reveal-up">
       <div class="faq-item">
         <div class="faq-q" onclick="toggleFaq(this)">
-          Нужен ли мне доступ к Meta Ads Business Manager?
+          <span data-i18n="faq1-q">Маған Meta Ads Business Manager-ге кіру қажет пе?</span>
           <div class="ico">+</div>
         </div>
         <div class="faq-a">
-          <div class="faq-a-inner">
-            Да, вам нужен действующий рекламный кабинет Meta Ads. После регистрации мы отправим подробную инструкцию, как выдать нам доступ — это занимает 5 минут. Никакие пароли нам не нужны: только токен рекламного кабинета.
+          <div class="faq-a-inner" data-i18n="faq1-a">
+            Иә, сізге жұмыс істеп тұрған Meta Ads жарнама кабинеті қажет. Тіркелгеннен кейін біз бізге қол жеткізуді қалай беру керектігі туралы толық нұсқаулық жібереміз — бұл 5 минут алады. Бізге ешқандай құпия сөз қажет емес: тек жарнама кабинетінің токені.
           </div>
         </div>
       </div>
 
       <div class="faq-item">
         <div class="faq-q" onclick="toggleFaq(this)">
-          Что если AI примет неверное решение?
+          <span data-i18n="faq2-q">AI қате шешім қабылдаса ше?</span>
           <div class="ico">+</div>
         </div>
         <div class="faq-a">
-          <div class="faq-a-inner">
-            Перед каждым действием с бюджетом вы получаете уведомление в Telegram с возможностью отменить. Кроме того, в личном кабинете вся история действий AI — вы всегда видите, что и почему было сделано. У нас 94% решений подтверждаются клиентами без изменений.
+          <div class="faq-a-inner" data-i18n="faq2-a">
+            Бюджетпен жасалатын кез келген әрекеттен бұрын Telegram-да болдырмау мүмкіндігі бар хабарлама аласыз. Сонымен қатар, жеке кабинетте AI-дың барлық іс-әрекет тарихы бар — не және неліктен жасалғанын әрқашан көресіз. Біздің шешімдердің 94%-ы клиенттермен өзгеріссіз расталады.
           </div>
         </div>
       </div>
 
       <div class="faq-item">
         <div class="faq-q" onclick="toggleFaq(this)">
-          Как быстро видны результаты?
+          <span data-i18n="faq3-q">Нәтижелер қаншалықты тез көрінеді?</span>
           <div class="ico">+</div>
         </div>
         <div class="faq-a">
-          <div class="faq-a-inner">
-            Первые заметные результаты — снижение CPL и оптимизация структуры кампаний — обычно видны через 7–14 дней. Это связано с тем, что Meta требует время для фазы обучения при изменении бюджетов. AI уважает этот процесс и не торопит алгоритм.
+          <div class="faq-a-inner" data-i18n="faq3-a">
+            Алғашқы байқалатын нәтижелер — CPL төмендеуі және кампания құрылымын оңтайландыру — әдетте 7–14 күннен кейін көрінеді. Бұл Meta-ның бюджетті өзгерту кезінде оқыту фазасы үшін уақыт талап ететіндігімен байланысты. AI бұл процесті құрметтейді және алгоритмді асықтырмайды.
           </div>
         </div>
       </div>
 
       <div class="faq-item">
         <div class="faq-q" onclick="toggleFaq(this)">
-          Можно ли отменить подписку в любой момент?
+          <span data-i18n="faq4-q">Жазылымды кез келген уақытта тоқтатуға бола ма?</span>
           <div class="ico">+</div>
         </div>
         <div class="faq-a">
-          <div class="faq-a-inner">
-            Да, без штрафов и без звонков "а почему уходите". Отмена — одна кнопка в личном кабинете. Подписка продолжает действовать до конца оплаченного периода, после этого всё автоматически останавливается.
+          <div class="faq-a-inner" data-i18n="faq4-a">
+            Иә, айыппұлсыз және "неге кетесіз" деген қоңырауларсыз. Болдырмау — жеке кабинеттегі бір батырма. Жазылым төленген кезеңнің соңына дейін жалғасады, одан кейін бәрі автоматты тоқтайды.
           </div>
         </div>
       </div>
 
       <div class="faq-item">
         <div class="faq-q" onclick="toggleFaq(this)">
-          Какой минимальный рекламный бюджет?
+          <span data-i18n="faq5-q">Ең аз жарнама бюджеті қанша?</span>
           <div class="ico">+</div>
         </div>
         <div class="faq-a">
-          <div class="faq-a-inner">
-            Рекомендуем от $10/день на рекламный кабинет. При меньших бюджетах Meta не может нормально обучить алгоритм, и эффективность будет ограниченной. Это ограничение Meta, не наше — мы работаем с любым бюджетом, но рекомендуем реалистично смотреть на результаты.
+          <div class="faq-a-inner" data-i18n="faq5-a">
+            Жарнама кабинетіне күніне $10-нан бастаған сомасын ұсынамыз. Аз бюджетте Meta алгоритмді дұрыс оқыта алмайды және тиімділік шектеулі болады. Бұл Meta-ның шектеуі, біздің емес — біз кез келген бюджетпен жұмыс жасаймыз, бірақ нәтижелерге реалистичен қарауды ұсынамыз.
           </div>
         </div>
       </div>
@@ -629,22 +608,22 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:48px c
 <section class="cta-section">
   <div class="container">
     <div class="cta-box reveal-up">
-      <div class="section-eyebrow" style="margin-bottom:18px">Начните сегодня</div>
-      <h2>2 дня бесплатно.<br>Без карты — просто попробуйте.</h2>
-      <p>Подключите кабинет, и AI начнёт анализировать уже с завтрашнего утра. За 2 дня вы увидите, как это работает.</p>
+      <div class="section-eyebrow" style="margin-bottom:18px" data-i18n="cta-eyebrow">Бүгін бастаңыз</div>
+      <h2 data-i18n-html="cta-title">2 күн тегін.<br>Картасыз — жай сынап көріңіз.</h2>
+      <p data-i18n="cta-desc">Кабинетті қосыңыз, AI ертеңгі таңертеңнен бастап талдай бастайды. 2 күнде бұл қалай жұмыс жасайтынын өзіңіз көресіз.</p>
       <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
         <a href="auth.html?plan=free">
-          <button class="btn-hero-main">Начать бесплатно →</button>
+          <button class="btn-hero-main" data-i18n="cta-btn-main">Тегін бастау →</button>
         </a>
         <a href="ai-targetolog-demo-day.html">
-          <button class="btn-hero-secondary">Посмотреть демо-день</button>
+          <button class="btn-hero-secondary" data-i18n="cta-btn-demo">Демо-күнді көру</button>
         </a>
       </div>
       <div class="cta-badges">
-        <span class="cta-badge">🔒 SSL защита</span>
-        <span class="cta-badge">✅ Без скрытых платежей</span>
+        <span class="cta-badge" data-i18n="cta-badge1">🔒 SSL қорғаныс</span>
+        <span class="cta-badge" data-i18n="cta-badge2">✅ Жасырын төлемдерсіз</span>
         <span class="cta-badge">💳 Kaspi Pay · Карта</span>
-        <span class="cta-badge">🇰🇿 Поддержка на казахском и русском</span>
+        <span class="cta-badge" data-i18n="cta-badge4">🇰🇿 Қазақ және орыс тілінде қолдау</span>
       </div>
     </div>
   </div>
@@ -656,34 +635,34 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:48px c
     <div class="footer-grid">
       <div>
         <div class="footer-brand"><span class="dot"></span>SmartTarget AI</div>
-        <p class="footer-desc">AI-таргетолог для Meta Ads. Автоматическая оптимизация, ежедневные отчёты, реальные результаты.</p>
+        <p class="footer-desc" data-i18n="footer-desc">Meta Ads үшін AI-таргетолог. Автоматты оңтайландыру, күнделікті есептер, нақты нәтижелер.</p>
         <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
-          <span style="font-size:11.5px;background:var(--surface-2);border:1px solid var(--line);border-radius:99px;padding:4px 10px;color:var(--text-dim)">🇰🇿 Казахстан</span>
-          <span style="font-size:11.5px;background:var(--surface-2);border:1px solid var(--line);border-radius:99px;padding:4px 10px;color:var(--text-dim)">🇷🇺 Россия</span>
+          <span style="font-size:11.5px;background:var(--surface-2);border:1px solid var(--line);border-radius:99px;padding:4px 10px;color:var(--text-dim)">🇰🇿 Қазақстан</span>
+          <span style="font-size:11.5px;background:var(--surface-2);border:1px solid var(--line);border-radius:99px;padding:4px 10px;color:var(--text-dim)" data-i18n="footer-russia">🇷🇺 Ресей</span>
         </div>
       </div>
       <div>
-        <div class="footer-heading">Продукт</div>
+        <div class="footer-heading" data-i18n="footer-col1-heading">Өнім</div>
         <ul class="footer-links">
-          <li><a href="#features">Возможности</a></li>
-          <li><a href="#pricing">Тарифы</a></li>
-          <li><a href="ai-targetolog-demo-day.html">Демо-день</a></li>
-          <li><a href="ai-targetolog-app.html">Личный кабинет</a></li>
+          <li><a href="#features" data-i18n="nav-features">Мүмкіндіктер</a></li>
+          <li><a href="#pricing" data-i18n="nav-pricing">Тарифтер</a></li>
+          <li><a href="ai-targetolog-demo-day.html" data-i18n="footer-demo">Демо-күн</a></li>
+          <li><a href="ai-targetolog-app.html" data-i18n="footer-cabinet">Жеке кабинет</a></li>
         </ul>
       </div>
       <div>
-        <div class="footer-heading">Компания</div>
+        <div class="footer-heading" data-i18n="footer-col2-heading">Компания</div>
         <ul class="footer-links">
-          <li><a href="#">О нас</a></li>
-          <li><a href="#">Блог</a></li>
-          <li><a href="#">Партнёрам</a></li>
-          <li><a href="#">Вакансии</a></li>
+          <li><a href="#" data-i18n="footer-about">Біз туралы</a></li>
+          <li><a href="#" data-i18n="footer-blog">Блог</a></li>
+          <li><a href="#" data-i18n="footer-partners">Серіктестерге</a></li>
+          <li><a href="#" data-i18n="footer-jobs">Бос орындар</a></li>
         </ul>
       </div>
       <div>
-        <div class="footer-heading">Поддержка</div>
+        <div class="footer-heading" data-i18n="footer-col3-heading">Қолдау</div>
         <ul class="footer-links">
-          <li><a href="#faq">FAQ</a></li>
+          <li><a href="#faq" data-i18n="nav-faq">Сұрақтар</a></li>
           <li><a href="#">Telegram</a></li>
           <li><a href="#">WhatsApp</a></li>
           <li><a href="#">info@smarttarget.ai</a></li>
@@ -691,7 +670,7 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:48px c
       </div>
     </div>
     <div class="footer-bottom">
-      <span class="footer-copy">© 2026 SmartTarget AI · ТОО «СмартТаргет» · ИИН 260625901234</span>
+      <span class="footer-copy" data-i18n="footer-copy">© 2026 SmartTarget AI · ЖШС «СмартТаргет» · БСН 260625901234</span>
       <div class="footer-socials">
         <a href="#" class="footer-social">📱</a>
         <a href="#" class="footer-social">✈️</a>
@@ -702,6 +681,301 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:48px c
 </footer>
 
 <script>
+// ── LANGUAGE TOGGLE ──
+const LANDING_LANGS = {
+  kk: {
+    'page-title': 'SmartTarget AI — AI жарнаманы жүргізеді. Сіз нәтижені көресіз.',
+    'nav-features': 'Мүмкіндіктер',
+    'nav-pricing': 'Тарифтер',
+    'nav-faq': 'Сұрақтар',
+    'nav-login': 'Кіру',
+    'nav-signup': 'Тегін бастау',
+    'nav-signup-mobile': '→ Тегін бастау',
+    'hero-badge': 'Қазақстан бизнесі үшін жұмыс жасайды',
+    'hero-h1-line1': 'AI жарнаманы жүргізеді.',
+    'hero-h1-line2': 'Сіз нәтижені көресіз.',
+    'hero-sub': '<b>Meta Ads-ты күн сайын таңертең автоматты оңтайландырады</b> — сіздің қатысуыңызсыз. AI вампирлерді өшіреді, жеңімпаздарды масштабтайды және <b>Telegram-ға күнделікті есеп жібереді.</b>',
+    'hero-cta-main': '🤖 AI-таргетолог қосу — 49 990 ₸',
+    'hero-cta-secondary': '▶ AI қалай жұмыс жасайтынын көру',
+    'hero-trial-note': '2 күн тегін · содан кейін 49 990 ₸/ай · кез келген уақытта тоқтату',
+    'stat-campaigns': 'кампания бүгін оңтайландырылды',
+    'stat-cpl': 'CPL орташа төмендеуі',
+    'stat-clients': 'клиент онлайн',
+    'stat-avg-cpl': 'барлық нишалар бойынша орташа CPL',
+    'how-eyebrow': 'Қалай жұмыс жасайды',
+    'how-title': 'Үш қадам — және жарнама<br>сіздің қатысуыңызсыз жұмыс жасайды',
+    'how-sub': 'Таргетолог қажет емес. Кабинетті бақылау қажет емес. AI бәрін өзі жасайды — сіз тек өтінімдерді аласыз.',
+    'step1-num': 'Қадам 01',
+    'step1-title': 'Meta Ads кабинетін қосыңыз',
+    'step1-desc': 'Нұсқаулығымыз бойынша 5 минутта қол жеткізу беріңіз. Бізге ешқандай құпия сөз қажет емес — тек жарнама кабинетінің токені.',
+    'step2-num': 'Қадам 02',
+    'step2-title': 'AI кампанияларды күн сайын таңертең талдайды',
+    'step2-desc': 'Дәл 08:00-де AI барлық жарнамалық байланыстарды тексереді — CPL, ROAS, оқыту фазасы. Шешімдер қабылдап, оларды автоматты түрде қолданады.',
+    'step3-num': 'Қадам 03',
+    'step3-title': 'Telegram-ға есеп аласыз',
+    'step3-desc': 'Күн сайын — AI не жасады, қандай кампаниялар жеңімпаз, не өшірілді және неліктен. Жаңалықтар сияқты түсінікті.',
+    'feat-eyebrow': 'Мүмкіндіктер',
+    'feat-title': 'Таргетолог жасайтынның бәрі —<br>демалыссыз',
+    'feat-sub': 'AI 24/7 жұмыс жасайды, ауырмайды, демалысқа шықпайды.',
+    'feat1-title': 'Күн сайын таңертең 08:00-де талдау',
+    'feat1-desc': 'AI барлық жарнамалық байланыстарды күн сайын таңертең тексереді. Мереке және демалыс күндері де ешқандай үзіліссіз.',
+    'feat2-title': 'Вампирлерді өшіреді',
+    'feat2-desc': 'Жоғары CPL және нөлдік өтінімі бар кампаниялар? AI оларды тауып, автоматты өшіреді. Ақша ағып кетуін тоқтатады.',
+    'feat3-title': 'Жеңімпаздарды масштабтайды',
+    'feat3-desc': 'Егер кампания тамаша CPL көрсетсе — AI оқыту фазасын сақтай отырып, бюджетті автоматты 20–30%-ға арттырады.',
+    'feat4-title': 'Telegram-есептер күн сайын',
+    'feat4-desc': 'Күнделікті есеп: AI не жасады, қанша жұмсалды, қанша өтінім келді. 30 секундта оқылады.',
+    'feat5-title': 'Автоматты A/B тесттер',
+    'feat5-desc': 'AI жаңа аудиториялар мен форматтарды өздігінен тестілейді. Әрқашан өсу резерві бар — келесі жеңімпаз қазірдің өзінде тестілінуде.',
+    'feat6-title': 'Meta оқыту фазасын құрметтейді',
+    'feat6-desc': 'Ең жиі қате — күнделікті түзетулермен алгоритмді бұзу. AI мұны біледі және оқытуды қайта іске қоспай, абайлап әрекет етеді.',
+    'pricing-eyebrow': 'Тарифтер',
+    'pricing-title': 'Ашық бағалар,<br>жасырын төлемдерсіз',
+    'pricing-sub': 'Кез келген тарифте алғашқы 2 күн тегін. Содан кейін — автоматты жаңарту. Кез келген уақытта тоқтатуға болады.',
+    'plan-ai-badge': '🔥 Хит',
+    'plan-ai-name': 'AI-таргетолог',
+    'plan-ai-desc': 'AI жарнаманы өзі жүргізеді. Сіз тек нәтижені бақылайсыз.',
+    'plan-per-month': '/ай',
+    'plan-ai-note': '≈ $110 · 2 күн тегін',
+    'plan-ai-f1': '15 белсенді кампанияға дейін',
+    'plan-ai-f2': 'Күн сайын таңертең 08:00-де талдау және оңтайландыру',
+    'plan-ai-f3': 'Вампирлерді автоматты өшіру',
+    'plan-ai-f4': 'Жеңімпаздарды +30% масштабтау',
+    'plan-ai-f5': 'Telegram-есеп күн сайын',
+    'plan-ai-f6': 'Аудиторияларды A/B тестілеу',
+    'plan-ai-f7': 'Meta оқыту фазасын қорғау',
+    'plan-ai-f8': 'Қолмен жұмыссыз — AI бәрін өзі жасайды',
+    'plan-ai-cta': 'AI-таргетолог қосу →',
+    'plan-expert-name': 'Expert-тариф',
+    'plan-expert-desc': 'AI + стратег-сарапшы + команданың дайын креативтері.',
+    'plan-expert-f1': '30 белсенді кампанияға дейін',
+    'plan-expert-f2': 'AI-тарифтегінің бәрі',
+    'plan-expert-f3': 'Стратег-сарапшы байланыста',
+    'plan-expert-f4': 'Кампанияларды апта сайын талдау',
+    'plan-expert-f5': 'Айына командадан 4 дайын креатив',
+    'plan-expert-f6': 'Жаңа креатив үшін сценарий',
+    'plan-expert-f7': 'Таргетологпен бірлескен кездесу',
+    'plan-expert-f8': '24/7 басым қолдау',
+    'plan-expert-cta': 'Expert қосу →',
+    'plan-agency-desc': 'Агентстволар мен бірнеше кабинеті бар ірі бизнес үшін.',
+    'plan-agency-f1': '100 белсенді кампанияға дейін',
+    'plan-agency-f2': 'Бірнеше жарнама аккаунты',
+    'plan-agency-f3': 'Айына командадан 10 дайын креатив',
+    'plan-agency-f4': 'Жаңа креативтер үшін сценарийлер',
+    'plan-agency-f5': 'Таргетологпен бірлескен кездесулер',
+    'plan-agency-f6': 'Кампанияларды апта сайын талдау',
+    'plan-agency-f7': 'Expert-тарифтегінің бәрі',
+    'plan-agency-f8': 'Жеке аккаунт-менеджер',
+    'plan-agency-cta': 'Agency қосу →',
+    'pricing-note': 'AI-тариф — 2 күн тегін · Expert және Agency — алдын ала төлеммен · кез келген уақытта тоқтатуға болады',
+    'proof-eyebrow': 'Клиенттер нәтижесі',
+    'proof-title': 'Нақты бизнес.<br>Нақты сандар.',
+    'proof-sub': 'Біздің клиенттер — жарнамаға уақыт жұмсаған Қазақстанның шағын және орта бизнесі. Енді олар тек ақша жұмсайды.',
+    'testi1-quote': 'Бұрын күн сайын жарнаманы өзім бақыладым, бюджеттерді өзгерттім, таргетологқа жаздым. Енді таңертең таңғы астымда телефонда есепті оқимын. Өтінімдер көбейді, аз жұмсаймын.',
+    'testi1-biz': 'Сұлулық клиникасы, Алматы',
+    'testi2-quote': 'Жарнаманы өзіміз іске қостық, әр өтінім 2 500 теңгеге түсті. SmartTarget AI-дан кейін — 900 теңгеден аз. AI біз ешқашан қолданбаған аудиторияны өзі тапты.',
+    'testi2-result': '↓ Өтінім құны 2.8 есе',
+    'testi2-biz': 'Балалар тауарлары интернет-дүкені',
+    'testi3-quote': 'Бәсекелі ниша. Әртүрлі таргетологтарды сынадық, әрқайсысы "уақыт беріңіз" деді. AI алғашқы 2 аптада нәтиже көрсетті — бәрі есепте мөлдір.',
+    'testi3-result': '+240% өтінім айына',
+    'testi3-biz': 'Заң қызметтері, Алматы',
+    'faq-eyebrow': 'Сұрақтар мен жауаптар',
+    'faq-title': 'Жиі қойылатын сұрақтар',
+    'faq1-q': 'Маған Meta Ads Business Manager-ге кіру қажет пе?',
+    'faq1-a': 'Иә, сізге жұмыс істеп тұрған Meta Ads жарнама кабинеті қажет. Тіркелгеннен кейін біз бізге қол жеткізуді қалай беру керектігі туралы толық нұсқаулық жібереміз — бұл 5 минут алады. Бізге ешқандай құпия сөз қажет емес: тек жарнама кабинетінің токені.',
+    'faq2-q': 'AI қате шешім қабылдаса ше?',
+    'faq2-a': 'Бюджетпен жасалатын кез келген әрекеттен бұрын Telegram-да болдырмау мүмкіндігі бар хабарлама аласыз. Сонымен қатар, жеке кабинетте AI-дың барлық іс-әрекет тарихы бар — не және неліктен жасалғанын әрқашан көресіз. Біздің шешімдердің 94%-ы клиенттермен өзгеріссіз расталады.',
+    'faq3-q': 'Нәтижелер қаншалықты тез көрінеді?',
+    'faq3-a': 'Алғашқы байқалатын нәтижелер — CPL төмендеуі және кампания құрылымын оңтайландыру — әдетте 7–14 күннен кейін көрінеді. Бұл Meta-ның бюджетті өзгерту кезінде оқыту фазасы үшін уақыт талап ететіндігімен байланысты. AI бұл процесті құрметтейді және алгоритмді асықтырмайды.',
+    'faq4-q': 'Жазылымды кез келген уақытта тоқтатуға бола ма?',
+    'faq4-a': 'Иә, айыппұлсыз және "неге кетесіз" деген қоңырауларсыз. Болдырмау — жеке кабинеттегі бір батырма. Жазылым төленген кезеңнің соңына дейін жалғасады, одан кейін бәрі автоматты тоқтайды.',
+    'faq5-q': 'Ең аз жарнама бюджеті қанша?',
+    'faq5-a': 'Жарнама кабинетіне күніне $10-нан бастаған сомасын ұсынамыз. Аз бюджетте Meta алгоритмді дұрыс оқыта алмайды және тиімділік шектеулі болады. Бұл Meta-ның шектеуі, біздің емес — біз кез келген бюджетпен жұмыс жасаймыз, бірақ нәтижелерге реалистичен қарауды ұсынамыз.',
+    'cta-eyebrow': 'Бүгін бастаңыз',
+    'cta-title': '2 күн тегін.<br>Картасыз — жай сынап көріңіз.',
+    'cta-desc': 'Кабинетті қосыңыз, AI ертеңгі таңертеңнен бастап талдай бастайды. 2 күнде бұл қалай жұмыс жасайтынын өзіңіз көресіз.',
+    'cta-btn-main': 'Тегін бастау →',
+    'cta-btn-demo': 'Демо-күнді көру',
+    'cta-badge1': '🔒 SSL қорғаныс',
+    'cta-badge2': '✅ Жасырын төлемдерсіз',
+    'cta-badge4': '🇰🇿 Қазақ және орыс тілінде қолдау',
+    'footer-desc': 'Meta Ads үшін AI-таргетолог. Автоматты оңтайландыру, күнделікті есептер, нақты нәтижелер.',
+    'footer-russia': '🇷🇺 Ресей',
+    'footer-col1-heading': 'Өнім',
+    'footer-demo': 'Демо-күн',
+    'footer-cabinet': 'Жеке кабинет',
+    'footer-col2-heading': 'Компания',
+    'footer-about': 'Біз туралы',
+    'footer-blog': 'Блог',
+    'footer-partners': 'Серіктестерге',
+    'footer-jobs': 'Бос орындар',
+    'footer-col3-heading': 'Қолдау',
+    'footer-copy': '© 2026 SmartTarget AI · ЖШС «СмартТаргет» · БСН 260625901234',
+  },
+  ru: {
+    'page-title': 'SmartTarget AI — AI ведёт рекламу. Вы видите результат.',
+    'nav-features': 'Возможности',
+    'nav-pricing': 'Тарифы',
+    'nav-faq': 'FAQ',
+    'nav-login': 'Войти',
+    'nav-signup': 'Начать бесплатно',
+    'nav-signup-mobile': '→ Начать бесплатно',
+    'hero-badge': 'Работает для бизнесов Казахстана',
+    'hero-h1-line1': 'AI ведёт рекламу.',
+    'hero-h1-line2': 'Вы видите результат.',
+    'hero-sub': '<b>Автоматически оптимизирует Meta Ads каждое утро</b> — без вашего участия. AI отключает «вампиров», масштабирует победителей и <b>отправляет ежедневный отчёт в Telegram.</b>',
+    'hero-cta-main': '🤖 Подключить AI-таргетолога — 49 990 ₸',
+    'hero-cta-secondary': '▶ Смотреть как работает AI',
+    'hero-trial-note': '2 дня бесплатно · затем 49 990 ₸/мес · отмена в любое время',
+    'stat-campaigns': 'кампаний оптимизировано сегодня',
+    'stat-cpl': 'среднее снижение CPL',
+    'stat-clients': 'клиентов онлайн',
+    'stat-avg-cpl': 'средний CPL по всем нишам',
+    'how-eyebrow': 'Как это работает',
+    'how-title': 'Три шага — и реклама<br>работает без вашего участия',
+    'how-sub': 'Таргетолог не нужен. Следить за кабинетом не нужно. AI делает всё сам — вы только получаете заявки.',
+    'step1-num': 'Шаг 01',
+    'step1-title': 'Подключите кабинет Meta Ads',
+    'step1-desc': 'Дайте доступ за 5 минут по нашей инструкции. Нам не нужны пароли — только токен рекламного кабинета.',
+    'step2-num': 'Шаг 02',
+    'step2-title': 'AI анализирует кампании каждое утро',
+    'step2-desc': 'Ровно в 08:00 AI проверяет все рекламные связки — CPL, ROAS, фазу обучения. Принимает решения и автоматически применяет их.',
+    'step3-num': 'Шаг 03',
+    'step3-title': 'Получаете отчёт в Telegram',
+    'step3-desc': 'Каждый день — что сделал AI, какие кампании победители, что отключено и почему. Понятно, как новости.',
+    'feat-eyebrow': 'Возможности',
+    'feat-title': 'Всё что делает таргетолог —<br>без выходных',
+    'feat-sub': 'AI работает 24/7, не болеет, не уходит в отпуск.',
+    'feat1-title': 'Анализ каждое утро в 08:00',
+    'feat1-desc': 'AI проверяет все рекламные связки каждое утро. Без перебоев — в праздники и выходные тоже.',
+    'feat2-title': 'Отключает «вампиров»',
+    'feat2-desc': 'Кампании с высоким CPL и нулевыми заявками? AI находит их и автоматически отключает. Останавливает утечку денег.',
+    'feat3-title': 'Масштабирует победителей',
+    'feat3-desc': 'Если кампания показывает отличный CPL — AI автоматически увеличивает бюджет на 20–30%, сохраняя фазу обучения.',
+    'feat4-title': 'Отчёты в Telegram каждый день',
+    'feat4-desc': 'Ежедневный отчёт: что сделал AI, сколько потрачено, сколько заявок пришло. Читается за 30 секунд.',
+    'feat5-title': 'Автоматические A/B тесты',
+    'feat5-desc': 'AI сам тестирует новые аудитории и форматы. Резерв роста есть всегда — следующий победитель уже тестируется.',
+    'feat6-title': 'Уважает фазу обучения Meta',
+    'feat6-desc': 'Самая частая ошибка — ломать алгоритм ежедневными правками. AI знает это и действует осторожно, не перезапуская обучение.',
+    'pricing-eyebrow': 'Тарифы',
+    'pricing-title': 'Прозрачные цены,<br>без скрытых платежей',
+    'pricing-sub': 'Первые 2 дня бесплатно на любом тарифе. Затем — автоматическое продление. Отменить можно в любое время.',
+    'plan-ai-badge': '🔥 Хит',
+    'plan-ai-name': 'AI-таргетолог',
+    'plan-ai-desc': 'AI сам ведёт рекламу. Вы только смотрите на результат.',
+    'plan-per-month': '/мес',
+    'plan-ai-note': '≈ $110 · 2 дня бесплатно',
+    'plan-ai-f1': 'До 15 активных кампаний',
+    'plan-ai-f2': 'Анализ и оптимизация каждое утро в 08:00',
+    'plan-ai-f3': 'Автоотключение «вампиров»',
+    'plan-ai-f4': 'Масштабирование победителей +30%',
+    'plan-ai-f5': 'Ежедневный отчёт в Telegram',
+    'plan-ai-f6': 'A/B тестирование аудиторий',
+    'plan-ai-f7': 'Защита фазы обучения Meta',
+    'plan-ai-f8': 'Без ручной работы — AI делает всё сам',
+    'plan-ai-cta': 'Подключить AI-таргетолога →',
+    'plan-expert-name': 'Expert-тариф',
+    'plan-expert-desc': 'AI + стратег-эксперт + готовые креативы от команды.',
+    'plan-expert-f1': 'До 30 активных кампаний',
+    'plan-expert-f2': 'Всё из AI-тарифа',
+    'plan-expert-f3': 'Стратег-эксперт на связи',
+    'plan-expert-f4': 'Еженедельный анализ кампаний',
+    'plan-expert-f5': '4 готовых креатива от команды в месяц',
+    'plan-expert-f6': 'Сценарий для нового креатива',
+    'plan-expert-f7': 'Совместная встреча с таргетологом',
+    'plan-expert-f8': 'Приоритетная поддержка 24/7',
+    'plan-expert-cta': 'Подключить Expert →',
+    'plan-agency-desc': 'Для агентств и крупного бизнеса с несколькими кабинетами.',
+    'plan-agency-f1': 'До 100 активных кампаний',
+    'plan-agency-f2': 'Несколько рекламных аккаунтов',
+    'plan-agency-f3': '10 готовых креативов от команды в месяц',
+    'plan-agency-f4': 'Сценарии для новых креативов',
+    'plan-agency-f5': 'Совместные встречи с таргетологом',
+    'plan-agency-f6': 'Еженедельный анализ кампаний',
+    'plan-agency-f7': 'Всё из Expert-тарифа',
+    'plan-agency-f8': 'Персональный аккаунт-менеджер',
+    'plan-agency-cta': 'Подключить Agency →',
+    'pricing-note': 'AI-тариф — 2 дня бесплатно · Expert и Agency — по предоплате · отменить можно в любое время',
+    'proof-eyebrow': 'Результаты клиентов',
+    'proof-title': 'Реальный бизнес.<br>Реальные цифры.',
+    'proof-sub': 'Наши клиенты — малый и средний бизнес Казахстана, который тратил время на рекламу. Теперь они тратят только деньги.',
+    'testi1-quote': 'Раньше каждый день сам следил за рекламой, менял бюджеты, писал таргетологу. Теперь утром за завтраком читаю отчёт в телефоне. Заявок стало больше, трачу меньше.',
+    'testi1-biz': 'Клиника красоты, Алматы',
+    'testi2-quote': 'Запустили рекламу сами, каждая заявка выходила в 2 500 тенге. После SmartTarget AI — меньше 900 тенге. AI сам нашёл аудиторию, которую мы никогда не использовали.',
+    'testi2-result': '↓ Стоимость заявки в 2.8 раза',
+    'testi2-biz': 'Интернет-магазин детских товаров',
+    'testi3-quote': 'Конкурентная ниша. Пробовали разных таргетологов, каждый говорил «дайте время». AI показал результат за первые 2 недели — всё прозрачно в отчёте.',
+    'testi3-result': '+240% заявок в месяц',
+    'testi3-biz': 'Юридические услуги, Алматы',
+    'faq-eyebrow': 'Вопросы и ответы',
+    'faq-title': 'Часто задаваемые вопросы',
+    'faq1-q': 'Нужен ли мне доступ к Meta Ads Business Manager?',
+    'faq1-a': 'Да, вам нужен работающий рекламный кабинет Meta Ads. После регистрации мы пришлём подробную инструкцию — это займёт 5 минут. Нам не нужны пароли: только токен рекламного кабинета.',
+    'faq2-q': 'Что если AI примет неверное решение?',
+    'faq2-a': 'Перед любым действием с бюджетом вы получите уведомление в Telegram с возможностью отмены. Кроме того, в личном кабинете есть полная история действий AI — вы всегда видите, что и почему было сделано. 94% наших решений клиенты подтверждают без изменений.',
+    'faq3-q': 'Как быстро появятся результаты?',
+    'faq3-a': 'Первые заметные результаты — снижение CPL и оптимизация структуры кампаний — обычно видны через 7–14 дней. Это связано с тем, что Meta требует времени на фазу обучения при изменении бюджетов. AI уважает этот процесс и не торопит алгоритм.',
+    'faq4-q': 'Можно ли отменить подписку в любое время?',
+    'faq4-a': 'Да, без штрафов и звонков «почему уходите». Отмена — одна кнопка в личном кабинете. Подписка продолжается до конца оплаченного периода, после чего всё автоматически останавливается.',
+    'faq5-q': 'Какой минимальный рекламный бюджет?',
+    'faq5-a': 'Рекомендуем от $10 в день на рекламный кабинет. При меньшем бюджете Meta не может нормально обучить алгоритм и эффективность ограничена. Это ограничение Meta, не наше — мы работаем с любым бюджетом, но рекомендуем реалистично смотреть на результаты.',
+    'cta-eyebrow': 'Начните сегодня',
+    'cta-title': '2 дня бесплатно.<br>Без карты — просто попробуйте.',
+    'cta-desc': 'Подключите кабинет, AI начнёт анализировать с завтрашнего утра. За 2 дня вы сами увидите, как это работает.',
+    'cta-btn-main': 'Начать бесплатно →',
+    'cta-btn-demo': 'Посмотреть демо-день',
+    'cta-badge1': '🔒 SSL защита',
+    'cta-badge2': '✅ Без скрытых платежей',
+    'cta-badge4': '🇰🇿 Поддержка на казахском и русском',
+    'footer-desc': 'AI-таргетолог для Meta Ads. Автоматическая оптимизация, ежедневные отчёты, реальные результаты.',
+    'footer-russia': '🇷🇺 Россия',
+    'footer-col1-heading': 'Продукт',
+    'footer-demo': 'Демо-день',
+    'footer-cabinet': 'Личный кабинет',
+    'footer-col2-heading': 'Компания',
+    'footer-about': 'О нас',
+    'footer-blog': 'Блог',
+    'footer-partners': 'Партнёрам',
+    'footer-jobs': 'Вакансии',
+    'footer-col3-heading': 'Поддержка',
+    'footer-copy': '© 2026 SmartTarget AI · ТОО «СмартТаргет» · БИН 260625901234',
+  }
+};
+
+function setLang(lang) {
+  localStorage.setItem('landing_lang', lang);
+  document.documentElement.lang = lang;
+
+  // Update button states
+  document.getElementById('lBtnKk').classList.toggle('active', lang === 'kk');
+  document.getElementById('lBtnRu').classList.toggle('active', lang === 'ru');
+
+  const t = LANDING_LANGS[lang];
+  if (!t) return;
+
+  // Update page title
+  document.title = t['page-title'] || document.title;
+
+  // Update all [data-i18n] elements (textContent)
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (t[key] !== undefined) el.textContent = t[key];
+  });
+
+  // Update all [data-i18n-html] elements (innerHTML — for bold/links)
+  document.querySelectorAll('[data-i18n-html]').forEach(el => {
+    const key = el.getAttribute('data-i18n-html');
+    if (t[key] !== undefined) el.innerHTML = t[key];
+  });
+}
+
+// Init language on page load
+(function() {
+  const saved = localStorage.getItem('landing_lang') || 'kk';
+  setLang(saved);
+})();
+
 // ── NAV SCROLL ──
 const nav = document.getElementById('mainNav');
 window.addEventListener('scroll', () => {
