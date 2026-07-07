@@ -2003,6 +2003,58 @@ app.post('/api/admin/send-report', async (req, res) => {
 // ADMIN (token-based)
 // ══════════════════════════════
 
+// POST /api/admin/create-client — Жаңа клиент жасау (admin)
+app.post('/api/admin/create-client', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const admin = await getUserBySession(token);
+  if (!admin || !admin.is_admin) return res.status(403).json({ error: 'Тек админ' });
+
+  const { email, name, plan } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email міндетті' });
+
+  // Кездейсоқ пароль жасау: 3 сөз + сан (есте сақтауға оңай)
+  const words = ['Sky','Star','Gold','Fire','Wave','Moon','Sun','Peak','Bolt','Ace'];
+  const w1 = words[Math.floor(Math.random()*words.length)];
+  const w2 = words[Math.floor(Math.random()*words.length)];
+  const num = Math.floor(Math.random()*900)+100;
+  const password = `${w1}${w2}${num}`;
+
+  const planName = plan || 'ai';
+  const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+  try {
+    const hash = hashPassword(password);
+    const r = await pool.query(
+      'INSERT INTO users (email, name, password_hash, plan, plan_expires_at) VALUES ($1,$2,$3,$4,$5) RETURNING id, email, name, plan',
+      [email.toLowerCase().trim(), name || '', hash, planName, expires]
+    );
+    const newUser = r.rows[0];
+    res.json({ ok: true, user: newUser, password, loginUrl: `${BASE_URL}/auth.html` });
+  } catch(e) {
+    if (e.code === '23505') return res.status(400).json({ error: 'Бұл email тіркелген' });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/admin/reset-password — Пароль қалпына келтіру
+app.post('/api/admin/reset-password', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const admin = await getUserBySession(token);
+  if (!admin || !admin.is_admin) return res.status(403).json({ error: 'Тек админ' });
+
+  const { user_id } = req.body;
+  const words = ['Sky','Star','Gold','Fire','Wave','Moon','Sun','Peak','Bolt','Ace'];
+  const w1 = words[Math.floor(Math.random()*words.length)];
+  const w2 = words[Math.floor(Math.random()*words.length)];
+  const num = Math.floor(Math.random()*900)+100;
+  const password = `${w1}${w2}${num}`;
+  const hash = hashPassword(password);
+
+  const r = await pool.query('UPDATE users SET password_hash=$1 WHERE id=$2 RETURNING email, name', [hash, user_id]);
+  if (!r.rows.length) return res.status(404).json({ error: 'Пайдаланушы табылмады' });
+  res.json({ ok: true, password, email: r.rows[0].email, name: r.rows[0].name });
+});
+
 // GET /api/admin/clients-auth - Admin: барлық клиенттерді көру (token auth)
 app.get('/api/admin/clients-auth', async (req, res) => {
   const token = req.headers.authorization?.replace('Bearer ', '');

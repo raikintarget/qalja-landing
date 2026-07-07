@@ -631,6 +631,35 @@ h2{font-weight:700;font-size:clamp(18px,3.5vw,24px);line-height:1.2;letter-spaci
   </div>
 </aside>
 
+<!-- ═══ META CONNECT WELCOME (жаңа клиент үшін) ═══ -->
+<div class="ov" id="metaWelcomeModal" style="display:none;z-index:9999">
+  <div class="modal" style="max-width:460px;padding:0;overflow:hidden">
+    <div style="background:linear-gradient(135deg,#1877F2,#0A5DC2);padding:28px;color:#fff;text-align:center">
+      <div style="font-size:48px;margin-bottom:12px">👋</div>
+      <h3 style="margin:0;font-size:22px;font-weight:800">Қош келдіңіз!</h3>
+      <p style="margin:8px 0 0;opacity:.85;font-size:14px">SmartTarget AI жұмыс жасауы үшін<br>Meta Ads аккаунтыңызды жалғаңыз</p>
+    </div>
+    <div style="padding:24px 28px 28px">
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px">
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:12px;background:var(--s2);border-radius:10px">
+          <span style="font-size:20px">1️⃣</span>
+          <div><b style="font-size:13px">Meta Ads қосу батырмасын басыңыз</b><br><span style="font-size:12px;color:var(--dim)">Төменде "Meta Ads қосу →" батырмасы бар</span></div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:12px;background:var(--s2);border-radius:10px">
+          <span style="font-size:20px">2️⃣</span>
+          <div><b style="font-size:13px">Facebook аккаунтыңызға кіріңіз</b><br><span style="font-size:12px;color:var(--dim)">Рекламалық аккаунт сол жерде болуы керек</span></div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:12px;background:var(--s2);border-radius:10px">
+          <span style="font-size:20px">3️⃣</span>
+          <div><b style="font-size:13px">Рұқсат беріңіз</b><br><span style="font-size:12px;color:var(--dim)">AI бірден жұмыс жасай бастайды</span></div>
+        </div>
+      </div>
+      <button class="btn full" onclick="document.getElementById('metaWelcomeModal').style.display='none';switchTab('settings')" style="background:linear-gradient(135deg,#1877F2,#0A5DC2);color:#fff;font-size:15px;padding:14px">📲 Meta Ads қосу →</button>
+      <button onclick="document.getElementById('metaWelcomeModal').style.display='none'" style="background:none;border:none;color:var(--dim);font-size:13px;cursor:pointer;width:100%;margin-top:10px;padding:4px">Кейін жасаймын</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ ONBOARDING ═══ -->
 <div class="ov" id="onboardModal" style="display:none;z-index:9999">
   <div class="modal" style="max-width:520px;padding:0;overflow:hidden">
@@ -1386,11 +1415,53 @@ h2{font-weight:700;font-size:clamp(18px,3.5vw,24px);line-height:1.2;letter-spaci
 <!-- ═══ CLIENTS TAB (ADMIN) ═══ -->
 <div class="pane" id="tab-clients">
   <div class="wrap">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">
-      <div><div class="ey">Басқару</div><h2>Клиенттер</h2></div>
+    <div style="margin-bottom:24px"><div class="ey">ADMIN</div><h2>Клиенттер басқару</h2></div>
+
+    <!-- Жаңа клиент қосу форма -->
+    <div class="pan" style="margin-bottom:20px;border:2px solid var(--primary);background:var(--primary-s)">
+      <h4 style="margin:0 0 14px;color:var(--primary)">➕ Жаңа клиент қосу</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;flex-wrap:wrap">
+        <div>
+          <label style="font-size:12px;color:var(--dim);display:block;margin-bottom:4px">Email (логин болады)</label>
+          <input type="email" id="newClientEmail" class="inp" placeholder="client@gmail.com">
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--dim);display:block;margin-bottom:4px">Аты-жөні</label>
+          <input type="text" id="newClientName" class="inp" placeholder="Айгерим Садыкова">
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--dim);display:block;margin-bottom:4px">Тариф</label>
+          <select id="newClientPlan" class="inp" style="padding:10px">
+            <option value="ai">AI Таргетолог — 49 990 тг</option>
+            <option value="expert">Эксперт — 150 000 тг</option>
+            <option value="agency">Премиум — 300 000 тг</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn sm" onclick="adminCreateClient()" style="margin-top:12px;background:var(--primary);color:#fff">➕ Аккаунт жасау</button>
+    </div>
+
+    <!-- Іздеу -->
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+      <b style="font-size:15px" id="clientsCount">Клиенттер</b>
       <input type="text" id="clientSearch" placeholder="Email немесе ат..." class="inp" style="width:220px" oninput="filterClients(this.value)">
     </div>
+
     <div id="clientsGrid" style="display:grid;gap:10px"></div>
+  </div>
+</div>
+
+<!-- Жаңа клиент credentials модалы -->
+<div id="newClientModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;align-items:center;justify-content:center">
+  <div style="background:var(--s);border-radius:20px;padding:28px;max-width:420px;width:90%;box-shadow:var(--shadow-lg)">
+    <h3 style="margin:0 0 6px">✅ Аккаунт жасалды!</h3>
+    <p style="color:var(--dim);font-size:13px;margin:0 0 20px">WhatsApp арқылы клиентке жіберіңіз</p>
+    <div id="newClientCredentials" style="background:var(--s2);border-radius:12px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.8;margin-bottom:16px;white-space:pre-wrap"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button id="newClientWaBtn" class="btn sm" style="background:#25D366;color:#fff;flex:1" onclick="sendNewClientWa()">💬 WhatsApp жіберу</button>
+      <button class="btn sm" style="background:var(--s2);flex:1" onclick="copyNewClientCreds()">📋 Көшіру</button>
+      <button class="btn sm" style="background:var(--s3)" onclick="document.getElementById('newClientModal').style.display='none'">Жабу</button>
+    </div>
   </div>
 </div>
 
@@ -2947,7 +3018,16 @@ async function execAdAction(p){
    ONBOARDING WIZARD
 ──────────────────────────────── */
 function checkShowOnboarding(){
-  if(!S.settings.bizName && !S.settings.onboardingDone && localStorage.getItem('st_token')){
+  const tok = localStorage.getItem('st_token');
+  if(!tok) return;
+  // Алғаш кіргенде Meta жалғанбаса — Meta connect экраны
+  if(!S.metaAccountId && !localStorage.getItem('meta_welcome_shown')){
+    localStorage.setItem('meta_welcome_shown','1');
+    $('metaWelcomeModal').style.display='flex';
+    return;
+  }
+  // Бизнес баптауы болмаса — онбординг
+  if(!S.settings.bizName && !S.settings.onboardingDone){
     $('onboardModal').style.display='flex';
   }
 }
@@ -3044,27 +3124,43 @@ async function loadClientsTab(){
 }
 
 function renderClientsGrid(clients){
-  if(!clients.length){ $('clientsGrid').innerHTML='<p style="color:var(--dim)">Клиент жоқ</p>'; return; }
-  $('clientsGrid').innerHTML=clients.map(c=>`
-    <div class="pan" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-      <div>
-        <b>${c.name||c.email}</b>
-        <div style="font-size:12px;color:var(--dim)">${c.email}</div>
-        <div style="font-size:12px;color:var(--dim)">${c.meta_account_name||'Meta жоқ'} · ${c.tg_chat_id?'📱 TG':''}</div>
+  const el = $('clientsGrid');
+  const cnt = $('clientsCount');
+  if(cnt) cnt.textContent = `Клиенттер (${clients.length})`;
+  if(!clients.length){ el.innerHTML='<p style="color:var(--dim)">Клиент жоқ</p>'; return; }
+  const planNames={free:'Free',ai:'AI Таргетолог',expert:'Эксперт',agency:'Премиум'};
+  el.innerHTML=clients.map(c=>{
+    const metaStatus = c.meta_account_name
+      ? `<span style="color:var(--ok)">✅ ${c.meta_account_name}</span>`
+      : `<span style="color:var(--warn)">⚠️ Meta жалғанбаған</span>`;
+    const expires = c.plan_expires_at ? new Date(c.plan_expires_at).toLocaleDateString('ru-RU') : '—';
+    return `
+    <div class="pan" style="display:grid;gap:10px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div>
+          <b style="font-size:15px">${c.name||'—'}</b>
+          <div style="font-size:12px;color:var(--dim);margin-top:2px">${c.email}</div>
+          <div style="font-size:12px;margin-top:4px">${metaStatus} ${c.tg_chat_id?'· 📱 Telegram':''}</div>
+        </div>
+        <div style="text-align:right">
+          <span class="bdg ${c.plan==='agency'?'scale':c.plan==='expert'?'keep':c.plan==='ai'?'info':''}" style="font-size:12px">${planNames[c.plan]||c.plan||'free'}</span>
+          <div style="font-size:11px;color:var(--dim);margin-top:4px">Дейін: ${expires}</div>
+          <div style="font-size:11px;color:var(--muted)">${c.created_at?new Date(c.created_at).toLocaleDateString('ru-RU'):''}</div>
+        </div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <span class="bdg ${c.plan==='agency'?'scale':c.plan==='expert'?'keep':c.plan==='ai'?'info':''}">${c.plan||'free'}</span>
-        <select onchange="adminSetPlan('${c.id}',this.value)" style="font-size:12px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--s)">
-          <option value="">Тариф...</option>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px">
+        <select onchange="adminSetPlan('${c.id}',this.value)" style="font-size:12px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:var(--s);flex:1;min-width:120px">
+          <option value="">Тариф өзгерту...</option>
+          <option value="ai">AI Таргетолог</option>
+          <option value="expert">Эксперт</option>
+          <option value="agency">Премиум</option>
           <option value="free">Free</option>
-          <option value="ai">AI ($29)</option>
-          <option value="expert">Expert ($99)</option>
-          <option value="agency">Agency ($299)</option>
         </select>
-        <small style="color:var(--dim)">${c.created_at?new Date(c.created_at).toLocaleDateString('ru-RU'):''}</small>
+        <button onclick="adminResetPassword('${c.id}','${(c.name||c.email).replace(/'/g,'')}','${c.email}')" style="font-size:12px;padding:5px 10px;border:1px solid var(--line);border-radius:8px;background:var(--s);cursor:pointer">🔑 Жаңа пароль</button>
+        ${!c.meta_account_name?`<button onclick="adminSendMetaInvite('${c.email}','${(c.name||'').replace(/'/g,'')}')" style="font-size:12px;padding:5px 10px;border:1px solid var(--warn);border-radius:8px;background:var(--warn-s);color:var(--warn);cursor:pointer">📲 Meta қосу сілтемесі</button>`:''}
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 function filterClients(q){
@@ -3078,8 +3174,112 @@ async function adminSetPlan(userId, plan){
   const tok=localStorage.getItem('st_token');
   const r=await fetch('/api/admin/set-plan-auth',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({user_id:userId,plan,days:30})});
   const d=await r.json();
-  if(d.ok){ alert('✅ Тариф орнатылды: '+plan); loadClientsTab(); }
+  if(d.ok){ loadClientsTab(); }
   else alert('❌ '+d.error);
+}
+
+// Жаңа аккаунт жасау
+let _lastCreatedCreds = null;
+async function adminCreateClient(){
+  const email = $('newClientEmail').value.trim();
+  const name = $('newClientName').value.trim();
+  const plan = $('newClientPlan').value;
+  if(!email){ alert('Email енгізіңіз'); return; }
+  const tok = localStorage.getItem('st_token');
+  const btn = event.target;
+  btn.textContent='⏳ Жасалуда...'; btn.disabled=true;
+  try{
+    const r = await fetch('/api/admin/create-client',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({email,name,plan})});
+    const d = await r.json();
+    if(!r.ok) throw new Error(d.error);
+    const planNames={ai:'AI Таргетолог — 49 990 тг/ай',expert:'Эксперт — 150 000 тг/ай',agency:'Премиум — 300 000 тг'};
+    _lastCreatedCreds = {
+      name: name||email, email, password: d.password,
+      plan: planNames[plan]||plan,
+      loginUrl: 'https://innovative-friendship-production-0449.up.railway.app/auth.html'
+    };
+    $('newClientCredentials').textContent =
+`👤 Аты: ${_lastCreatedCreds.name}
+📧 Email (логин): ${email}
+🔑 Пароль: ${d.password}
+📦 Тариф: ${_lastCreatedCreds.plan}
+
+🔗 Кіру сілтемесі:
+${_lastCreatedCreds.loginUrl}
+
+⚠️ Алғаш кіргенде Meta Ads аккаунтыңызды жалғаңыз.`;
+    $('newClientModal').style.display='flex';
+    $('newClientEmail').value='';
+    $('newClientName').value='';
+    loadClientsTab();
+  }catch(e){ alert('❌ '+e.message); }
+  btn.textContent='➕ Аккаунт жасау'; btn.disabled=false;
+}
+
+function sendNewClientWa(){
+  if(!_lastCreatedCreds) return;
+  const msg = encodeURIComponent(
+`Сәлем, ${_lastCreatedCreds.name}! 👋
+
+SmartTarget AI платформасына қош келдіңіз!
+
+📧 Логин (email): ${_lastCreatedCreds.email}
+🔑 Пароль: ${_lastCreatedCreds.password}
+📦 Тариф: ${_lastCreatedCreds.plan}
+
+🔗 Кіру сілтемесі:
+${_lastCreatedCreds.loginUrl}
+
+Кіргеннен кейін Meta Ads аккаунтыңызды жалғап алыңыз — нұсқаулық экранда шығады. Сұрақтар болса хабарласыңыз! 🚀`
+  );
+  window.open(`https://wa.me/?text=${msg}`, '_blank');
+}
+
+function copyNewClientCreds(){
+  if(!_lastCreatedCreds) return;
+  const txt = $('newClientCredentials').textContent;
+  navigator.clipboard.writeText(txt).then(()=>{
+    const btn = event.target;
+    btn.textContent='✅ Көшірілді!';
+    setTimeout(()=>btn.textContent='📋 Көшіру',2000);
+  });
+}
+
+// Пароль жаңарту
+async function adminResetPassword(userId, clientName, clientEmail){
+  if(!confirm(`${clientName} (${clientEmail}) үшін жаңа пароль жасайсыз ба?`)) return;
+  const tok = localStorage.getItem('st_token');
+  const r = await fetch('/api/admin/reset-password',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({user_id:userId})});
+  const d = await r.json();
+  if(!d.ok){ alert('❌ '+(d.error||'Қате')); return; }
+  const planNames={ai:'AI Таргетолог',expert:'Эксперт',agency:'Премиум'};
+  _lastCreatedCreds = {
+    name: clientName, email: clientEmail, password: d.password,
+    plan: '', loginUrl: 'https://innovative-friendship-production-0449.up.railway.app/auth.html'
+  };
+  $('newClientCredentials').textContent =
+`👤 Аты: ${clientName}
+📧 Email (логин): ${clientEmail}
+🔑 Жаңа пароль: ${d.password}
+
+🔗 Кіру сілтемесі:
+${_lastCreatedCreds.loginUrl}`;
+  $('newClientModal').style.display='flex';
+}
+
+// Meta қосу сілтемесін WhatsApp-пен жіберу
+function adminSendMetaInvite(email, name){
+  const loginUrl = 'https://innovative-friendship-production-0449.up.railway.app/auth.html';
+  const msg = encodeURIComponent(
+`Сәлем, ${name||email}!
+
+Платформаға кіріп, Meta Ads аккаунтыңызды жалғап алыңыз:
+
+🔗 ${loginUrl}
+
+Кіргеннен кейін "Meta Ads қосу" батырмасын басыңыз — Facebook аккаунтыңызға кіресіз де рұқсат бересіз. Барлығы автоматты орнатылады!`
+  );
+  window.open(`https://wa.me/?text=${msg}`, '_blank');
 }
 
 /* ────────────────────────────────
