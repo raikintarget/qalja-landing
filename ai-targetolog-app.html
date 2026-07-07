@@ -3247,21 +3247,47 @@ async function metaPayDebt(btn){
       // 3 сек кейін баннерді жасыр
       setTimeout(()=>{ const el=document.getElementById('accountWarningBanner'); if(el) el.remove(); }, 3000);
     } else {
-      // API арқылы мүмкін емес — Meta Billing бетіне аш
+      // API арқылы мүмкін емес
       btn.textContent = origTxt;
       btn.disabled = false;
-      const outstanding = d.outstanding && d.outstanding>0 ? ` (${d.outstanding.toLocaleString('ru')} ${d.currency||'тг'})` : '';
-      // Модальды диалог
-      const ok = confirm(`Meta аккаунтыңызда байланған карта бар.\n\nҚарыз${outstanding} Meta Billing арқылы өтеледі.\n\n"OK" басқан кезде Meta Billing бетіне өтесіз — онда "Оплатить" батырмасы болады.`);
-      if(ok) window.open(d.billingUrl || 'https://business.facebook.com/billing','_blank');
+      _showPayFailUI('Meta API billing trigger рұқсат бермеді');
     }
   }catch(e){
     btn.textContent = origTxt;
     btn.disabled = false;
-    // Тікелей Meta Billing-ке жібер
-    const ok = confirm(`Автоматты төлем мүмкін болмады: ${e.message}\n\nMeta Billing бетін ашайын ба?`);
-    if(ok) window.open('https://business.facebook.com/billing','_blank');
+    _showPayFailUI(e.message);
   }
+}
+
+function _showPayFailUI(reason){
+  // Менеджерге WhatsApp
+  const userName = localStorage.getItem('st_name')||'';
+  const msg = encodeURIComponent(`Сәлем! Meta аккаунтымда ошибка оплаты бар, автоматты төлем өтпеді.${userName?' Атым: '+userName:''}`);
+  const waUrl = 'https://wa.me/87016153305?text='+msg;
+
+  // Баннер ішіне менеджер батырмасын қос
+  const warnEl = document.getElementById('accountWarningBanner');
+  if(warnEl && !warnEl.querySelector('.pay-fail-block')){
+    const failBlock = document.createElement('div');
+    failBlock.className = 'pay-fail-block';
+    failBlock.style.cssText = 'display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;width:100%';
+    failBlock.innerHTML = `<span style="font-size:12px;opacity:.9">Автоматты төлем мүмкін болмады. Менеджерге хабарласыңыз:</span>
+      <a href="${waUrl}" target="_blank" style="background:#25D366;color:#fff;padding:6px 14px;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;flex:none">💬 Менеджерге жазу</a>
+      <a href="https://business.facebook.com/billing" target="_blank" style="color:#fff;border:1px solid rgba(255,255,255,.5);padding:5px 12px;border-radius:7px;font-size:11px;text-decoration:none;flex:none">Meta Billing →</a>`;
+    warnEl.style.flexWrap = 'wrap';
+    warnEl.appendChild(failBlock);
+  }
+
+  // Telegram арқылы маған хабарла
+  const tok = localStorage.getItem('st_token');
+  fetch('/api/account-warning',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
+    body: JSON.stringify({
+      warning:'PAY_FAILED',
+      message:`Meta аккаунт қарызы — автоматты төлем өтпеді. Себеп: ${reason||'API қате'}`
+    })
+  }).catch(()=>{});
 }
 
 /* ────────────────────────────────
