@@ -1289,14 +1289,26 @@ app.post('/api/meta/duplicate-campaign', async (req, res) => {
   if (!campaign_id) return res.status(400).json({ error: 'campaign_id міндетті' });
 
   try {
+    // Meta /copies API — params URLSearchParams арқылы жіберіледі
+    const params = new URLSearchParams();
+    params.append('access_token', metaToken);
+    if (new_name) {
+      params.append('name', new_name);
+    } else {
+      params.append('rename_options', JSON.stringify({ rename_suffix: ' — Дубль', rename_prefix: '' }));
+    }
+    params.append('status_option', 'PAUSED');
+
     const r = await axios.post(
       `https://graph.facebook.com/v19.0/${campaign_id}/copies`,
-      { rename_options: JSON.stringify({ rename_suffix: new_name ? '' : ' — Дубль', rename_prefix: '' }), access_token: metaToken, ...(new_name ? { name: new_name } : {}) },
-      { timeout: 30000 }
+      params.toString(),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 30000 }
     );
     res.json({ ok: true, new_campaign_id: r.data.copied_campaign_id || r.data.id });
   } catch (e) {
-    const msg = e.response?.data?.error?.message || e.message;
+    const errData = e.response?.data?.error || {};
+    const msg = errData.message || e.message;
+    console.error('duplicate-campaign error:', msg, JSON.stringify(errData));
     res.status(502).json({ error: msg });
   }
 });
