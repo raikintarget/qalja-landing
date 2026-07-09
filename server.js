@@ -1498,17 +1498,27 @@ app.post('/api/meta/create-campaign', async (req, res) => {
     }
   }
 
+  // Барлық параметрлерді лог
+  console.log('create-campaign params:', JSON.stringify({ name, objective, dest, geo, age_min, age_max, gender, daily_budget: budgetVal }));
+
   try {
     // 1. Кампания
-    const campR = await axios.post(`${base}/act_${accountId}/campaigns`, {
-      name,
-      objective,
-      status: 'PAUSED',
-      special_ad_categories: [],
-      is_adset_budget_sharing_enabled: false,
-      access_token: metaToken
-    });
+    let campR;
+    try {
+      campR = await axios.post(`${base}/act_${accountId}/campaigns`, {
+        name,
+        objective,
+        status: 'PAUSED',
+        special_ad_categories: [],
+        access_token: metaToken
+      });
+    } catch(e1) {
+      const m = e1.response?.data?.error?.message || e1.message;
+      console.error('STEP 1 campaign error:', m, JSON.stringify(e1.response?.data?.error||{}));
+      return res.status(400).json({ error: `Кампания жасалмады: ${m}` });
+    }
     const campaignId = campR.data.id;
+    console.log('STEP 1 OK — campaign:', campaignId);
 
     // 2. Ad Set — targeting
     // Қала атынан Meta city key табу
@@ -1579,8 +1589,17 @@ app.post('/api/meta/create-campaign', async (req, res) => {
       adsetBody.promoted_object = { page_id };
     }
 
-    const adsetR = await axios.post(`${base}/act_${accountId}/adsets`, adsetBody);
+    console.log('STEP 2 adset body:', JSON.stringify({...adsetBody, access_token:'***'}));
+    let adsetR;
+    try {
+      adsetR = await axios.post(`${base}/act_${accountId}/adsets`, adsetBody);
+    } catch(e2) {
+      const m = e2.response?.data?.error?.message || e2.message;
+      console.error('STEP 2 adset error:', m, JSON.stringify(e2.response?.data?.error||{}));
+      return res.status(400).json({ error: `Ad Set жасалмады: ${m}` });
+    }
     const adsetId = adsetR.data.id;
+    console.log('STEP 2 OK — adset:', adsetId);
 
     // 3. Ad Creative
     let adId = null;
