@@ -4949,7 +4949,13 @@ const SYS=`Ты SmartTarget AI — AI-таргетолог внутри плат
 ✅ Кнопка «⏸ Пауза» / «▶ Запустить» — останавливает или запускает кампанию
 ✅ Новый креатив — загружается через раздел Креативы, AI создаёт объявление
 
-Когда клиент хочет дублировать кампанию через чат — создавай дубль через JSON-блок, бери все параметры из контекста кампании.
+Когда клиент хочет дублировать кампанию — используй ТОЛЬКО этот формат (НЕ campaign_create):
+
+```campaign_duplicate
+{"campaign_id":"123456789"}
+```
+
+Бери campaign_id из списка кампаний клиента. НИКОГДА не используй campaign_create для дублирования.
 Когда клиент хочет поменять бюджет через чат — объясни что это можно сделать кнопкой прямо на карточке кампании (+30%, −20%).
 
 В контексте каждого сообщения — реальные данные клиента: кампании, бюджеты, расходы.
@@ -5140,11 +5146,29 @@ async function sendMsg(){
 
   // JSON блок бар ма — кампания жасау
   const campMatch = reply.match(/```campaign_create\s*([\s\S]*?)```/);
+  const dupMatch = reply.match(/```campaign_duplicate\s*([\s\S]*?)```/);
   const waMatch = reply.match(/```whatsapp_templates\s*([\s\S]*?)```/);
   const adsetMatch = reply.match(/```adset_action\s*([\s\S]*?)```/);
   const adMatch = reply.match(/```ad_action\s*([\s\S]*?)```/);
 
-  if(campMatch){
+  if(dupMatch){
+    const cleanReply = reply.replace(/```campaign_duplicate[\s\S]*?```/,'').trim();
+    if(cleanReply) addMsg(cleanReply, false);
+    try{
+      const p = JSON.parse(dupMatch[1].trim());
+      if(!p.campaign_id) throw new Error('campaign_id жоқ');
+      const tok = localStorage.getItem('st_token');
+      const prog = document.createElement('div');
+      prog.className='msg';
+      prog.innerHTML=`<div class="mav">🤖</div><div class="mbub">⏳ Дубль жасалуда…</div>`;
+      $('chatBody').appendChild(prog); $('chatBody').scrollTop=9999;
+      const r = await fetch('/api/meta/duplicate-campaign',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({campaign_id:p.campaign_id})});
+      const d = await r.json();
+      prog.remove();
+      if(d.ok) addMsg(`✅ Дубль жасалды!\n\nЖаңа кампания ID: ${d.new_campaign_id}\n\n⏸ PAUSED күйінде — Meta Ads Manager-де белсендіріңіз.`, false);
+      else addMsg(`❌ Дубль қатесі: ${d.error}`, false);
+    }catch(e){ addMsg(`❌ Қате: ${e.message}`, false); }
+  } else if(campMatch){
     const cleanReply = reply.replace(/```campaign_create[\s\S]*?```/,'').trim();
     addMsg(cleanReply, false);
     try{
