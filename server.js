@@ -1533,26 +1533,40 @@ app.post('/api/meta/create-campaign', async (req, res) => {
       if (cityKey) geoLocations = { cities: [{ key: cityKey }] };
     }
 
-    // destination type
-    let destinationType = 'WHATSAPP';
-    if (dest === 'direct') destinationType = 'INSTAGRAM_DIRECT';
-    if (dest === 'traffic') destinationType = 'WEBSITE';
+    // destination_type + optimization_goal — objective-ке сәйкес
+    let destinationType, optimizationGoal, billingEvent;
+    if (dest === 'traffic') {
+      destinationType = 'WEBSITE';
+      optimizationGoal = 'LINK_CLICKS';
+      billingEvent = 'IMPRESSIONS';
+    } else if (dest === 'direct') {
+      destinationType = 'INSTAGRAM_DIRECT';
+      optimizationGoal = 'CONVERSATIONS';
+      billingEvent = 'IMPRESSIONS';
+    } else {
+      // WhatsApp — default
+      destinationType = 'WHATSAPP';
+      optimizationGoal = 'CONVERSATIONS';
+      billingEvent = 'IMPRESSIONS';
+    }
+    // OUTCOME_LEADS objective үшін optimization_goal өзгерту
+    if (objective === 'OUTCOME_LEADS') {
+      optimizationGoal = 'LEAD_GENERATION';
+      billingEvent = 'IMPRESSIONS';
+      destinationType = 'ON_AD';
+    }
 
     const targeting = {
       age_min, age_max,
       genders: gender === 0 ? [1, 2] : [gender],
       geo_locations: geoLocations,
-      targeting_automation: { advantage_audience: 0 }
     };
-
-    let optimizationGoal = 'CONVERSATIONS';
-    if (dest === 'traffic') optimizationGoal = 'LINK_CLICKS';
 
     const adsetBody = {
       name: `${name} — Ad Set`,
       campaign_id: campaignId,
-      daily_budget: Math.round(budgetVal * 100), // центтерде
-      billing_event: 'IMPRESSIONS',
+      daily_budget: Math.round(budgetVal * 100),
+      billing_event: billingEvent,
       optimization_goal: optimizationGoal,
       bid_strategy: 'LOWEST_COST_WITHOUT_CAP',
       status: 'PAUSED',
@@ -1561,7 +1575,7 @@ app.post('/api/meta/create-campaign', async (req, res) => {
       access_token: metaToken
     };
     // WhatsApp/Direct үшін page_id міндетті
-    if (page_id && dest !== 'traffic') {
+    if (page_id && dest !== 'traffic' && objective !== 'OUTCOME_LEADS') {
       adsetBody.promoted_object = { page_id };
     }
 
@@ -1635,9 +1649,11 @@ app.post('/api/meta/create-campaign', async (req, res) => {
   } catch (e) {
     const errData = e.response?.data?.error || {};
     const msg = errData.message || e.message;
-    const details = errData.error_user_msg || errData.error_subcode || '';
+    const details = errData.error_user_msg || errData.error_user_title || errData.error_subcode || '';
+    const errorBody = e.response?.config?.data;
     console.error('create-campaign error:', msg, details, JSON.stringify(errData));
-    res.status(400).json({ error: msg + (details ? ` (${details})` : '') });
+    console.error('create-campaign request body:', typeof errorBody === 'string' ? errorBody.slice(0,500) : JSON.stringify(errorBody||{}).slice(0,500));
+    res.status(400).json({ error: msg, details, hint: errData.error_user_msg || '' });
   }
 });
 
