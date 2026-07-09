@@ -5209,6 +5209,11 @@ async function createCampaignFromChat(params){
 
   try{
     const tok=localStorage.getItem('st_token');
+    // Objective нормализация
+    const _OBJ_MAP={'MESSAGES':'OUTCOME_ENGAGEMENT','POST_ENGAGEMENT':'OUTCOME_ENGAGEMENT','PAGE_LIKES':'OUTCOME_ENGAGEMENT','EVENT_RESPONSES':'OUTCOME_ENGAGEMENT','VIDEO_VIEWS':'OUTCOME_ENGAGEMENT','ENGAGEMENT':'OUTCOME_ENGAGEMENT','CONVERSIONS':'OUTCOME_SALES','PRODUCT_CATALOG_SALES':'OUTCOME_SALES','SALES':'OUTCOME_SALES','OFFER_CLAIMS':'OUTCOME_SALES','LEAD_GENERATION':'OUTCOME_LEADS','LEADS':'OUTCOME_LEADS','LINK_CLICKS':'OUTCOME_TRAFFIC','TRAFFIC':'OUTCOME_TRAFFIC','REACH':'OUTCOME_AWARENESS','BRAND_AWARENESS':'OUTCOME_AWARENESS','LOCAL_AWARENESS':'OUTCOME_AWARENESS','AWARENESS':'OUTCOME_AWARENESS','APP_INSTALLS':'OUTCOME_APP_PROMOTION'};
+    const _VALID=new Set(['OUTCOME_AWARENESS','OUTCOME_ENGAGEMENT','OUTCOME_LEADS','OUTCOME_SALES','OUTCOME_TRAFFIC','OUTCOME_APP_PROMOTION']);
+    if(params.objective && _OBJ_MAP[params.objective]) params.objective=_OBJ_MAP[params.objective];
+    if(!params.objective||!_VALID.has(params.objective)) params.objective=params.dest==='traffic'?'OUTCOME_TRAFFIC':'OUTCOME_ENGAGEMENT';
     // page_id және image hash settings-тен алу
     if(!params.page_id && S.settings.pageId) params.page_id = S.settings.pageId;
     if(!params.image_hash && S.settings.adImageHash) params.image_hash = S.settings.adImageHash;
