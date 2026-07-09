@@ -1410,6 +1410,31 @@ app.post('/api/meta/create-campaign', async (req, res) => {
   let { name, objective = 'OUTCOME_ENGAGEMENT', daily_budget, dest, wa_phone, page_id, ig_account_id, geo_cities, age_min = 18, age_max = 65, gender = 0, ad_text, ad_headline, image_hash, video_id, wa_template, geo } = req.body;
 
   if (!name) return res.status(400).json({ error: 'Кампания атауы (name) міндетті' });
+
+  // Ескі objective → жаңа OUTCOME_* форматқа ауыстыру
+  const OBJECTIVE_MAP = {
+    'MESSAGES':               'OUTCOME_ENGAGEMENT',
+    'POST_ENGAGEMENT':        'OUTCOME_ENGAGEMENT',
+    'PAGE_LIKES':             'OUTCOME_ENGAGEMENT',
+    'EVENT_RESPONSES':        'OUTCOME_ENGAGEMENT',
+    'VIDEO_VIEWS':            'OUTCOME_ENGAGEMENT',
+    'CONVERSIONS':            'OUTCOME_SALES',
+    'PRODUCT_CATALOG_SALES':  'OUTCOME_SALES',
+    'LEAD_GENERATION':        'OUTCOME_LEADS',
+    'LINK_CLICKS':            'OUTCOME_TRAFFIC',
+    'REACH':                  'OUTCOME_AWARENESS',
+    'BRAND_AWARENESS':        'OUTCOME_AWARENESS',
+    'LOCAL_AWARENESS':        'OUTCOME_AWARENESS',
+    'APP_INSTALLS':           'OUTCOME_APP_PROMOTION',
+    'STORE_VISITS':           'OUTCOME_AWARENESS',
+    'OFFER_CLAIMS':           'OUTCOME_SALES',
+  };
+  if (OBJECTIVE_MAP[objective]) objective = OBJECTIVE_MAP[objective];
+  // Dest-ке байланысты default objective
+  if (!objective || objective === 'OUTCOME_ENGAGEMENT') {
+    if (dest === 'wa' || dest === 'direct') objective = 'OUTCOME_ENGAGEMENT';
+    else if (dest === 'traffic') objective = 'OUTCOME_TRAFFIC';
+  }
   const budgetVal = daily_budget || 5;
 
   const base = `https://graph.facebook.com/v19.0`;
