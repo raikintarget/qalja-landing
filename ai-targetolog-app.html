@@ -4959,10 +4959,10 @@ const SYS=`Ты SmartTarget AI — AI-таргетолог внутри плат
 ✅ Анализируешь данные и даёшь точные решения
 ✅ Пишешь тексты объявлений
 
-Когда создаёшь кампанию — короткое подтверждение + JSON-блок в конце:
+Когда создаёшь кампанию — короткое подтверждение + JSON-блок в конце. НИКОГДА не добавляй поле "objective" — система сама его определит. Обязательные поля: name, dest, daily_budget, geo, age_min, age_max, gender, wa_template:
 
 \`\`\`campaign_create
-{"name":"Название","dest":"wa","daily_budget":5,"geo":"Атырау","age_min":25,"age_max":45,"gender":0,"ad_text":"Текст","ad_headline":"Заголовок","wa_template":"Сәлем! Тағам туралы білгім келеді"}
+{"name":"Название","dest":"wa","daily_budget":5,"geo":"Атырау","age_min":25,"age_max":45,"gender":2,"wa_template":"Сәлем! Тағам туралы білгім келеді"}
 \`\`\`
 
 dest: "wa" (WhatsApp), "direct" (Instagram Direct), "traffic" (сайт)
@@ -5851,7 +5851,13 @@ async function showCreativePicker(params){
     </div>
     <div id="cpTab2Content" style="display:none">${postsHtml}</div>`;
 
-  $('crePickerModal').classList.add('show');
+  const modalEl = $('crePickerModal');
+  if(!modalEl){
+    // Modal табылмаса — тікелей жаса
+    createCampaignFromChat(params);
+    return;
+  }
+  modalEl.classList.add('show');
 
   // Публикацияларды жүктеу
   try{
