@@ -1942,10 +1942,10 @@ h2{font-weight:700;font-size:clamp(18px,3.5vw,24px);line-height:1.2;letter-spaci
 
 <!-- MODAL: Креатив таңдау (кампания жасар алдында) -->
 <div class="ov" id="crePickerModal">
-  <div class="modal" style="max-width:520px">
-    <h3>📸 Қай суретпен жасайды?</h3>
-    <p class="sub" style="margin-bottom:13px">Кампания үшін креатив таңдаңыз</p>
-    <div id="crePickerList" style="max-height:340px;overflow-y:auto"></div>
+  <div class="modal" style="max-width:560px">
+    <h3>🎬 Креатив таңдаңыз</h3>
+    <p class="sub" style="margin-bottom:13px">Жүктелген медиа немесе Facebook беттегі публикация таңдаңыз</p>
+    <div id="crePickerList" style="max-height:400px;overflow-y:auto"></div>
     <div class="mf">
       <button class="btn sm g" onclick="closeCrePicker()">Болдырмау</button>
       <button class="btn sm g" onclick="createWithoutCreative()">Суретсіз жасау</button>
@@ -5852,12 +5852,11 @@ async function showCreativePicker(params){
     <div id="cpTab2Content" style="display:none">${postsHtml}</div>`;
 
   const modalEl = $('crePickerModal');
-  if(!modalEl){
-    // Modal табылмаса — тікелей жаса
-    createCampaignFromChat(params);
-    return;
-  }
+  if(!modalEl){ createCampaignFromChat(params); return; }
   modalEl.classList.add('show');
+
+  // Жүктелген медиа жоқ болса — бірден Tab 2 ашу
+  if(!withMedia.length) cpSwitchTab(2);
 
   // Публикацияларды жүктеу
   try{
