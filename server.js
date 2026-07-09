@@ -1452,29 +1452,31 @@ app.post('/api/meta/create-campaign', async (req, res) => {
 
   if (!name) return res.status(400).json({ error: 'Кампания атауы (name) міндетті' });
 
-  // Ескі objective → жаңа OUTCOME_* форматқа ауыстыру
+  // Objective нормализация — кез-келген форматты OUTCOME_* форматқа аудар
+  const VALID_OBJECTIVES = new Set([
+    'OUTCOME_AWARENESS','OUTCOME_ENGAGEMENT','OUTCOME_LEADS',
+    'OUTCOME_SALES','OUTCOME_TRAFFIC','OUTCOME_APP_PROMOTION'
+  ]);
   const OBJECTIVE_MAP = {
-    'MESSAGES':               'OUTCOME_ENGAGEMENT',
-    'POST_ENGAGEMENT':        'OUTCOME_ENGAGEMENT',
-    'PAGE_LIKES':             'OUTCOME_ENGAGEMENT',
-    'EVENT_RESPONSES':        'OUTCOME_ENGAGEMENT',
-    'VIDEO_VIEWS':            'OUTCOME_ENGAGEMENT',
-    'CONVERSIONS':            'OUTCOME_SALES',
-    'PRODUCT_CATALOG_SALES':  'OUTCOME_SALES',
-    'LEAD_GENERATION':        'OUTCOME_LEADS',
-    'LINK_CLICKS':            'OUTCOME_TRAFFIC',
-    'REACH':                  'OUTCOME_AWARENESS',
-    'BRAND_AWARENESS':        'OUTCOME_AWARENESS',
-    'LOCAL_AWARENESS':        'OUTCOME_AWARENESS',
-    'APP_INSTALLS':           'OUTCOME_APP_PROMOTION',
-    'STORE_VISITS':           'OUTCOME_AWARENESS',
-    'OFFER_CLAIMS':           'OUTCOME_SALES',
+    'MESSAGES':'OUTCOME_ENGAGEMENT','POST_ENGAGEMENT':'OUTCOME_ENGAGEMENT',
+    'PAGE_LIKES':'OUTCOME_ENGAGEMENT','EVENT_RESPONSES':'OUTCOME_ENGAGEMENT',
+    'VIDEO_VIEWS':'OUTCOME_ENGAGEMENT','OFFER_CLAIMS':'OUTCOME_SALES',
+    'CONVERSIONS':'OUTCOME_SALES','PRODUCT_CATALOG_SALES':'OUTCOME_SALES',
+    'LEAD_GENERATION':'OUTCOME_LEADS','LEADS':'OUTCOME_LEADS',
+    'LINK_CLICKS':'OUTCOME_TRAFFIC','TRAFFIC':'OUTCOME_TRAFFIC',
+    'REACH':'OUTCOME_AWARENESS','BRAND_AWARENESS':'OUTCOME_AWARENESS',
+    'LOCAL_AWARENESS':'OUTCOME_AWARENESS','AWARENESS':'OUTCOME_AWARENESS',
+    'APP_INSTALLS':'OUTCOME_APP_PROMOTION','STORE_VISITS':'OUTCOME_AWARENESS',
+    'ENGAGEMENT':'OUTCOME_ENGAGEMENT','SALES':'OUTCOME_SALES',
   };
+  // 1. Маппинг
   if (OBJECTIVE_MAP[objective]) objective = OBJECTIVE_MAP[objective];
-  // Dest-ке байланысты default objective
-  if (!objective || objective === 'OUTCOME_ENGAGEMENT') {
-    if (dest === 'wa' || dest === 'direct') objective = 'OUTCOME_ENGAGEMENT';
-    else if (dest === 'traffic') objective = 'OUTCOME_TRAFFIC';
+  // 2. Егер әлі де жарамсыз болса — dest-ке қарай default
+  if (!VALID_OBJECTIVES.has(objective)) {
+    if (dest === 'traffic') objective = 'OUTCOME_TRAFFIC';
+    else if (dest === 'wa' || dest === 'direct') objective = 'OUTCOME_ENGAGEMENT';
+    else objective = 'OUTCOME_ENGAGEMENT';
+    console.log(`Objective overridden to: ${objective}`);
   }
   const budgetVal = daily_budget || 5;
 
