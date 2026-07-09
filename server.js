@@ -1597,9 +1597,9 @@ app.post('/api/meta/create-campaign', async (req, res) => {
     const adsetId = adsetR.data.id;
     console.log('STEP 2 OK — adset:', adsetId);
 
-    // 3. Ad Creative
+    // 3. Ad Creative — тек сурет/видео/пост болса ғана жасау
     let adId = null;
-    const hasCreative = post_id || (page_id && (ad_text || ad_headline || image_hash || video_id));
+    const hasCreative = post_id || (page_id && (image_hash || video_id));
     if (hasCreative) {
       const ctaWa = dest === 'wa'
         ? { type: 'WHATSAPP_MESSAGE', value: {
