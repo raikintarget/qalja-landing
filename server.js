@@ -1289,22 +1289,18 @@ app.post('/api/meta/duplicate-campaign', async (req, res) => {
   if (!campaign_id) return res.status(400).json({ error: 'campaign_id міндетті' });
 
   try {
-    // Meta /copies API — params URLSearchParams арқылы жіберіледі
-    const params = new URLSearchParams();
-    params.append('access_token', metaToken);
-    if (new_name) {
-      params.append('name', new_name);
-    } else {
-      params.append('rename_options', JSON.stringify({ rename_suffix: ' — Дубль', rename_prefix: '' }));
-    }
-    params.append('status_option', 'PAUSED');
-
+    // Meta /copies — минималды параметрлермен
     const r = await axios.post(
       `https://graph.facebook.com/v19.0/${campaign_id}/copies`,
-      params.toString(),
-      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 30000 }
+      null,
+      {
+        params: { access_token: metaToken },
+        timeout: 30000
+      }
     );
-    res.json({ ok: true, new_campaign_id: r.data.copied_campaign_id || r.data.id });
+    console.log('duplicate OK:', JSON.stringify(r.data));
+    const newId = r.data.copied_campaign_id || r.data.id || (r.data.data && r.data.data[0]?.id);
+    res.json({ ok: true, new_campaign_id: newId });
   } catch (e) {
     const errData = e.response?.data?.error || {};
     const msg = errData.message || e.message;
