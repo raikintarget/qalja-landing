@@ -5806,30 +5806,72 @@ function handleCreImg(file){ handleCreMedia(file); }
 /* ────────────────────────────────
    CREATIVE PICKER (campaign create)
 ──────────────────────────────── */
-function showCreativePicker(params){
-  const withMedia=S.creatives.filter(c=>c.imageHash||c.videoId);
-  if(!withMedia.length){
-    addMsg('📋 Жүктелген медиа жоқ — медиасыз жасалуда...', false);
-    createCampaignFromChat(params);
-    return;
-  }
-  window._pendingCampParams=params;
-  const list=$('crePickerList');
-  list.innerHTML=`
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:9px;margin-bottom:4px">
-    ${withMedia.map((c,i)=>`
-      <div onclick="pickCreative(${i})" style="cursor:pointer;border:2px solid var(--line);border-radius:12px;overflow:hidden;transition:.18s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--line)'">
-        ${c.videoId
-          ? `<div style="width:100%;height:100px;background:#111;display:flex;align-items:center;justify-content:center;font-size:28px">🎬</div>`
-          : `<img src="${c.imageUrl||''}" style="width:100%;height:100px;object-fit:cover;display:block">`}
-        <div style="padding:8px 9px">
-          <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escH(c.name)}</div>
-          <div style="font-size:10.5px;color:var(--dim)">${c.videoId?'🎬 Видео':c.format}</div>
-        </div>
-      </div>
-    `).join('')}
-    </div>`;
+async function showCreativePicker(params){
+  window._pendingCampParams = params;
+  // Tab 1: жүктелген медиа
+  const withMedia = S.creatives.filter(c=>c.imageHash||c.videoId);
+  const list = $('crePickerList');
+
+  // Tab 2: беттің публикациялары
+  let postsHtml = '<p style="color:var(--dim);font-size:13px;padding:12px 0">Жүктелуде...</p>';
+  list.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:12px;border-bottom:1px solid var(--line);padding-bottom:8px">
+      <button id="cpTab1" onclick="cpSwitchTab(1)" style="padding:6px 14px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:var(--primary);color:#fff">📁 Жүктелген медиа</button>
+      <button id="cpTab2" onclick="cpSwitchTab(2)" style="padding:6px 14px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:var(--s2);color:var(--dim)">📰 Беттің публикациялары</button>
+    </div>
+    <div id="cpTab1Content">
+      ${withMedia.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:9px">
+      ${withMedia.map((c,i)=>`
+        <div onclick="pickCreative(${i})" style="cursor:pointer;border:2px solid var(--line);border-radius:12px;overflow:hidden;transition:.18s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--line)'">
+          ${c.videoId?`<div style="width:100%;height:90px;background:#111;display:flex;align-items:center;justify-content:center;font-size:28px">🎬</div>`:`<img src="${c.imageUrl||''}" style="width:100%;height:90px;object-fit:cover;display:block">`}
+          <div style="padding:7px 9px"><div style="font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escH(c.name)}</div><div style="font-size:10px;color:var(--dim)">${c.videoId?'🎬 Видео':c.format}</div></div>
+        </div>`).join('')}
+      </div>` : '<p style="color:var(--dim);font-size:13px">Жүктелген медиа жоқ</p>'}
+    </div>
+    <div id="cpTab2Content" style="display:none">${postsHtml}</div>`;
+
   $('crePickerModal').classList.add('show');
+
+  // Публикацияларды жүктеу
+  try{
+    const tok = localStorage.getItem('st_token');
+    const r = await fetch('/api/meta/page-posts', {headers:{'Authorization':'Bearer '+tok}});
+    const d = await r.json();
+    const posts = d.posts || [];
+    const tab2 = $('cpTab2Content');
+    if(!posts.length){ tab2.innerHTML='<p style="color:var(--dim);font-size:13px">Публикация табылмады</p>'; return; }
+    tab2.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:9px">
+    ${posts.map((p,i)=>{
+      const date = new Date(p.created_time).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'});
+      const isReel = p.media_type==='video'||p.type==='video_inline'||p.type==='video_autoplay';
+      const pic = p.picture ? `<img src="${p.picture}" style="width:100%;height:90px;object-fit:cover;display:block">` : `<div style="width:100%;height:90px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:28px">${isReel?'🎬':'📷'}</div>`;
+      return `<div onclick="pickPost('${p.id}','${date}')" style="cursor:pointer;border:2px solid var(--line);border-radius:12px;overflow:hidden;transition:.18s" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--line)'">
+        ${pic}
+        <div style="padding:7px 9px">
+          <div style="font-size:10px;color:var(--dim);margin-bottom:2px">${isReel?'🎬 Reels':'📷 Пост'} · ${date}</div>
+          <div style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--txt)">${escH((p.message||'').slice(0,40))||'—'}</div>
+        </div>
+      </div>`;
+    }).join('')}
+    </div>`;
+  }catch(e){ $('cpTab2Content').innerHTML=`<p style="color:var(--bad);font-size:13px">Қате: ${e.message}</p>`; }
+}
+
+function cpSwitchTab(n){
+  $('cpTab1').style.background = n===1?'var(--primary)':'var(--s2)';
+  $('cpTab1').style.color = n===1?'#fff':'var(--dim)';
+  $('cpTab2').style.background = n===2?'var(--primary)':'var(--s2)';
+  $('cpTab2').style.color = n===2?'#fff':'var(--dim)';
+  $('cpTab1Content').style.display = n===1?'block':'none';
+  $('cpTab2Content').style.display = n===2?'block':'none';
+}
+
+function pickPost(postId, date){
+  const params = window._pendingCampParams;
+  params.post_id = postId;
+  delete params.image_hash; delete params.video_id;
+  closeCrePicker();
+  createCampaignFromChat(params);
 }
 
 function pickCreative(i){
@@ -5837,8 +5879,8 @@ function pickCreative(i){
   const c=withMedia[i];
   const params=window._pendingCampParams;
   if(c){
-    if(c.videoId){ params.video_id=c.videoId; delete params.image_hash; }
-    else if(c.imageHash){ params.image_hash=c.imageHash; delete params.video_id; }
+    if(c.videoId){ params.video_id=c.videoId; delete params.image_hash; delete params.post_id; }
+    else if(c.imageHash){ params.image_hash=c.imageHash; delete params.video_id; delete params.post_id; }
   }
   closeCrePicker();
   createCampaignFromChat(params);

@@ -1396,6 +1396,47 @@ app.post('/api/meta/toggle-ad', async (req, res) => {
   }
 });
 
+// ── API: Беттің соңғы публикациялары (Reels, фото, видео) ──
+app.get('/api/meta/page-posts', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const user = await getUserBySession(token);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  const metaToken = user.meta_token || process.env.META_ACCESS_TOKEN;
+  if (!metaToken) return res.status(400).json({ error: 'Meta токен жоқ' });
+
+  try {
+    // Пайдаланушының беттерін алу
+    const pagesRes = await axios.get('https://graph.facebook.com/v19.0/me/accounts', {
+      params: { access_token: metaToken, limit: 5, fields: 'id,name,access_token' }
+    });
+    const pages = pagesRes.data?.data || [];
+    if (!pages.length) return res.json({ posts: [], pages: [] });
+
+    // Бірінші беттің постарын алу
+    const page = pages[0];
+    const postsRes = await axios.get(`https://graph.facebook.com/v19.0/${page.id}/posts`, {
+      params: {
+        access_token: page.access_token || metaToken,
+        fields: 'id,message,story,created_time,full_picture,attachments{media_type,media,type,title}',
+        limit: 30
+      }
+    });
+    const posts = (postsRes.data?.data || []).map(p => ({
+      id: p.id,
+      message: p.message || p.story || '',
+      created_time: p.created_time,
+      picture: p.full_picture || null,
+      media_type: p.attachments?.data?.[0]?.media_type || 'photo',
+      type: p.attachments?.data?.[0]?.type || 'photo'
+    }));
+
+    res.json({ posts, pages: pages.map(p => ({ id: p.id, name: p.name })) });
+  } catch(e) {
+    const msg = e.response?.data?.error?.message || e.message;
+    res.status(502).json({ error: msg });
+  }
+});
+
 // ── API: Meta кампания жасау ──
 app.post('/api/meta/create-campaign', async (req, res) => {
   const sessionToken = req.headers.authorization?.replace('Bearer ', '');
@@ -1407,7 +1448,7 @@ app.post('/api/meta/create-campaign', async (req, res) => {
   const accountId = user.meta_account_id || process.env.META_AD_ACCOUNT_ID;
   if (!metaToken || !accountId) return res.status(400).json({ error: 'Meta аккаунт қосылмаған' });
 
-  let { name, objective = 'OUTCOME_ENGAGEMENT', daily_budget, dest, wa_phone, page_id, ig_account_id, geo_cities, age_min = 18, age_max = 65, gender = 0, ad_text, ad_headline, image_hash, video_id, wa_template, geo } = req.body;
+  let { name, objective = 'OUTCOME_ENGAGEMENT', daily_budget, dest, wa_phone, page_id, ig_account_id, geo_cities, age_min = 18, age_max = 65, gender = 0, ad_text, ad_headline, image_hash, video_id, wa_template, geo, post_id } = req.body;
 
   if (!name) return res.status(400).json({ error: 'Кампания атауы (name) міндетті' });
 
@@ -1525,9 +1566,10 @@ app.post('/api/meta/create-campaign', async (req, res) => {
     const adsetR = await axios.post(`${base}/act_${accountId}/adsets`, adsetBody);
     const adsetId = adsetR.data.id;
 
-    // 3. Ad Creative (тек page_id болса)
+    // 3. Ad Creative
     let adId = null;
-    if (page_id && (ad_text || ad_headline || image_hash || video_id)) {
+    const hasCreative = post_id || (page_id && (ad_text || ad_headline || image_hash || video_id));
+    if (hasCreative) {
       const ctaWa = dest === 'wa'
         ? { type: 'WHATSAPP_MESSAGE', value: {
             app_destination: 'WHATSAPP',
@@ -1536,34 +1578,43 @@ app.post('/api/meta/create-campaign', async (req, res) => {
           }}
         : { type: 'LEARN_MORE' };
 
-      let storySpec;
-      if (video_id) {
-        // Видео креатив
-        storySpec = {
-          page_id,
-          video_data: {
-            video_id,
-            title: ad_headline || name,
-            message: ad_text || '',
-            call_to_action: ctaWa
-          }
+      let creativeBody;
+
+      if (post_id) {
+        // Бар публикацияны (пост/реилс) пайдалану — object_story_id
+        creativeBody = {
+          name: `${name} — Creative`,
+          object_story_id: post_id,
+          access_token: metaToken
         };
       } else {
-        // Сурет креатив
-        const linkData = {
-          message: ad_text || '',
-          name: ad_headline || name,
-          call_to_action: ctaWa
+        let storySpec;
+        if (video_id) {
+          storySpec = {
+            page_id,
+            video_data: {
+              video_id,
+              title: ad_headline || name,
+              message: ad_text || '',
+              call_to_action: ctaWa
+            }
+          };
+        } else {
+          const linkData = {
+            message: ad_text || '',
+            name: ad_headline || name,
+            call_to_action: ctaWa
+          };
+          if (image_hash) linkData.image_hash = image_hash;
+          storySpec = { page_id, link_data: linkData };
+        }
+        creativeBody = {
+          name: `${name} — Creative`,
+          object_story_spec: storySpec,
+          access_token: metaToken
         };
-        if (image_hash) linkData.image_hash = image_hash;
-        storySpec = { page_id, link_data: linkData };
       }
 
-      const creativeBody = {
-        name: `${name} — Creative`,
-        object_story_spec: storySpec,
-        access_token: metaToken
-      };
       const creR = await axios.post(`${base}/act_${accountId}/adcreatives`, creativeBody);
       const creativeId = creR.data.id;
 
