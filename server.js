@@ -1495,7 +1495,7 @@ app.post('/api/meta/create-campaign', async (req, res) => {
   }
 
   // Барлық параметрлерді лог
-  console.log('create-campaign params:', JSON.stringify({ name, objective, dest, geo, age_min, age_max, gender, daily_budget: budgetVal }));
+  console.log('create-campaign FULL:', JSON.stringify({ name, objective, dest, geo, age_min, age_max, gender, daily_budget: budgetVal, page_id, post_id }));
 
   try {
     // 1. Кампания

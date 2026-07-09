@@ -5255,7 +5255,7 @@ async function createCampaignFromChat(params){
         dest:params.dest||'wa', wa_template:params.wa_template||''});
       save(); renderCampaigns(); refreshDashboard();
     } else {
-      addMsg(`❌ Қате: ${d.error}`, false);
+      addMsg(`❌ Қате: ${d.error}${d.details?' · '+d.details:''}${d.hint?' — '+d.hint:''}`, false);
     }
   }catch(e){
     prog.remove();
