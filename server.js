@@ -155,14 +155,15 @@ async function setupBotCommands() {
 }
 
 // ── Meta API ──
-async function getMetaData(token, accountId) {
+async function getMetaData(token, accountId, datePreset = null) {
+  const insightPreset = datePreset || 'last_3d';
   const [campsRes, insRes, accRes, adsetsRes, campInsRes, todayInsRes, campTodayRes] = await Promise.all([
     axios.get(`https://graph.facebook.com/v19.0/act_${accountId}/campaigns`, {
       params: { access_token: token, fields: 'id,name,status,objective,daily_budget', limit: 20 }
     }),
-    // Account-level insights: last 3 days
+    // Account-level insights
     axios.get(`https://graph.facebook.com/v19.0/act_${accountId}/insights`, {
-      params: { access_token: token, fields: 'impressions,clicks,spend,cpc,ctr,cpm,inline_link_clicks,actions', date_preset: 'last_3d', level: 'account' }
+      params: { access_token: token, fields: 'impressions,clicks,spend,cpc,ctr,cpm,inline_link_clicks,actions', date_preset: insightPreset, level: 'account' }
     }),
     axios.get(`https://graph.facebook.com/v19.0/act_${accountId}`, {
       params: { access_token: token, fields: 'id,name,currency,amount_spent,balance,account_status,disable_reason,funding_source_details' }
@@ -170,12 +171,12 @@ async function getMetaData(token, accountId) {
     axios.get(`https://graph.facebook.com/v19.0/act_${accountId}/adsets`, {
       params: { access_token: token, fields: 'id,name,campaign_id,daily_budget,status', limit: 50 }
     }).catch(() => ({ data: { data: [] } })),
-    // Campaign-level insights: last 3 days
+    // Campaign-level insights
     axios.get(`https://graph.facebook.com/v19.0/act_${accountId}/insights`, {
       params: {
         access_token: token,
         fields: 'campaign_id,campaign_name,spend,clicks,impressions,inline_link_clicks,actions',
-        date_preset: 'last_3d',
+        date_preset: insightPreset,
         level: 'campaign',
         limit: 50
       }
@@ -445,8 +446,10 @@ app.get('/api/meta-data', async (req, res) => {
 
   if (!metaToken || !accountId) return res.status(400).json({ error: 'Meta not configured' });
 
+  const datePreset = req.query.date_preset || null;
+
   try {
-    const data = await getMetaData(metaToken, accountId);
+    const data = await getMetaData(metaToken, accountId, datePreset);
     // Баланс тексеру — аз болса клиентке Telegram ескерту
     const balanceCents = parseInt(data.account?.balance || 0);
     if (sessionToken) {
@@ -1289,12 +1292,16 @@ app.post('/api/meta/duplicate-campaign', async (req, res) => {
   if (!campaign_id) return res.status(400).json({ error: 'campaign_id міндетті' });
 
   try {
-    // Meta /copies — минималды параметрлермен
+    // Meta /copies — deep_copy=true: кампания + adsets + ads толық көшіреді
     const r = await axios.post(
       `https://graph.facebook.com/v19.0/${campaign_id}/copies`,
       null,
       {
-        params: { access_token: metaToken },
+        params: {
+          access_token: metaToken,
+          deep_copy: true,
+          status_option: 'PAUSED'
+        },
         timeout: 30000
       }
     );
@@ -1369,6 +1376,31 @@ app.post('/api/meta/duplicate-ad', async (req, res) => {
     if (adset_id) body.adset_id = adset_id;
     const r = await axios.post(`${base}/${ad_id}/copies`, body, { timeout: 30000 });
     res.json({ ok: true, new_ad_id: r.data.copied_ad_id || r.data.id });
+  } catch(e) {
+    res.status(502).json({ error: e.response?.data?.error?.message || e.message });
+  }
+});
+
+// ── API: Ad Creative ауыстыру (публикация) ──
+app.post('/api/meta/update-ad-creative', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const user = token ? await getUserBySession(token) : null;
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  const metaToken = user.meta_token || process.env.META_ACCESS_TOKEN;
+  const { ad_id, post_id, page_id } = req.body;
+  if (!ad_id || !post_id) return res.status(400).json({ error: 'ad_id және post_id міндетті' });
+  const base = 'https://graph.facebook.com/v19.0';
+  try {
+    // Жаңа creative жасау
+    const creativeBody = {
+      object_story_id: post_id,
+      access_token: metaToken
+    };
+    const crR = await axios.post(`${base}/act_${user.meta_account_id || process.env.META_AD_ACCOUNT_ID}/adcreatives`, creativeBody, { timeout: 20000 });
+    const creativeId = crR.data.id;
+    // Ad-ді жаңарту
+    await axios.post(`${base}/${ad_id}`, { creative: { creative_id: creativeId }, access_token: metaToken }, { timeout: 20000 });
+    res.json({ ok: true });
   } catch(e) {
     res.status(502).json({ error: e.response?.data?.error?.message || e.message });
   }
