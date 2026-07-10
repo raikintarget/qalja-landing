@@ -999,8 +999,8 @@ h2{font-weight:700;font-size:clamp(18px,3.5vw,24px);line-height:1.2;letter-spaci
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
     <!-- Статус табтары -->
     <div style="display:flex;background:var(--s2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px">
-      <button onclick="setCampFilter('all')" id="csf-all" style="border:none;background:var(--s);font-size:12.5px;padding:5px 12px;border-radius:8px;cursor:pointer;color:var(--primary);font-weight:600;transition:.15s">Барлығы <span id="csf-c-all" style="font-size:11px;opacity:.7"></span></button>
-      <button onclick="setCampFilter('active')" id="csf-active" style="border:none;background:transparent;font-size:12.5px;padding:5px 12px;border-radius:8px;cursor:pointer;color:var(--dim);font-weight:500;transition:.15s">Белсенді <span id="csf-c-active" style="font-size:11px;opacity:.7"></span></button>
+      <button onclick="setCampFilter('all')" id="csf-all" style="border:none;background:transparent;font-size:12.5px;padding:5px 12px;border-radius:8px;cursor:pointer;color:var(--dim);font-weight:500;transition:.15s">Барлығы <span id="csf-c-all" style="font-size:11px;opacity:.7"></span></button>
+      <button onclick="setCampFilter('active')" id="csf-active" style="border:none;background:var(--s);font-size:12.5px;padding:5px 12px;border-radius:8px;cursor:pointer;color:var(--primary);font-weight:600;transition:.15s">Белсенді <span id="csf-c-active" style="font-size:11px;opacity:.7"></span></button>
       <button onclick="setCampFilter('off')" id="csf-off" style="border:none;background:transparent;font-size:12.5px;padding:5px 12px;border-radius:8px;cursor:pointer;color:var(--dim);font-weight:500;transition:.15s">Өшірілді <span id="csf-c-off" style="font-size:11px;opacity:.7"></span></button>
     </div>
     <!-- Дата -->
@@ -2738,7 +2738,7 @@ function toggleAutopilot(){
 /* ────────────────────────────────
    CAMPAIGNS CRUD
 ──────────────────────────────── */
-var _campStatusFilter='all';
+var _campStatusFilter='active';
 var _campDateFilter='week';
 
 function setCampFilter(f){

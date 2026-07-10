@@ -18,7 +18,7 @@ const REDIRECT_URI = `${BASE_URL}/auth/callback`;
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
 app.use(express.json());
-app.use(express.static(__dirname));
+app.use(express.static(__dirname, { etag: false, lastModified: false, setHeaders: (res) => { res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate'); } }));
 
 // ── PostgreSQL ──
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
