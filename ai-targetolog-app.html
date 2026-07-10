@@ -2865,14 +2865,22 @@ function renderCampaigns(){
 /* ────────────────────────────────
    MANUAL CAMPAIGN WIZARD
 ──────────────────────────────── */
-var _mcwPostId=null, _mcwPostDate='';
+var _mcwPostId=null, _mcwPostDate='', _mcwPostPic='';
 
 function openManualCampWizard(){
-  _mcwPostId=null; _mcwPostDate='';
+  _mcwPostId=null; _mcwPostDate=''; _mcwPostPic='';
   $('mcwPost').textContent='Таңдалмаған';
-  $('mcwPostBtn').textContent='🖼 Публикация таңдау';
+  $('mcwPostBtn').textContent='🖼 Таңдау';
+  $('mcwPostPreview').style.display='none';
   $('mcwName').value='';
+  $('mcwAdText').value='';
   $('mcwObjective').value='engagement_wa';
+  // radio reset
+  const firstRadio=document.querySelector('input[name="mcwObj"][value="engagement_wa"]');
+  if(firstRadio){ firstRadio.checked=true; }
+  document.querySelectorAll('#mcwObjGrid label').forEach(l=>{
+    l.style.borderColor=l.querySelector('input')?.checked?'var(--primary)':'var(--line)';
+  });
   $('mcwGeo').value=S.settings.geo||'';
   $('mcwGender').value='0';
   $('mcwAgeMin').value='18';
@@ -2891,10 +2899,14 @@ function mcwPickPost(){
   showCreativePicker({});
 }
 
-function mcwOnPostPicked(postId, date){
-  _mcwPostId=postId; _mcwPostDate=date;
+function mcwOnPostPicked(postId, date, pic){
+  _mcwPostId=postId; _mcwPostDate=date; _mcwPostPic=pic||'';
   $('mcwPost').textContent='✅ '+date;
   $('mcwPostBtn').textContent='🖼 Ауыстыру';
+  if(pic){
+    $('mcwPostImg').src=pic;
+    $('mcwPostPreview').style.display='block';
+  }
   window._mcwPickerMode=false;
 }
 
@@ -2914,6 +2926,7 @@ async function mcwCreate(){
   };
   const {objective, dest}=objMap[objVal]||objMap['engagement_wa'];
 
+  const adText=$('mcwAdText').value.trim();
   const params={
     name,
     objective,
@@ -2924,10 +2937,12 @@ async function mcwCreate(){
     age_min: parseInt($('mcwAgeMin').value)||18,
     age_max: parseInt($('mcwAgeMax').value)||55,
     page_id: S.settings.pageId||'',
-    wa_number: S.settings.wa||''
+    wa_number: S.settings.wa||'',
+    ad_text: adText,
+    ad_headline: name
   };
   if(_mcwPostId) params.post_id=_mcwPostId;
-  if(S.settings.adImageHash) params.image_hash=S.settings.adImageHash;
+  else if(S.settings.adImageHash) params.image_hash=S.settings.adImageHash;
 
   const statusEl=$('mcwStatus');
   statusEl.style.display='block';
@@ -2944,14 +2959,17 @@ async function mcwCreate(){
     });
     const d=await r.json();
     if(d.ok||d.campaign_id){
+      const parts=['✅ Кампания','Ad Set'];
+      if(d.ad_id) parts.push('Ad');
       statusEl.style.color='var(--ok)';
-      statusEl.textContent='✅ Кампания жасалды! PAUSED күйінде.';
+      statusEl.style.background='var(--ok-s)';
+      statusEl.textContent=parts.join(' → ')+' — жасалды! PAUSED күйінде.';
       S.campaigns.push({
         id:d.campaign_id, name, spend:0, leads:0, status:'off',
         budget, lastAction:'', niche:S.settings.niche||''
       });
       save(); renderCampaigns(); refreshDashboard();
-      setTimeout(()=>closeMcwModal(), 2000);
+      setTimeout(()=>closeMcwModal(), 2500);
     } else {
       statusEl.style.color='var(--bad)';
       statusEl.textContent='❌ Қате: '+(d.error||'белгісіз')+(d.details?' — '+d.details:'');
@@ -6098,7 +6116,7 @@ async function showCreativePicker(params){
       const date = new Date(p.created_time).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'});
       const isReel = p.media_type==='video'||p.type==='video_inline'||p.type==='video_autoplay';
       const pic = p.picture ? `<img src="${p.picture}" style="width:100%;height:90px;object-fit:cover;display:block">` : `<div style="width:100%;height:90px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:28px">${isReel?'🎬':'📷'}</div>`;
-      return `<div onclick="pickPost('${p.id}','${date}')" style="cursor:pointer;border:2px solid var(--line);border-radius:12px;overflow:hidden;transition:.18s" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--line)'">
+      return `<div onclick="pickPost('${p.id}','${date}','${(p.picture||'').replace(/'/g,'%27')}')" style="cursor:pointer;border:2px solid var(--line);border-radius:12px;overflow:hidden;transition:.18s" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--line)'">
         ${pic}
         <div style="padding:7px 9px">
           <div style="font-size:10px;color:var(--dim);margin-bottom:2px">${isReel?'🎬 Reels':'📷 Пост'} · ${date}</div>
@@ -6119,11 +6137,11 @@ function cpSwitchTab(n){
   $('cpTab2Content').style.display = n===2?'block':'none';
 }
 
-function pickPost(postId, date){
+function pickPost(postId, date, pic){
   // Manual wizard режимі
   if(window._mcwPickerMode===true){
     closeCrePicker();
-    mcwOnPostPicked(postId, date);
+    mcwOnPostPicked(postId, date, pic);
     return;
   }
   // Ad creative ауыстыру режимі
@@ -7239,20 +7257,39 @@ function applyReco(id, title, problem, action, confidence, priority){
       </div>
     </div>
 
-    <!-- Публикация (Kreativ) -->
-    <div style="background:var(--s2);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:16px">
-      <div style="font-size:12px;font-weight:700;color:var(--dim);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Публикация — Ad Creative</div>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <span id="mcwPost" style="font-size:13px;color:var(--dim);flex:1">Таңдалмаған</span>
-        <button id="mcwPostBtn" class="ab" onclick="mcwPickPost()" style="white-space:nowrap">🖼 Публикация таңдау</button>
+    <!-- Ad Creative -->
+    <div style="background:var(--s2);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--dim);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">Жарнама (Ad)</div>
+
+      <!-- Жарнама мәтіні -->
+      <div style="margin-bottom:10px">
+        <label style="font-size:12px;color:var(--dim);margin-bottom:4px;display:block">Жарнама мәтіні</label>
+        <textarea id="mcwAdText" class="inp" placeholder="Мысалы: Лазерлік эпиляция −40%! Алматыда ең үздік нәтиже. Жазылыңыз →" style="width:100%;min-height:80px;resize:vertical;font-size:13px;line-height:1.5"></textarea>
       </div>
-      <div style="font-size:11px;color:var(--muted);margin-top:6px">Таңдамасаңыз — тек кампания мен адсет жасалады (кейін қосуға болады)</div>
+
+      <!-- Публикация таңдау -->
+      <div>
+        <label style="font-size:12px;color:var(--dim);margin-bottom:6px;display:block">Публикация / Reels (Facebook бетінен)</label>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div id="mcwPostPreview" style="display:none;width:52px;height:52px;border-radius:8px;overflow:hidden;flex:none;border:2px solid var(--ok)">
+            <img id="mcwPostImg" style="width:100%;height:100%;object-fit:cover" src="">
+          </div>
+          <span id="mcwPost" style="font-size:13px;color:var(--dim);flex:1">Таңдалмаған</span>
+          <button id="mcwPostBtn" class="ab" onclick="mcwPickPost()" style="white-space:nowrap;background:var(--primary-s);color:var(--primary);border-color:var(--primary)">🖼 Таңдау</button>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:5px">Публикация <b>немесе</b> мәтін болса — Ad жасалады. Екеуі де болса — Reels боп шығады.</div>
+      </div>
+    </div>
+
+    <!-- Не жасалады — preview -->
+    <div id="mcwWillCreate" style="background:var(--ok-s);border:1px solid var(--ok);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12.5px;color:var(--txt)">
+      ✅ <b>Кампания</b> → <b>Ad Set</b> → <b>Ad</b> — үшеуі де жасалады
     </div>
 
     <div id="mcwStatus" style="display:none;font-size:13px;padding:10px;border-radius:8px;background:var(--s2);margin-bottom:12px"></div>
 
     <div style="display:flex;gap:8px">
-      <button id="mcwCreateBtn" class="btn sm" style="background:var(--primary);color:#fff;flex:1;padding:10px" onclick="mcwCreate()">🚀 Meta-да жасау</button>
+      <button id="mcwCreateBtn" class="btn sm" style="background:var(--primary);color:#fff;flex:1;padding:11px;font-size:14px;font-weight:600" onclick="mcwCreate()">🚀 Жасау</button>
       <button class="ab" onclick="closeMcwModal()">Болдырмау</button>
     </div>
   </div>
