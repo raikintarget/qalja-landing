@@ -6116,7 +6116,8 @@ async function showCreativePicker(params){
       const date = new Date(p.created_time).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'});
       const isReel = p.media_type==='video'||p.type==='video_inline'||p.type==='video_autoplay';
       const pic = p.picture ? `<img src="${p.picture}" style="width:100%;height:90px;object-fit:cover;display:block">` : `<div style="width:100%;height:90px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:28px">${isReel?'🎬':'📷'}</div>`;
-      return `<div onclick="pickPost('${p.id}','${date}','${(p.picture||'').replace(/'/g,'%27')}')" style="cursor:pointer;border:2px solid var(--line);border-radius:12px;overflow:hidden;transition:.18s" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--line)'">
+            const _picSafe=(p.picture||'').replace(/'/g,'%27');
+      return `<div onclick="pickPost('${p.id}','${date}','${_picSafe}')" style="cursor:pointer;border:2px solid var(--line);border-radius:12px;overflow:hidden;transition:.18s" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--line)'">
         ${pic}
         <div style="padding:7px 9px">
           <div style="font-size:10px;color:var(--dim);margin-bottom:2px">${isReel?'🎬 Reels':'📷 Пост'} · ${date}</div>
