@@ -1442,13 +1442,14 @@ app.get('/api/meta/page-posts', async (req, res) => {
   if (!accountId) return res.status(400).json({ error: 'Meta аккаунт ID жоқ' });
 
   try {
-    // promotable_posts — ads token-мен жұмыс істейді, page permission қажет емес
-    const promoRes = await axios.get(`https://graph.facebook.com/v19.0/act_${accountId}/promotable_posts`, {
+    if (!pageId) return res.json({ posts: [], error: 'Page ID табылмады. Баптауларда Facebook Page ID енгізіңіз.' });
+    // promotable_posts — page-тан, ads_management токенімен жұмыс істейді
+    const promoRes = await axios.get(`https://graph.facebook.com/v19.0/${pageId}/promotable_posts`, {
       params: {
         access_token: metaToken,
         fields: 'id,message,story,created_time,full_picture,attachments{media_type,type}',
         limit: 40,
-        ...(pageId ? { page_id: pageId } : {})
+        is_published: true
       }
     });
 
