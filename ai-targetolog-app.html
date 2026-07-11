@@ -5696,7 +5696,7 @@ loadMetaData();
 // Auto-render health & recommendations after data loads
 setTimeout(() => { renderHealthScore(); renderRecommendations(); }, 2000);
 // Маусымдық кеңес
-showSeasonalTip(SEASONAL_TIPS[new Date().getMonth()]);
+setTimeout(()=>{ if(typeof SEASONAL_TIPS!=='undefined') showSeasonalTip(SEASONAL_TIPS[new Date().getMonth()]); }, 500);
 // Auto-run if has campaigns and autopilot on
 if(S.campaigns.length>0&&S.settings.autopilot&&!S.lastOptDate){
   setTimeout(()=>runDay(),1200);
