@@ -1433,8 +1433,10 @@ app.get('/api/meta/page-posts', async (req, res) => {
   if (!metaToken) return res.status(400).json({ error: 'Meta токен жоқ' });
 
   // page_id — клиент баптауларынан немесе query-дан
-  const userSettings = user.settings || {};
+  let userSettings = user.settings || {};
+  if (typeof userSettings === 'string') { try { userSettings = JSON.parse(userSettings); } catch(e) { userSettings = {}; } }
   const pageId = req.query.page_id || userSettings.pageId || userSettings.page_id || process.env.META_PAGE_ID;
+  console.log('page-posts: pageId=', pageId, 'userSettings.pageId=', userSettings.pageId);
 
   try {
     let pageToken = metaToken;

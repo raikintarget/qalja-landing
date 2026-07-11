@@ -6106,11 +6106,13 @@ async function showCreativePicker(params){
   // Публикацияларды жүктеу
   try{
     const tok = localStorage.getItem('st_token');
-    const r = await fetch('/api/meta/page-posts', {headers:{'Authorization':'Bearer '+tok}});
+    const pageIdParam = S.settings.pageId ? `?page_id=${S.settings.pageId}` : '';
+    const r = await fetch('/api/meta/page-posts'+pageIdParam, {headers:{'Authorization':'Bearer '+tok}});
     const d = await r.json();
-    const posts = d.posts || [];
     const tab2 = $('cpTab2Content');
-    if(!posts.length){ tab2.innerHTML='<p style="color:var(--dim);font-size:13px">Публикация табылмады</p>'; return; }
+    if(d.error && !d.posts){ tab2.innerHTML=`<p style="color:var(--bad);font-size:13px">❌ ${d.error}</p>`; return; }
+    const posts = d.posts || [];
+    if(!posts.length){ tab2.innerHTML='<p style="color:var(--dim);font-size:13px">Публикация табылмады. Facebook Page ID баптауларда тексеріңіз.</p>'; return; }
     tab2.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:9px">
     ${posts.map((p,i)=>{
       const date = new Date(p.created_time).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'});
