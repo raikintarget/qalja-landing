@@ -1432,23 +1432,61 @@ app.get('/api/meta/page-posts', async (req, res) => {
   const metaToken = user.meta_token || process.env.META_ACCESS_TOKEN;
   if (!metaToken) return res.status(400).json({ error: 'Meta токен жоқ' });
 
-  try {
-    // Пайдаланушының беттерін алу
-    const pagesRes = await axios.get('https://graph.facebook.com/v19.0/me/accounts', {
-      params: { access_token: metaToken, limit: 5, fields: 'id,name,access_token' }
-    });
-    const pages = pagesRes.data?.data || [];
-    if (!pages.length) return res.json({ posts: [], pages: [] });
+  // page_id — клиент баптауларынан немесе query-дан
+  const userSettings = user.settings || {};
+  const pageId = req.query.page_id || userSettings.pageId || userSettings.page_id || process.env.META_PAGE_ID;
 
-    // Бірінші беттің постарын алу
-    const page = pages[0];
-    const postsRes = await axios.get(`https://graph.facebook.com/v19.0/${page.id}/posts`, {
-      params: {
-        access_token: page.access_token || metaToken,
-        fields: 'id,message,story,created_time,full_picture,attachments{media_type,media,type,title}',
-        limit: 30
+  try {
+    let pageToken = metaToken;
+    let usedPageId = pageId;
+
+    // page_id болса — тікелей сол беттің токенін алу
+    if (usedPageId) {
+      try {
+        const ptRes = await axios.get(`https://graph.facebook.com/v19.0/${usedPageId}`, {
+          params: { access_token: metaToken, fields: 'id,name,access_token' }
+        });
+        if (ptRes.data?.access_token) pageToken = ptRes.data.access_token;
+      } catch(e2) {
+        // page token алу сәтсіз — негізгі токенмен жалғастыр
+        console.log('page token fetch failed, using main token:', e2.response?.data?.error?.message || e2.message);
       }
-    });
+    } else {
+      // page_id жоқ — /me/accounts арқылы табу
+      try {
+        const pagesRes = await axios.get('https://graph.facebook.com/v19.0/me/accounts', {
+          params: { access_token: metaToken, limit: 5, fields: 'id,name,access_token' }
+        });
+        const pages = pagesRes.data?.data || [];
+        if (pages.length) {
+          usedPageId = pages[0].id;
+          pageToken = pages[0].access_token || metaToken;
+        }
+      } catch(e3) {
+        console.log('me/accounts failed:', e3.response?.data?.error?.message || e3.message);
+      }
+    }
+
+    if (!usedPageId) return res.json({ posts: [], error: 'Page ID табылмады. Баптауларда Facebook Page ID енгізіңіз.' });
+
+    // Посттар + Reels бір сұраумен
+    const [postsRes, reelsRes] = await Promise.all([
+      axios.get(`https://graph.facebook.com/v19.0/${usedPageId}/posts`, {
+        params: {
+          access_token: pageToken,
+          fields: 'id,message,story,created_time,full_picture,attachments{media_type,media,type,title}',
+          limit: 30
+        }
+      }).catch(() => ({ data: { data: [] } })),
+      axios.get(`https://graph.facebook.com/v19.0/${usedPageId}/video_reels`, {
+        params: {
+          access_token: pageToken,
+          fields: 'id,description,created_time,picture',
+          limit: 20
+        }
+      }).catch(() => ({ data: { data: [] } }))
+    ]);
+
     const posts = (postsRes.data?.data || []).map(p => ({
       id: p.id,
       message: p.message || p.story || '',
@@ -1458,9 +1496,24 @@ app.get('/api/meta/page-posts', async (req, res) => {
       type: p.attachments?.data?.[0]?.type || 'photo'
     }));
 
-    res.json({ posts, pages: pages.map(p => ({ id: p.id, name: p.name })) });
+    const reels = (reelsRes.data?.data || []).map(r => ({
+      id: r.id,
+      message: r.description || '',
+      created_time: r.created_time,
+      picture: r.picture || null,
+      media_type: 'video',
+      type: 'video_inline'
+    }));
+
+    // Reels-ті постардың алдына қос, датамен сорттау
+    const all = [...reels, ...posts].sort((a, b) =>
+      new Date(b.created_time) - new Date(a.created_time)
+    );
+
+    res.json({ posts: all, page_id: usedPageId });
   } catch(e) {
     const msg = e.response?.data?.error?.message || e.message;
+    console.error('page-posts error:', msg);
     res.status(502).json({ error: msg });
   }
 });
