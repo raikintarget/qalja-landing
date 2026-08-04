@@ -155,6 +155,15 @@ async function setupBotCommands() {
 }
 
 // ── Meta API ──
+// Actions массивінен лид/хат алмасу санын шығару
+function extractConversations(actions = []) {
+  return parseInt(
+    actions.find(a => a.action_type === 'onsite_conversion.messaging_conversation_started_7d')?.value ||
+    actions.find(a => a.action_type === 'onsite_conversion.messaging_first_reply')?.value ||
+    actions.find(a => a.action_type === 'onsite_conversion.lead_grouped')?.value || 0
+  );
+}
+
 async function getMetaData(token, accountId, datePreset = null) {
   const insightPreset = datePreset || 'last_3d';
   const [campsRes, insRes, accRes, adsetsRes, campInsRes, todayInsRes, campTodayRes] = await Promise.all([
@@ -204,15 +213,6 @@ async function getMetaData(token, accountId, datePreset = null) {
     if (as.campaign_id && as.daily_budget) {
       budgetByCampaign[as.campaign_id] = (budgetByCampaign[as.campaign_id] || 0) + parseInt(as.daily_budget || 0);
     }
-  }
-
-  // Helper: extract conversations from actions array
-  function extractConversations(actions = []) {
-    return parseInt(
-      actions.find(a => a.action_type === 'onsite_conversion.messaging_conversation_started_7d')?.value ||
-      actions.find(a => a.action_type === 'onsite_conversion.messaging_first_reply')?.value ||
-      actions.find(a => a.action_type === 'onsite_conversion.lead_grouped')?.value || 0
-    );
   }
 
   // Build campaign-level insights map (last 3 days)
@@ -1293,17 +1293,15 @@ app.post('/api/meta/duplicate-campaign', async (req, res) => {
 
   try {
     // Meta /copies — deep_copy=true: кампания + adsets + ads толық көшіреді
+    // ВАЖНО: deep_copy и status_option должны быть в POST body, не в query params
     const r = await axios.post(
       `https://graph.facebook.com/v19.0/${campaign_id}/copies`,
-      null,
       {
-        params: {
-          access_token: metaToken,
-          deep_copy: true,
-          status_option: 'PAUSED'
-        },
-        timeout: 30000
-      }
+        access_token: metaToken,
+        deep_copy: true,
+        status_option: 'PAUSED'
+      },
+      { timeout: 30000 }
     );
     console.log('duplicate OK:', JSON.stringify(r.data));
     const newId = r.data.copied_campaign_id || r.data.id || (r.data.data && r.data.data[0]?.id);
@@ -1334,7 +1332,11 @@ app.get('/api/meta/campaign-details/:campaignId', async (req, res) => {
       const adsRes = await axios.get(`${base}/${adset.id}/ads`, {
         params: { access_token: metaToken, fields: 'id,name,status,insights{spend,cpm,ctr,actions}', limit: 30 }
       });
-      result.push({ ...adset, ads: adsRes.data.data || [] });
+      const ads = (adsRes.data.data || []).map(ad => ({
+        ...ad,
+        leads: extractConversations(ad.insights?.data?.[0]?.actions),
+      }));
+      result.push({ ...adset, ads });
     }
     res.json({ ok: true, adsets: result });
   } catch(e) {
@@ -1606,6 +1608,8 @@ app.post('/api/meta/create-campaign', async (req, res) => {
       geo_locations: geoLocations,
     };
 
+    // WhatsApp/Direct үшін page_id жоқта destination_type алып тастаймыз
+    // (Meta rejected adset without promoted_object for WA/Direct)
     const adsetBody = {
       name: `${name} — Ad Set`,
       campaign_id: campaignId,
@@ -1615,13 +1619,17 @@ app.post('/api/meta/create-campaign', async (req, res) => {
       bid_strategy: 'LOWEST_COST_WITHOUT_CAP',
       status: 'PAUSED',
       targeting,
-      destination_type: destinationType,
       access_token: metaToken
     };
-    // WhatsApp/Direct үшін page_id міндетті
-    if (page_id && dest !== 'traffic' && objective !== 'OUTCOME_LEADS') {
+
+    // destination_type тек page_id болғанда немесе traffic үшін
+    if (dest === 'traffic' || objective === 'OUTCOME_LEADS') {
+      adsetBody.destination_type = destinationType;
+    } else if (page_id) {
+      adsetBody.destination_type = destinationType;
       adsetBody.promoted_object = { page_id };
     }
+    // page_id жоқта WhatsApp/Direct: destination_type жоқ, promoted_object жоқ — Meta дефолт қолданады
 
     console.log('STEP 2 adset body:', JSON.stringify({...adsetBody, access_token:'***'}));
     let adsetR;
@@ -1629,73 +1637,109 @@ app.post('/api/meta/create-campaign', async (req, res) => {
       adsetR = await axios.post(`${base}/act_${accountId}/adsets`, adsetBody);
     } catch(e2) {
       const m = e2.response?.data?.error?.message || e2.message;
+      const errCode = e2.response?.data?.error?.code;
       console.error('STEP 2 adset error:', m, JSON.stringify(e2.response?.data?.error||{}));
-      return res.status(400).json({ error: `Ad Set жасалмады: ${m}` });
+      // Orphan кампанияны жою — adset сәтсіз болса campaign Meta-да қалмасын
+      try {
+        await axios.delete(`${base}/${campaignId}`, { params: { access_token: metaToken } });
+        console.log('Orphan campaign deleted:', campaignId);
+      } catch(_) {}
+      return res.status(400).json({ error: `Ad Set жасалмады: ${m}`, code: errCode });
     }
     const adsetId = adsetR.data.id;
     console.log('STEP 2 OK — adset:', adsetId);
 
     // 3. Ad Creative — тек сурет/видео/пост болса ғана жасау
+    // post_id немесе image_hash/video_id болса → Ad + Creative жасаймыз
     let adId = null;
-    const hasCreative = post_id || (page_id && (image_hash || video_id));
-    if (hasCreative) {
-      const ctaWa = dest === 'wa'
-        ? { type: 'WHATSAPP_MESSAGE', value: {
-            app_destination: 'WHATSAPP',
-            ...(wa_phone ? { whatsapp_number: wa_phone.replace(/\D/g,'') } : {}),
-            ...(wa_template ? { link: `https://wa.me/?text=${encodeURIComponent(wa_template)}` } : {})
-          }}
-        : { type: 'LEARN_MORE' };
+    const hasCreative = post_id || image_hash || video_id;
+    if (hasCreative && page_id) {
+      try {
+        const ctaWa = dest === 'wa'
+          ? { type: 'WHATSAPP_MESSAGE', value: {
+              app_destination: 'WHATSAPP',
+              ...(wa_phone ? { whatsapp_number: wa_phone.replace(/\D/g,'') } : {}),
+              ...(wa_template ? { link: `https://wa.me/?text=${encodeURIComponent(wa_template)}` } : {})
+            }}
+          : { type: 'LEARN_MORE' };
 
-      let creativeBody;
+        let creativeBody;
 
-      if (post_id) {
-        // Бар публикацияны (пост/реилс) пайдалану — object_story_id
-        creativeBody = {
+        if (post_id) {
+          // Бар публикацияны (пост/реилс) пайдалану — object_story_id
+          creativeBody = {
+            name: `${name} — Creative`,
+            object_story_id: post_id,
+            access_token: metaToken
+          };
+        } else {
+          let storySpec;
+          if (video_id) {
+            storySpec = {
+              page_id,
+              video_data: {
+                video_id,
+                title: ad_headline || name,
+                message: ad_text || '',
+                call_to_action: ctaWa
+              }
+            };
+          } else {
+            const linkData = {
+              message: ad_text || '',
+              name: ad_headline || name,
+              call_to_action: ctaWa
+            };
+            if (image_hash) linkData.image_hash = image_hash;
+            storySpec = { page_id, link_data: linkData };
+          }
+          creativeBody = {
+            name: `${name} — Creative`,
+            object_story_spec: storySpec,
+            access_token: metaToken
+          };
+        }
+
+        const creR = await axios.post(`${base}/act_${accountId}/adcreatives`, creativeBody);
+        const creativeId = creR.data.id;
+        console.log('STEP 3 OK — creative:', creativeId);
+
+        // 4. Ad
+        const adR = await axios.post(`${base}/act_${accountId}/ads`, {
+          name: `${name} — Ad`,
+          adset_id: adsetId,
+          creative: { creative_id: creativeId },
+          status: 'PAUSED',
+          access_token: metaToken
+        });
+        adId = adR.data.id;
+        console.log('STEP 4 OK — ad:', adId);
+      } catch(e3) {
+        // Creative/Ad қатесі болса кампания мен адсет сақталады, бірақ ad жоқ
+        console.error('STEP 3/4 creative/ad error:', e3.response?.data?.error?.message || e3.message);
+        // ok: true — campaign + adset жасалды, ad жоқ
+      }
+    } else if (post_id && !page_id) {
+      // page_id жоқта post_id пайдаланып object_story_id арқылы жасаймыз
+      try {
+        const creR = await axios.post(`${base}/act_${accountId}/adcreatives`, {
           name: `${name} — Creative`,
           object_story_id: post_id,
           access_token: metaToken
-        };
-      } else {
-        let storySpec;
-        if (video_id) {
-          storySpec = {
-            page_id,
-            video_data: {
-              video_id,
-              title: ad_headline || name,
-              message: ad_text || '',
-              call_to_action: ctaWa
-            }
-          };
-        } else {
-          const linkData = {
-            message: ad_text || '',
-            name: ad_headline || name,
-            call_to_action: ctaWa
-          };
-          if (image_hash) linkData.image_hash = image_hash;
-          storySpec = { page_id, link_data: linkData };
-        }
-        creativeBody = {
-          name: `${name} — Creative`,
-          object_story_spec: storySpec,
+        });
+        const creativeId = creR.data.id;
+        const adR = await axios.post(`${base}/act_${accountId}/ads`, {
+          name: `${name} — Ad`,
+          adset_id: adsetId,
+          creative: { creative_id: creativeId },
+          status: 'PAUSED',
           access_token: metaToken
-        };
+        });
+        adId = adR.data.id;
+        console.log('STEP 3/4 OK (post_id only) — ad:', adId);
+      } catch(e3) {
+        console.error('STEP 3/4 (post_id) error:', e3.response?.data?.error?.message || e3.message);
       }
-
-      const creR = await axios.post(`${base}/act_${accountId}/adcreatives`, creativeBody);
-      const creativeId = creR.data.id;
-
-      // 4. Ad
-      const adR = await axios.post(`${base}/act_${accountId}/ads`, {
-        name: `${name} — Ad`,
-        adset_id: adsetId,
-        creative: { creative_id: creativeId },
-        status: 'PAUSED',
-        access_token: metaToken
-      });
-      adId = adR.data.id;
     }
 
     res.json({ ok: true, campaign_id: campaignId, adset_id: adsetId, ad_id: adId });

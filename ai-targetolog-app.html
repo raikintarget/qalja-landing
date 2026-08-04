@@ -2959,7 +2959,8 @@ async function mcwCreate(){
     });
     const d=await r.json();
     if(d.ok||d.campaign_id){
-      const parts=['✅ Кампания','Ad Set'];
+      const parts=['✅ Кампания'];
+      if(d.adset_id) parts.push('Ad Set');
       if(d.ad_id) parts.push('Ad');
       statusEl.style.color='var(--ok)';
       statusEl.style.background='var(--ok-s)';
@@ -3101,6 +3102,7 @@ async function openCampDetails(i){
     // Кампаниялар тізімін dropdown үшін дайындаймын
     const activeCamps=S.campaigns.filter((x,j)=>x.id&&j!==i);
     const campOpts=activeCamps.map(x=>`<option value="${x.id}">${x.name}</option>`).join('');
+    const bestLeads=Math.max(0,...d.adsets.flatMap(as=>(as.ads||[]).map(ad=>ad.leads||0)));
     let html='';
     for(const adset of d.adsets){
       const budget=adset.daily_budget?(+adset.daily_budget/100).toFixed(2):'—';
@@ -3118,8 +3120,11 @@ async function openCampDetails(i){
         for(const ad of adset.ads){
           const adIsOn=ad.status==='ACTIVE';
           const spend=ad.insights?.data?.[0]?.spend||'—';
-          html+=`<div style="display:flex;align-items:center;gap:7px;padding:6px 8px;background:var(--s);border:1px solid var(--line);border-radius:7px;flex-wrap:wrap">
-            <span style="font-size:11.5px;flex:1;color:var(--txt)">${ad.name}</span>
+          const adLeads=ad.leads||0;
+          const isBest=bestLeads>0&&adLeads===bestLeads;
+          html+=`<div style="display:flex;align-items:center;gap:7px;padding:6px 8px;background:var(--s);border:1px solid ${isBest?'var(--ok)':'var(--line)'};border-radius:7px;flex-wrap:wrap">
+            <span style="font-size:11.5px;flex:1;color:var(--txt)">${isBest?'🏆 ':''}${ad.name}</span>
+            <span style="font-size:10.5px;color:var(--dim);font-family:monospace">📨 ${adLeads}</span>
             <span style="font-size:10.5px;color:var(--dim);font-family:monospace">${spend!=='—'?'$'+spend:''}</span>
             <span style="font-size:10.5px;color:${adIsOn?'var(--ok)':'var(--muted)'}">● ${adIsOn?'ON':'OFF'}</span>
             <button class="ab ${adIsOn?'bad':'ok'}" style="font-size:10px;padding:2px 7px" onclick="toggleMeta('${ad.id}','ad','${adIsOn?'PAUSED':'ACTIVE'}',${i})">${adIsOn?'⏸':'▶'}</button>
@@ -5387,7 +5392,7 @@ async function sendMsg(){
       const r = await fetch('/api/meta/duplicate-campaign',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({campaign_id:p.campaign_id})});
       const d = await r.json();
       prog.remove();
-      if(d.ok) addMsg(`✅ Дубль жасалды!\n\nЖаңа кампания ID: ${d.new_campaign_id}\n\n⏸ PAUSED күйінде — Meta Ads Manager-де белсендіріңіз.`, false);
+      if(d.ok) addMsg(`✅ Дубль жасалды! (Кампания + Ad Sets + Ads)\n\nЖаңа кампания ID: ${d.new_campaign_id}\n\n⏸ PAUSED күйінде — Meta Ads Manager-де белсендіріңіз.`, false);
       else addMsg(`❌ Дубль қатесі: ${d.error}`, false);
     }catch(e){ addMsg(`❌ Қате: ${e.message}`, false); }
   } else if(campMatch){
@@ -5468,8 +5473,12 @@ async function createCampaignFromChat(params){
     const d=await r.json();
     prog.remove();
     if(d.ok){
-      const hasCre = params.image_hash ? '🖼 Сурет қосылды' : '📝 Суретсіз';
-      const msg=`⏸ <b>Кампания жасалды — PAUSED күйінде</b>\n\n📋 ${params.name}\n💰 $${params.daily_budget}/күн · ${params.geo||'Казахстан'} · ${params.age_min}–${params.age_max} жас\n🎯 ${params.dest==='wa'?'WhatsApp':params.dest==='direct'?'Direct':'Сайт'} · ${hasCre}\n\n⚡ Іске қосу үшін: Meta Ads Manager → кампанияны тауып → ACTIVE жасаңыз`;
+      const created=[];
+      if(d.campaign_id) created.push('✅ Campaign');
+      if(d.adset_id) created.push('✅ Ad Set');
+      if(d.ad_id) created.push('✅ Ad');
+      const hasCre = d.ad_id ? '🖼 Рекламалық объявление қосылды' : (params.image_hash||params.post_id ? '⚠️ Creative қосылмады (page_id тексеріңіз)' : '📝 Суретсіз (креатив таңдалмады)');
+      const msg=`⏸ <b>Жасалды — PAUSED күйінде</b>\n\n${created.join(' → ')}\n\n📋 ${params.name}\n💰 $${params.daily_budget}/күн · ${params.geo||'Казахстан'} · ${params.age_min}–${params.age_max} жас\n🎯 ${params.dest==='wa'?'WhatsApp':params.dest==='direct'?'Direct':'Сайт'} · ${hasCre}\n\n⚡ Іске қосу үшін: Meta Ads Manager → кампанияны тауып → ACTIVE жасаңыз`;
       addMsg(msg, false);
       // Жергілікті тізімге қос
       S.campaigns.push({id:d.campaign_id, name:params.name, status:'off', spend:0, leads:0, budget:params.daily_budget,
