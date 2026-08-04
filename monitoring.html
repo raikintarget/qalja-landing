@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SmartTarget AI — Multi-Account Monitoring</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F9FC;--s:#FFFFFF;--s2:#F1F5F9;--s3:#E2E8F0;--line:#E5E7EB;
+  --fg:#111827;--txt:#111827;--dim:#64748B;--muted:#94A3B8;
+  --primary:#4F46E5;--primary-s:#EEF2FF;
+  --ok:#10B981;--ok-s:#ECFDF5;
+  --bad:#EF4444;--bad-s:#FEF2F2;
+  --warn:#F59E0B;--warn-s:#FFFBEB;
+  --r:16px;--shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:1.5;padding:24px}
+.wrap{max-width:1200px;margin:0 auto}
+.hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.hdr h1{font-size:20px;font-weight:700}
+.hdr .sub{color:var(--dim);font-size:12.5px;margin-top:3px}
+.btn{appearance:none;border:none;border-radius:10px;padding:9px 15px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;background:var(--primary);color:#fff}
+.btn.ghost{background:var(--s2);color:var(--fg)}
+.agg{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
+.agg .card{background:var(--s);border:1px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--shadow)}
+.agg .card small{color:var(--dim);font-size:11.5px;text-transform:uppercase;letter-spacing:.04em}
+.agg .card b{display:block;font-size:22px;margin-top:6px;font-family:'JetBrains Mono',monospace}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:26px}
+.acc{background:var(--s);border:1px solid var(--line);border-left:4px solid var(--muted);border-radius:var(--r);padding:15px 16px;box-shadow:var(--shadow)}
+.acc.good{border-left-color:var(--ok)}
+.acc.warning{border-left-color:var(--warn);background:var(--warn-s)}
+.acc.danger{border-left-color:var(--bad);background:var(--bad-s)}
+.acc .nm{font-weight:700;font-size:14.5px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.acc .badge{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase}
+.acc.good .badge{background:var(--ok-s);color:var(--ok)}
+.acc.warning .badge{background:#FEF3C7;color:#B45309}
+.acc.danger .badge{background:#FEE2E2;color:var(--bad)}
+.acc .mets{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--dim)}
+.acc .mets b{color:var(--fg);font-family:'JetBrains Mono',monospace}
+.tbl-wrap{background:var(--s);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
+.tbl-wrap h2{font-size:14px;font-weight:700;padding:14px 16px;border-bottom:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 14px;color:var(--dim);font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;border-bottom:1px solid var(--line);cursor:pointer;user-select:none}
+th:hover{color:var(--fg)}
+td{padding:10px 14px;border-bottom:1px solid var(--line);font-family:'JetBrains Mono',monospace}
+td.nm-col{font-family:'Inter',sans-serif;font-weight:500}
+tr:last-child td{border-bottom:none}
+.empty{padding:40px;text-align:center;color:var(--dim)}
+.gate{max-width:360px;margin:80px auto;background:var(--s);border:1px solid var(--line);border-radius:var(--r);padding:24px;box-shadow:var(--shadow)}
+.gate input{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:14px;margin:12px 0}
+</style>
+</head>
+<body>
+
+<div id="gate" class="gate">
+  <b style="font-size:16px">🔒 Admin кірісі</b>
+  <div style="color:var(--dim);font-size:12.5px;margin-top:6px">Multi-Account Monitoring — тек админге</div>
+  <input id="secretInput" type="password" placeholder="Admin secret">
+  <button class="btn" style="width:100%" onclick="saveSecret()">Кіру</button>
+</div>
+
+<div id="app" class="wrap" style="display:none">
+  <div class="hdr">
+    <div>
+      <h1>📊 Multi-Account Monitoring</h1>
+      <div class="sub" id="updatedAt">—</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn ghost" onclick="load()">🔄 Жаңарту</button>
+      <a href="/ai-targetolog-app.html" class="btn ghost" style="text-decoration:none;display:inline-flex;align-items:center">← Дашборд</a>
+    </div>
+  </div>
+
+  <div class="agg" id="agg"></div>
+  <div class="grid" id="grid"></div>
+
+  <div class="tbl-wrap">
+    <h2>Барлық аккаунт — CPL бойынша сұрыпталған</h2>
+    <table>
+      <thead><tr>
+        <th onclick="sortBy('name')">Аккаунт</th>
+        <th onclick="sortBy('spend')">Шығын</th>
+        <th onclick="sortBy('leads')">Лид</th>
+        <th onclick="sortBy('cpl')">CPL</th>
+        <th onclick="sortBy('ctr')">CTR</th>
+        <th>Статус</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+let DATA={accounts:[],updatedAt:null,targetCpl:2};
+let sortKey='cpl', sortDir=-1;
+
+function getSecret(){ return localStorage.getItem('st_admin_secret')||''; }
+function saveSecret(){
+  const v=$('#secretInput').value.trim();
+  if(!v) return;
+  localStorage.setItem('st_admin_secret', v);
+  boot();
+}
+
+const STL={good:'OK',warning:'ЕСКЕРТУ',danger:'ҚАУІП'};
+
+function fmt$(n){ return '$'+(n||0).toFixed(2); }
+
+function renderAgg(){
+  const accs=DATA.accounts||[];
+  const totalSpend=accs.reduce((s,a)=>s+a.spend,0);
+  const totalLeads=accs.reduce((s,a)=>s+a.leads,0);
+  const avgCpl=totalLeads>0?(totalSpend/totalLeads):0;
+  const dangerCount=accs.filter(a=>a.status==='danger').length;
+  $('#agg').innerHTML=`
+    <div class="card"><small>Барлық шығын</small><b>${fmt$(totalSpend)}</b></div>
+    <div class="card"><small>Барлық лид</small><b>${totalLeads}</b></div>
+    <div class="card"><small>Орташа CPL</small><b style="color:${avgCpl>DATA.targetCpl?'var(--bad)':'var(--ok)'}">${fmt$(avgCpl)}</b></div>
+    <div class="card"><small>Қауіпті аккаунт</small><b style="color:${dangerCount?'var(--bad)':'var(--ok)'}">${dangerCount}</b></div>
+  `;
+}
+
+function renderGrid(){
+  const accs=DATA.accounts||[];
+  if(!accs.length){ $('#grid').innerHTML='<div class="empty">Аккаунт жоқ — MONITOR_AD_ACCOUNTS орнатылмаған</div>'; return; }
+  $('#grid').innerHTML=accs.map(a=>`
+    <div class="acc ${a.status}">
+      <div class="nm"><span>${a.name}</span><span class="badge">${STL[a.status]||a.status}</span></div>
+      <div class="mets">
+        <span>Шығын <b>${fmt$(a.spend)}</b></span>
+        <span>Лид <b>${a.leads}</b></span>
+        <span>CPL <b>${fmt$(a.cpl)}</b></span>
+        <span>CTR <b>${(a.ctr||0).toFixed(2)}%</b></span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function sortBy(key){
+  if(sortKey===key) sortDir*=-1; else { sortKey=key; sortDir=-1; }
+  renderTable();
+}
+
+function renderTable(){
+  const accs=[...(DATA.accounts||[])].sort((a,b)=>{
+    const av=a[sortKey], bv=b[sortKey];
+    if(typeof av==='string') return sortDir*av.localeCompare(bv);
+    return sortDir*((av||0)-(bv||0));
+  });
+  if(!accs.length){ $('#tbody').innerHTML='<tr><td colspan="6" class="empty">Деректер жоқ</td></tr>'; return; }
+  $('#tbody').innerHTML=accs.map(a=>`
+    <tr>
+      <td class="nm-col">${a.name}</td>
+      <td>${fmt$(a.spend)}</td>
+      <td>${a.leads}</td>
+      <td style="color:${a.status==='danger'?'var(--bad)':a.status==='warning'?'var(--warn)':'var(--ok)'}">${fmt$(a.cpl)}</td>
+      <td>${(a.ctr||0).toFixed(2)}%</td>
+      <td>${STL[a.status]||a.status}</td>
+    </tr>
+  `).join('');
+}
+
+async function load(){
+  try{
+    const r=await fetch('/api/monitoring?secret='+encodeURIComponent(getSecret()));
+    if(r.status===403){ localStorage.removeItem('st_admin_secret'); boot(); return; }
+    DATA=await r.json();
+    $('#updatedAt').textContent=DATA.updatedAt?('Соңғы жаңарту: '+new Date(DATA.updatedAt).toLocaleTimeString('kk-KZ')):'—';
+    renderAgg(); renderGrid(); renderTable();
+  }catch(e){ console.error(e); }
+}
+
+function boot(){
+  if(getSecret()){
+    $('#gate').style.display='none';
+    $('#app').style.display='block';
+    load();
+    setInterval(load, 60000);
+  } else {
+    $('#gate').style.display='block';
+    $('#app').style.display='none';
+  }
+}
+boot();
+</script>
+</body>
+</html>

@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const { Pool } = require('pg');
 const multer = require('multer');
 const FormData = require('form-data');
+const cron = require('node-cron');
 let stripe;
 try { stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || ''); } catch(e) { console.log('Stripe not installed'); }
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 200 * 1024 * 1024 } }); // 200MB (видео үшін)
@@ -260,6 +261,92 @@ async function getMetaData(token, accountId, datePreset = null) {
 }
 
 // ══════════════════════════════
+// MULTI-ACCOUNT MONITORING — бірнеше клиент аккаунтын бір жерден бақылау
+// ══════════════════════════════
+const MONITOR_ACCOUNTS = (process.env.MONITOR_AD_ACCOUNTS || '').split(',').map(s => s.trim()).filter(Boolean);
+const MONITOR_TARGET_CPL = parseFloat(process.env.TARGET_CPL || '2.0');
+
+let monitorCache = { updatedAt: null, accounts: [] };
+const monitorAlerted = new Set(); // бір аккаунтқа қайталап alert жібермеу үшін
+
+function monitorStatus(cpl) {
+  if (cpl <= 0) return 'good';
+  if (cpl > MONITOR_TARGET_CPL * 1.5) return 'danger';
+  if (cpl > MONITOR_TARGET_CPL) return 'warning';
+  return 'good';
+}
+
+async function fetchAllAccountsStats() {
+  if (!MONITOR_ACCOUNTS.length) return monitorCache;
+  const metaToken = process.env.META_ACCESS_TOKEN;
+  console.log(`📊 Мониторинг: ${MONITOR_ACCOUNTS.length} аккаунт тексерілуде...`);
+
+  // Әр аккаунтқа 2 batch item (аты + insights) — бәрі 1 HTTP сұрауда
+  const batch = [];
+  MONITOR_ACCOUNTS.forEach(id => {
+    batch.push({ method: 'GET', relative_url: `act_${id}?fields=name` });
+    batch.push({ method: 'GET', relative_url: `act_${id}/insights?fields=spend,actions,ctr,cpc,cpm&date_preset=last_3d&level=account` });
+  });
+
+  try {
+    const res = await axios.post(
+      'https://graph.facebook.com/v19.0/',
+      new URLSearchParams({ access_token: metaToken, batch: JSON.stringify(batch) })
+    );
+
+    const accounts = MONITOR_ACCOUNTS.map((id, i) => {
+      const nameBody = JSON.parse(res.data[i * 2]?.body || '{}');
+      const insBody = JSON.parse(res.data[i * 2 + 1]?.body || '{}');
+      const data = insBody.data?.[0] || {};
+      const spend = parseFloat(data.spend || 0);
+      const leads = extractConversations(data.actions);
+      const cpl = leads > 0 ? parseFloat((spend / leads).toFixed(2)) : 0;
+      return {
+        accountId: `act_${id}`,
+        name: nameBody.name || id,
+        spend,
+        leads,
+        cpl,
+        ctr: parseFloat(data.ctr || 0),
+        cpm: parseFloat(data.cpm || 0),
+        status: monitorStatus(cpl),
+      };
+    });
+
+    monitorCache = { updatedAt: new Date().toISOString(), accounts, targetCpl: MONITOR_TARGET_CPL };
+
+    for (const acc of accounts) {
+      if (acc.status === 'danger') {
+        if (!monitorAlerted.has(acc.accountId) && process.env.ADMIN_TG_CHAT_ID) {
+          monitorAlerted.add(acc.accountId);
+          await tgSend(process.env.ADMIN_TG_CHAT_ID,
+            `🚨 <b>${acc.name}</b> CPL асып кетті: $${acc.cpl} (мақсат $${MONITOR_TARGET_CPL})\nШығын: $${acc.spend.toFixed(2)} · Лид: ${acc.leads}`
+          ).catch(() => {});
+        }
+      } else {
+        monitorAlerted.delete(acc.accountId);
+      }
+    }
+  } catch (e) {
+    console.error('Monitoring batch error:', e.response?.data || e.message);
+  }
+  return monitorCache;
+}
+
+app.get('/api/monitoring', async (req, res) => {
+  const secret = req.query.secret || req.headers['x-admin-secret'];
+  if (secret !== (process.env.ADMIN_SECRET || 'smarttarget_admin_2026')) return res.status(403).json({ error: 'Forbidden' });
+  if (!monitorCache.accounts.length) await fetchAllAccountsStats();
+  res.json(monitorCache);
+});
+
+if (MONITOR_ACCOUNTS.length) {
+  cron.schedule('*/15 * * * *', fetchAllAccountsStats);
+} else {
+  console.log('⚠️ MONITOR_AD_ACCOUNTS орнатылмаған — /api/monitoring бос қайтарады');
+}
+
+// ══════════════════════════════
 // AUTH API
 // ══════════════════════════════
 
@@ -304,6 +391,61 @@ app.post('/api/login', async (req, res) => {
     res.json({ token, user });
   } catch(e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+// ══════════════════════════════
+// FACEBOOK OAuth — 1 кликпен ad account байланыстыру
+// ══════════════════════════════
+
+// Клиент осы route-қа өтеді (state = оның session токені)
+app.get('/auth/facebook', (req, res) => {
+  const state = req.query.state || '';
+  if (!META_APP_ID) return res.status(500).send('META_APP_ID конфигурацияланбаған');
+  const scope = 'ads_read,ads_management,business_management,pages_show_list,pages_read_engagement';
+  const url = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${META_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${scope}&response_type=code&state=${encodeURIComponent(state)}`;
+  res.redirect(url);
+});
+
+app.get('/auth/callback', async (req, res) => {
+  const { code, state, error } = req.query;
+  const failRedirect = `${BASE_URL}/ai-targetolog-onboarding.html?fb_error=1`;
+  if (error || !code) return res.redirect(failRedirect);
+
+  try {
+    // 1. code -> қысқа мерзімді токен
+    const shortRes = await axios.get('https://graph.facebook.com/v19.0/oauth/access_token', {
+      params: { client_id: META_APP_ID, client_secret: META_APP_SECRET, redirect_uri: REDIRECT_URI, code }
+    });
+    // 2. қысқа токенді 60 күндік ұзын токенге айырбастау
+    const longRes = await axios.get('https://graph.facebook.com/v19.0/oauth/access_token', {
+      params: {
+        grant_type: 'fb_exchange_token',
+        client_id: META_APP_ID,
+        client_secret: META_APP_SECRET,
+        fb_exchange_token: shortRes.data.access_token
+      }
+    });
+    const longToken = longRes.data.access_token;
+
+    // 3. клиенттің рекламалық аккаунттарын алу
+    const accRes = await axios.get('https://graph.facebook.com/v19.0/me/adaccounts', {
+      params: { fields: 'id,name,account_status', access_token: longToken }
+    });
+    const accounts = accRes.data.data || [];
+
+    const user = state ? await getUserBySession(state) : null;
+    if (user && accounts.length) {
+      const first = accounts[0];
+      await pool.query(
+        'UPDATE users SET meta_token=$1, meta_account_id=$2, meta_account_name=$3 WHERE id=$4',
+        [longToken, first.id.replace('act_', ''), first.name, user.id]
+      );
+    }
+    res.redirect(`${BASE_URL}/ai-targetolog-onboarding.html?fb_connected=1&accounts=${accounts.length}`);
+  } catch (e) {
+    console.error('auth/callback error:', e.response?.data || e.message);
+    res.redirect(failRedirect);
   }
 });
 
@@ -2537,4 +2679,5 @@ app.listen(PORT, async () => {
   await setupBotCommands();
   await scheduleDailyReports();
   await scheduleSubscriptionCheck();
+  if (MONITOR_ACCOUNTS.length) fetchAllAccountsStats().catch(console.error);
 });

@@ -208,6 +208,11 @@ function vConnect(){
     <div style="background:rgba(134,179,117,.07);border:1px solid rgba(134,179,117,.25);border-radius:10px;padding:12px 15px;margin-bottom:18px;font-size:13px;line-height:1.6">
       🔒 <b style="color:var(--ok)">Безопасно.</b> Партнёрский доступ — мы управляем рекламой, но не можем снимать деньги или менять платёжные данные.
     </div>
+    <button onclick="location.href='/auth/facebook?state='+encodeURIComponent(localStorage.getItem('st_token')||'')"
+      style="width:100%;display:flex;align-items:center;justify-content:center;gap:9px;background:#1877F2;border:none;border-radius:8px;padding:13px 15px;color:#fff;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:18px">
+      📘 Facebook-пен байланыстыру (1 клик)
+    </button>
+    <div style="text-align:center;font-size:12px;color:var(--muted);margin:-10px 0 18px">— немесе қолмен —</div>
     <div style="display:flex;flex-direction:column;gap:16px;font-size:13px;line-height:1.65">
       <div style="display:flex;gap:12px;align-items:flex-start">
         <span style="font-family:'Unbounded',sans-serif;font-weight:700;color:var(--gold);min-width:24px">1</span>
@@ -1090,12 +1095,32 @@ async function giveCreative(){
   btn.disabled=false; btn.textContent="📎 Дать ещё креатив";
 }
 
+/* ---------- Facebook OAuth қайту нәтижесі ---------- */
+async function checkFbOAuthResult(){
+  const p = new URLSearchParams(location.search);
+  if(p.get('fb_error')){ alert('❌ Facebook байланысы сәтсіз болды. Қайта көріңіз.'); history.replaceState(null,'',location.pathname); return; }
+  if(p.get('fb_connected')){
+    history.replaceState(null,'',location.pathname);
+    const token = localStorage.getItem('st_token')||'';
+    if(!token) return;
+    try{
+      const r = await fetch('/api/me',{headers:{'Authorization':'Bearer '+token}});
+      const d = await r.json();
+      if(d.meta_connected){
+        S.conn.metaMode='partner'; S.conn.meta=true; S.conn.accountName=d.meta_account_name; S.conn.accountId=d.meta_account_id;
+        render();
+      }
+    }catch(e){ console.log('fb oauth check error:', e); }
+  }
+}
+
 /* ---------- router ---------- */
 function render(){
   steps();
   ({connect:vConnect,direction:vDirection,autopilot:vAutopilot,creative:vCreative,panel:vPanel}[S.screen])();
 }
 render();
+checkFbOAuthResult();
 </script>
 </body>
 </html>
