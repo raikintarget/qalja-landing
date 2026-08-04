@@ -276,65 +276,77 @@ function monitorStatus(cpl) {
   return 'good';
 }
 
-async function fetchAllAccountsStats() {
-  if (!MONITOR_ACCOUNTS.length) return monitorCache;
+// datePreset ('today','yesterday','last_3d',...) НЕМЕСЕ {since,until} (YYYY-MM-DD) қабылдайды
+function insightsDateParam({ since, until, datePreset }) {
+  if (since && until) return `time_range=${encodeURIComponent(JSON.stringify({ since, until }))}`;
+  return `date_preset=${datePreset || 'last_3d'}`;
+}
+
+async function fetchAccountsStats(range = {}) {
+  if (!MONITOR_ACCOUNTS.length) return { updatedAt: new Date().toISOString(), accounts: [], targetCpl: MONITOR_TARGET_CPL };
   const metaToken = process.env.META_ACCESS_TOKEN;
-  console.log(`📊 Мониторинг: ${MONITOR_ACCOUNTS.length} аккаунт тексерілуде...`);
+  const dateParam = insightsDateParam(range);
+  console.log(`📊 Мониторинг: ${MONITOR_ACCOUNTS.length} аккаунт тексерілуде (${dateParam})...`);
 
   // Әр аккаунтқа 3 batch item (аты + account insights + campaign insights) — бәрі 1 HTTP сұрауда
   const batch = [];
   MONITOR_ACCOUNTS.forEach(id => {
     batch.push({ method: 'GET', relative_url: `act_${id}?fields=name` });
-    batch.push({ method: 'GET', relative_url: `act_${id}/insights?fields=spend,actions,ctr,cpc,cpm&date_preset=last_3d&level=account` });
-    batch.push({ method: 'GET', relative_url: `act_${id}/insights?fields=campaign_id,campaign_name,spend,actions,ctr&level=campaign&date_preset=last_3d&limit=50` });
+    batch.push({ method: 'GET', relative_url: `act_${id}/insights?fields=spend,actions,ctr,cpc,cpm&${dateParam}&level=account` });
+    batch.push({ method: 'GET', relative_url: `act_${id}/insights?fields=campaign_id,campaign_name,spend,actions,ctr&level=campaign&${dateParam}&limit=50` });
   });
 
-  try {
-    const res = await axios.post(
-      'https://graph.facebook.com/v19.0/',
-      new URLSearchParams({ access_token: metaToken, batch: JSON.stringify(batch) })
-    );
+  const res = await axios.post(
+    'https://graph.facebook.com/v19.0/',
+    new URLSearchParams({ access_token: metaToken, batch: JSON.stringify(batch) })
+  );
 
-    const accounts = MONITOR_ACCOUNTS.map((id, i) => {
-      const nameBody = JSON.parse(res.data[i * 3]?.body || '{}');
-      const insBody = JSON.parse(res.data[i * 3 + 1]?.body || '{}');
-      const campBody = JSON.parse(res.data[i * 3 + 2]?.body || '{}');
-      const data = insBody.data?.[0] || {};
-      const spend = parseFloat(data.spend || 0);
-      const leads = extractConversations(data.actions);
-      const cpl = leads > 0 ? parseFloat((spend / leads).toFixed(2)) : 0;
+  const accounts = MONITOR_ACCOUNTS.map((id, i) => {
+    const nameBody = JSON.parse(res.data[i * 3]?.body || '{}');
+    const insBody = JSON.parse(res.data[i * 3 + 1]?.body || '{}');
+    const campBody = JSON.parse(res.data[i * 3 + 2]?.body || '{}');
+    const data = insBody.data?.[0] || {};
+    const spend = parseFloat(data.spend || 0);
+    const leads = extractConversations(data.actions);
+    const cpl = leads > 0 ? parseFloat((spend / leads).toFixed(2)) : 0;
 
-      const campaigns = (campBody.data || []).map(c => {
-        const cSpend = parseFloat(c.spend || 0);
-        const cLeads = extractConversations(c.actions);
-        const cCpl = cLeads > 0 ? parseFloat((cSpend / cLeads).toFixed(2)) : 0;
-        return {
-          id: c.campaign_id,
-          name: c.campaign_name,
-          spend: cSpend,
-          leads: cLeads,
-          cpl: cCpl,
-          ctr: parseFloat(c.ctr || 0),
-          status: monitorStatus(cCpl),
-        };
-      }).sort((a, b) => b.spend - a.spend);
-
+    const campaigns = (campBody.data || []).map(c => {
+      const cSpend = parseFloat(c.spend || 0);
+      const cLeads = extractConversations(c.actions);
+      const cCpl = cLeads > 0 ? parseFloat((cSpend / cLeads).toFixed(2)) : 0;
       return {
-        accountId: `act_${id}`,
-        name: nameBody.name || id,
-        spend,
-        leads,
-        cpl,
-        ctr: parseFloat(data.ctr || 0),
-        cpm: parseFloat(data.cpm || 0),
-        status: monitorStatus(cpl),
-        campaigns,
+        id: c.campaign_id,
+        name: c.campaign_name,
+        spend: cSpend,
+        leads: cLeads,
+        cpl: cCpl,
+        ctr: parseFloat(c.ctr || 0),
+        status: monitorStatus(cCpl),
       };
-    });
+    }).sort((a, b) => b.spend - a.spend);
 
-    monitorCache = { updatedAt: new Date().toISOString(), accounts, targetCpl: MONITOR_TARGET_CPL };
+    return {
+      accountId: `act_${id}`,
+      name: nameBody.name || id,
+      spend,
+      leads,
+      cpl,
+      ctr: parseFloat(data.ctr || 0),
+      cpm: parseFloat(data.cpm || 0),
+      status: monitorStatus(cpl),
+      campaigns,
+    };
+  });
 
-    for (const acc of accounts) {
+  return { updatedAt: new Date().toISOString(), accounts, targetCpl: MONITOR_TARGET_CPL };
+}
+
+// Cron/кэш үшін — тұрақты default терезе (last_3d) + Telegram алерт
+async function fetchAllAccountsStats() {
+  if (!MONITOR_ACCOUNTS.length) return monitorCache;
+  try {
+    monitorCache = await fetchAccountsStats({ datePreset: 'last_3d' });
+    for (const acc of monitorCache.accounts) {
       if (acc.status === 'danger') {
         if (!monitorAlerted.has(acc.accountId) && process.env.ADMIN_TG_CHAT_ID) {
           monitorAlerted.add(acc.accountId);
@@ -355,6 +367,18 @@ async function fetchAllAccountsStats() {
 app.get('/api/monitoring', async (req, res) => {
   const secret = req.query.secret || req.headers['x-admin-secret'];
   if (secret !== (process.env.ADMIN_SECRET || 'smarttarget_admin_2026')) return res.status(403).json({ error: 'Forbidden' });
+
+  const { since, until, date_preset } = req.query;
+  // Пайдаланушы нақты период таңдаса — сол терезе үшін лайв сұрау (кэшке тиіспей)
+  if ((since && until) || date_preset) {
+    try {
+      const live = await fetchAccountsStats({ since, until, datePreset: date_preset });
+      return res.json(live);
+    } catch (e) {
+      return res.status(502).json({ error: e.response?.data?.error?.message || e.message });
+    }
+  }
+
   if (!monitorCache.accounts.length) await fetchAllAccountsStats();
   res.json(monitorCache);
 });

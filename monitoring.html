@@ -60,6 +60,11 @@ td{padding:10px 14px;border-bottom:1px solid var(--line);font-family:'JetBrains 
 td.nm-col{font-family:'Inter',sans-serif;font-weight:500}
 tr:last-child td{border-bottom:none}
 .empty{padding:40px;text-align:center;color:var(--dim)}
+.period-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.pbtn{appearance:none;border:1px solid var(--line);background:var(--s);border-radius:9px;padding:7px 13px;font-family:inherit;font-size:12.5px;font-weight:600;color:var(--dim);cursor:pointer}
+.pbtn:hover{color:var(--fg)}
+.pbtn.on{background:var(--primary-s);color:var(--primary);border-color:var(--primary)}
+.dinp{border:1px solid var(--line);background:var(--s);border-radius:9px;padding:6px 10px;font-family:inherit;font-size:12.5px;color:var(--fg)}
 .gate{max-width:360px;margin:80px auto;background:var(--s);border:1px solid var(--line);border-radius:var(--r);padding:24px;box-shadow:var(--shadow)}
 .gate input{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:14px;margin:12px 0}
 </style>
@@ -85,6 +90,18 @@ tr:last-child td{border-bottom:none}
     </div>
   </div>
 
+  <div class="period-bar" id="periodBar">
+    <button class="pbtn" data-preset="today" onclick="setPreset('today')">Бүгін</button>
+    <button class="pbtn" data-preset="yesterday" onclick="setPreset('yesterday')">Кеше</button>
+    <button class="pbtn" data-preset="last_3d" onclick="setPreset('last_3d')">Соңғы 3 күн</button>
+    <button class="pbtn" data-preset="last_7d" onclick="setPreset('last_7d')">Соңғы 7 күн</button>
+    <span style="flex:1"></span>
+    <input type="date" id="rangeSince" class="dinp">
+    <span style="color:var(--muted);font-size:12px">—</span>
+    <input type="date" id="rangeUntil" class="dinp">
+    <button class="pbtn" onclick="applyCustomRange()">Қолдану</button>
+  </div>
+
   <div class="agg" id="agg"></div>
   <div class="grid" id="grid"></div>
 
@@ -108,6 +125,8 @@ tr:last-child td{border-bottom:none}
 const $=s=>document.querySelector(s);
 let DATA={accounts:[],updatedAt:null,targetCpl:2};
 let sortKey='cpl', sortDir=-1;
+let currentRange={}; // {} = default (last_3d, кэштен) | {datePreset:'today'} | {since,until}
+let refreshTimer=null;
 
 function getSecret(){ return localStorage.getItem('st_admin_secret')||''; }
 function saveSecret(){
@@ -200,9 +219,30 @@ function renderTable(){
   `).join('');
 }
 
+function highlightPreset(preset){
+  document.querySelectorAll('.pbtn[data-preset]').forEach(b=>b.classList.toggle('on', b.dataset.preset===preset));
+}
+
+function setPreset(preset){
+  currentRange = {datePreset:preset};
+  highlightPreset(preset);
+  load();
+}
+
+function applyCustomRange(){
+  const since=$('#rangeSince').value, until=$('#rangeUntil').value;
+  if(!since||!until){ alert('Екі күнді де таңдаңыз'); return; }
+  currentRange = {since, until};
+  highlightPreset(null);
+  load();
+}
+
 async function load(){
   try{
-    const r=await fetch('/api/monitoring?secret='+encodeURIComponent(getSecret()));
+    const params=new URLSearchParams({secret:getSecret()});
+    if(currentRange.since && currentRange.until){ params.set('since',currentRange.since); params.set('until',currentRange.until); }
+    else if(currentRange.datePreset){ params.set('date_preset',currentRange.datePreset); }
+    const r=await fetch('/api/monitoring?'+params.toString());
     if(r.status===403){ localStorage.removeItem('st_admin_secret'); boot(); return; }
     DATA=await r.json();
     $('#updatedAt').textContent=DATA.updatedAt?('Соңғы жаңарту: '+new Date(DATA.updatedAt).toLocaleTimeString('kk-KZ')):'—';
@@ -215,7 +255,8 @@ function boot(){
     $('#gate').style.display='none';
     $('#app').style.display='block';
     load();
-    setInterval(load, 60000);
+    if(refreshTimer) clearInterval(refreshTimer);
+    refreshTimer=setInterval(load, 60000);
   } else {
     $('#gate').style.display='block';
     $('#app').style.display='none';
