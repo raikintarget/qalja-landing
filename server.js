@@ -281,11 +281,12 @@ async function fetchAllAccountsStats() {
   const metaToken = process.env.META_ACCESS_TOKEN;
   console.log(`📊 Мониторинг: ${MONITOR_ACCOUNTS.length} аккаунт тексерілуде...`);
 
-  // Әр аккаунтқа 2 batch item (аты + insights) — бәрі 1 HTTP сұрауда
+  // Әр аккаунтқа 3 batch item (аты + account insights + campaign insights) — бәрі 1 HTTP сұрауда
   const batch = [];
   MONITOR_ACCOUNTS.forEach(id => {
     batch.push({ method: 'GET', relative_url: `act_${id}?fields=name` });
     batch.push({ method: 'GET', relative_url: `act_${id}/insights?fields=spend,actions,ctr,cpc,cpm&date_preset=last_3d&level=account` });
+    batch.push({ method: 'GET', relative_url: `act_${id}/insights?fields=campaign_id,campaign_name,spend,actions,ctr&level=campaign&date_preset=last_3d&limit=50` });
   });
 
   try {
@@ -295,12 +296,29 @@ async function fetchAllAccountsStats() {
     );
 
     const accounts = MONITOR_ACCOUNTS.map((id, i) => {
-      const nameBody = JSON.parse(res.data[i * 2]?.body || '{}');
-      const insBody = JSON.parse(res.data[i * 2 + 1]?.body || '{}');
+      const nameBody = JSON.parse(res.data[i * 3]?.body || '{}');
+      const insBody = JSON.parse(res.data[i * 3 + 1]?.body || '{}');
+      const campBody = JSON.parse(res.data[i * 3 + 2]?.body || '{}');
       const data = insBody.data?.[0] || {};
       const spend = parseFloat(data.spend || 0);
       const leads = extractConversations(data.actions);
       const cpl = leads > 0 ? parseFloat((spend / leads).toFixed(2)) : 0;
+
+      const campaigns = (campBody.data || []).map(c => {
+        const cSpend = parseFloat(c.spend || 0);
+        const cLeads = extractConversations(c.actions);
+        const cCpl = cLeads > 0 ? parseFloat((cSpend / cLeads).toFixed(2)) : 0;
+        return {
+          id: c.campaign_id,
+          name: c.campaign_name,
+          spend: cSpend,
+          leads: cLeads,
+          cpl: cCpl,
+          ctr: parseFloat(c.ctr || 0),
+          status: monitorStatus(cCpl),
+        };
+      }).sort((a, b) => b.spend - a.spend);
+
       return {
         accountId: `act_${id}`,
         name: nameBody.name || id,
@@ -310,6 +328,7 @@ async function fetchAllAccountsStats() {
         ctr: parseFloat(data.ctr || 0),
         cpm: parseFloat(data.cpm || 0),
         status: monitorStatus(cpl),
+        campaigns,
       };
     });
 
