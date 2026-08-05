@@ -65,6 +65,11 @@ tr:last-child td{border-bottom:none}
 .pbtn:hover{color:var(--fg)}
 .pbtn.on{background:var(--primary-s);color:var(--primary);border-color:var(--primary)}
 .dinp{border:1px solid var(--line);background:var(--s);border-radius:9px;padding:6px 10px;font-family:inherit;font-size:12.5px;color:var(--fg)}
+.cbadge{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;font-family:'Inter',sans-serif}
+.cbadge.dead{background:var(--bad-s);color:var(--bad)}
+.cbadge.tired{background:#FEF3C7;color:#B45309}
+.cbadge.testing{background:var(--primary-s);color:var(--primary)}
+.cbadge.winning{background:var(--ok-s);color:var(--ok)}
 .gate{max-width:360px;margin:80px auto;background:var(--s);border:1px solid var(--line);border-radius:var(--r);padding:24px;box-shadow:var(--shadow)}
 .gate input{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:14px;margin:12px 0}
 </style>
@@ -117,6 +122,22 @@ tr:last-child td{border-bottom:none}
         <th>Статус</th>
       </tr></thead>
       <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="tbl-wrap" style="margin-top:20px">
+    <h2>Креативтер (ad-деңгейі) — барлық аккаунт бойынша</h2>
+    <table>
+      <thead><tr>
+        <th onclick="sortByCr('adName')">Ad</th>
+        <th onclick="sortByCr('accountId')">Аккаунт</th>
+        <th onclick="sortByCr('spend')">Шығын</th>
+        <th onclick="sortByCr('leads')">Лид</th>
+        <th onclick="sortByCr('cpl')">CPL</th>
+        <th onclick="sortByCr('ctr')">CTR</th>
+        <th onclick="sortByCr('status')">Статус</th>
+      </tr></thead>
+      <tbody id="crTbody"><tr><td colspan="7" class="empty">Жүктелуде…</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -200,6 +221,48 @@ function sortBy(key){
   renderTable();
 }
 
+let crData=[];
+let crSortKey='spend', crSortDir=-1;
+const CR_STL={dead:'Өлі',tired:'Шаршаған',testing:'Тест',winning:'Жеңімпаз'};
+
+function sortByCr(key){
+  if(crSortKey===key) crSortDir*=-1; else { crSortKey=key; crSortDir=-1; }
+  renderCrTable();
+}
+
+function renderCrTable(){
+  const ads=[...crData].sort((a,b)=>{
+    const av=a[crSortKey], bv=b[crSortKey];
+    if(typeof av==='string') return crSortDir*av.localeCompare(bv);
+    return crSortDir*((av||0)-(bv||0));
+  });
+  if(!ads.length){ $('#crTbody').innerHTML='<tr><td colspan="7" class="empty">Креатив деректері жоқ</td></tr>'; return; }
+  $('#crTbody').innerHTML=ads.map(a=>`
+    <tr>
+      <td class="nm-col">${a.adName||'—'}</td>
+      <td>${a.accountId}</td>
+      <td>${fmt$(a.spend)}</td>
+      <td>${a.leads}</td>
+      <td>${fmt$(a.cpl)}</td>
+      <td>${(a.ctr||0).toFixed(2)}%</td>
+      <td><span class="cbadge ${a.status}">${CR_STL[a.status]||a.status}</span></td>
+    </tr>
+  `).join('');
+}
+
+async function loadCreatives(){
+  try{
+    const params=new URLSearchParams({secret:getSecret()});
+    if(currentRange.since && currentRange.until){ params.set('since',currentRange.since); params.set('until',currentRange.until); }
+    else if(currentRange.datePreset){ params.set('date_preset',currentRange.datePreset); }
+    const r=await fetch('/api/monitoring/creatives?'+params.toString());
+    if(r.status===403) return;
+    const d=await r.json();
+    crData=d.ads||[];
+    renderCrTable();
+  }catch(e){ console.error(e); }
+}
+
 function renderTable(){
   const accs=[...(DATA.accounts||[])].sort((a,b)=>{
     const av=a[sortKey], bv=b[sortKey];
@@ -247,6 +310,7 @@ async function load(){
     DATA=await r.json();
     $('#updatedAt').textContent=DATA.updatedAt?('Соңғы жаңарту: '+new Date(DATA.updatedAt).toLocaleTimeString('kk-KZ')):'—';
     renderAgg(); renderGrid(); renderTable();
+    loadCreatives();
   }catch(e){ console.error(e); }
 }
 

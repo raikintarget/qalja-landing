@@ -383,6 +383,60 @@ app.get('/api/monitoring', async (req, res) => {
   res.json(monitorCache);
 });
 
+// Барлық мониторингтегі аккаунттардың ad-деңгейлі статусы: dead/tired/testing/winning
+function creativeStatus(ctr, spend, leads) {
+  if (ctr < 0.8) return 'dead';
+  if (ctr < 1.5) return 'tired';
+  if (spend > 0 && leads === 0) return 'testing';
+  return 'winning';
+}
+
+app.get('/api/monitoring/creatives', async (req, res) => {
+  const secret = req.query.secret || req.headers['x-admin-secret'];
+  if (secret !== (process.env.ADMIN_SECRET || 'smarttarget_admin_2026')) return res.status(403).json({ error: 'Forbidden' });
+  if (!MONITOR_ACCOUNTS.length) return res.json({ ads: [] });
+
+  const metaToken = process.env.META_ACCESS_TOKEN;
+  const dateParam = insightsDateParam({ since: req.query.since, until: req.query.until, datePreset: req.query.date_preset });
+
+  const batch = MONITOR_ACCOUNTS.map(id => ({
+    method: 'GET',
+    relative_url: `act_${id}/insights?fields=ad_id,ad_name,adset_id,campaign_name,spend,actions,ctr&level=ad&${dateParam}&limit=100`
+  }));
+
+  try {
+    const bres = await axios.post(
+      'https://graph.facebook.com/v19.0/',
+      new URLSearchParams({ access_token: metaToken, batch: JSON.stringify(batch) })
+    );
+
+    const ads = MONITOR_ACCOUNTS.flatMap((id, i) => {
+      const body = JSON.parse(bres.data[i]?.body || '{}');
+      return (body.data || []).map(ad => {
+        const spend = parseFloat(ad.spend || 0);
+        const leads = extractConversations(ad.actions);
+        const ctr = parseFloat(ad.ctr || 0);
+        return {
+          accountId: `act_${id}`,
+          adId: ad.ad_id,
+          adsetId: ad.adset_id,
+          adName: ad.ad_name,
+          campaignName: ad.campaign_name,
+          spend,
+          leads,
+          cpl: leads > 0 ? parseFloat((spend / leads).toFixed(2)) : 0,
+          ctr,
+          status: creativeStatus(ctr, spend, leads),
+        };
+      });
+    }).sort((a, b) => b.spend - a.spend);
+
+    res.json({ ads });
+  } catch (e) {
+    res.status(502).json({ error: e.response?.data?.error?.message || e.message });
+  }
+});
+
 if (MONITOR_ACCOUNTS.length) {
   cron.schedule('*/15 * * * *', fetchAllAccountsStats);
 } else {
@@ -568,6 +622,26 @@ app.post('/api/meta/scale-budget', async (req, res) => {
       results.push({ name: adset.name, old: (currentBudget/100).toFixed(2), new: (newBudget/100).toFixed(2) });
     }
     res.json({ ok: true, results });
+  } catch(e) {
+    res.status(400).json({ error: e.response?.data?.error?.message || e.message });
+  }
+});
+
+// Meta API: адсетке нақты (абсолют) күнделікті бюджет қою — scale-budget факторлық емес, тура сома
+app.post('/api/meta/set-budget', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const user = token ? await getUserBySession(token) : null;
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  const { adset_id, daily_budget } = req.body; // daily_budget — доллармен, мыс: 20
+  if (!adset_id || !daily_budget) return res.status(400).json({ error: 'adset_id and daily_budget required' });
+  const metaToken = user.meta_token || process.env.META_ACCESS_TOKEN;
+  const base = 'https://graph.facebook.com/v19.0';
+  try {
+    const cents = Math.max(100, Math.round(parseFloat(daily_budget) * 100));
+    await axios.post(`${base}/${adset_id}`, null, {
+      params: { access_token: metaToken, daily_budget: cents }
+    });
+    res.json({ ok: true, adset_id, daily_budget: (cents / 100).toFixed(2) });
   } catch(e) {
     res.status(400).json({ error: e.response?.data?.error?.message || e.message });
   }
